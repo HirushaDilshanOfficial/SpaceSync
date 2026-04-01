@@ -1,116 +1,132 @@
 import React, { useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from '../components/ui/Card';
-import { Button } from '../components/ui/Button';
-import { Input } from '../components/ui/Input';
-import { Label } from '../components/ui/Label';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Loader2 } from 'lucide-react';
+
+const RESOURCES = ['Conference Room A', 'Conference Room B', 'Training Lab', 'Projector XYZ', 'Board Room'];
+
+const FieldLabel = ({ children, required }) => (
+  <label className="block text-sm font-medium text-gray-700 mb-1.5">
+    {children} {required && <span className="text-red-400">*</span>}
+  </label>
+);
+
+const inputClass = "w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all placeholder:text-gray-400";
 
 export function NewBookingPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
 
   const handleSubmit = (e) => {
     e.preventDefault();
     setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false);
-      navigate('/dashboard');
-    }, 1000);
+    setTimeout(() => { setLoading(false); setSubmitted(true); setTimeout(() => navigate('/dashboard'), 1800); }, 1200);
   };
 
+  if (submitted) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-5 text-center px-4">
+        <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center border-4 border-emerald-100">
+          <CheckCircle className="w-10 h-10 text-emerald-500" strokeWidth={1.5} />
+        </div>
+        <div>
+          <h2 className="text-xl font-bold text-gray-900">Request Submitted!</h2>
+          <p className="text-gray-400 text-sm mt-2 max-w-xs">Your booking is now pending admin approval. Redirecting to dashboard…</p>
+        </div>
+        <div className="flex gap-1 mt-2">
+          <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+          <div className="w-1.5 h-1.5 bg-indigo-300 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+          <div className="w-1.5 h-1.5 bg-indigo-200 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-2xl mx-auto space-y-6 animate-in fade-in duration-500">
-      
-      {/* Header Section */}
+    <div className="max-w-2xl mx-auto space-y-6">
+
+      {/* Header */}
       <div>
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          className="mb-4 -ml-3 text-slate-500 hover:text-slate-900"
+        <button
           onClick={() => navigate(-1)}
+          className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-700 transition-colors mb-4"
         >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Dashboard
-        </Button>
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
-          Request a Workspace
-        </h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Fill out the form below to request a resource. Approvals usually take 24 hours.
-        </p>
+          <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+        </button>
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Book a Workspace</h1>
+        <p className="text-gray-500 mt-1 text-sm">Fill in the details. Your request goes to an admin for approval.</p>
       </div>
 
-      <Card>
-        <form onSubmit={handleSubmit}>
-          <CardHeader className="border-b border-slate-100">
-            <CardTitle className="text-lg">Booking Details</CardTitle>
-            <CardDescription className="text-xs">All fields are required unless marked as optional.</CardDescription>
-          </CardHeader>
-          
-          <CardContent className="space-y-6 p-6">
-            
-            <div className="space-y-2">
-              <Label htmlFor="resource">Resource</Label>
-              <select 
-                id="resource" 
-                className="w-full h-10 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-colors cursor-pointer"
-                required
-                defaultValue=""
-              >
-                <option value="" disabled>Select a resource</option>
-                <option value="room-a">Conference Room A</option>
-                <option value="room-b">Conference Room B</option>
-                <option value="lab">Training Lab</option>
-                <option value="projector">Projector XYZ</option>
-              </select>
+      {/* Form Card */}
+      <div className="bg-white border border-gray-100 rounded-2xl shadow-card">
+        <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-5">
+
+          {/* Resource */}
+          <div>
+            <FieldLabel required>Resource / Location</FieldLabel>
+            <select className={inputClass} required defaultValue="">
+              <option value="" disabled>Select a workspace to book</option>
+              {RESOURCES.map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </div>
+
+          {/* Date + Attendees */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <FieldLabel required>Date</FieldLabel>
+              <input type="date" className={inputClass} required />
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="date">Date</Label>
-                <Input id="date" type="date" required />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="attendees">Expected Attendees</Label>
-                <Input id="attendees" type="number" min="1" placeholder="e.g. 5" required />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="startTime">Start Time</Label>
-                <Input id="startTime" type="time" required />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="endTime">End Time</Label>
-                <Input id="endTime" type="time" required />
-              </div>
+            <div>
+              <FieldLabel required>Expected Attendees</FieldLabel>
+              <input type="number" min="1" placeholder="e.g. 8" className={inputClass} required />
             </div>
+          </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="purpose">Purpose</Label>
-              <textarea 
-                id="purpose" 
-                rows={4}
-                className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 resize-none transition-colors"
-                placeholder="Briefly describe the purpose of this booking..."
-                required
-              />
+          {/* Time */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <FieldLabel required>Start Time</FieldLabel>
+              <input type="time" className={inputClass} required />
             </div>
+            <div>
+              <FieldLabel required>End Time</FieldLabel>
+              <input type="time" className={inputClass} required />
+            </div>
+          </div>
 
-          </CardContent>
-          <CardFooter className="flex justify-end space-x-3 border-t border-slate-100 p-6 bg-slate-50 rounded-b-xl">
-            <Button type="button" variant="ghost" onClick={() => navigate(-1)}>
+          {/* Purpose */}
+          <div>
+            <FieldLabel required>Purpose of Booking</FieldLabel>
+            <textarea
+              className={`${inputClass} resize-none`}
+              rows={4}
+              placeholder="Briefly describe why you need this space — e.g. client presentation, team standup, training session…"
+              required
+            />
+          </div>
+
+          {/* Info note */}
+          <div className="flex items-start gap-2.5 bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 text-sm text-indigo-700">
+            <svg className="w-4 h-4 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" d="M12 8v4m0 4h.01"/></svg>
+            <span>Once submitted, an admin will review your request. You'll see the status under <strong>My Bookings</strong>.</span>
+          </div>
+
+          {/* Actions */}
+          <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end pt-3 border-t border-gray-100">
+            <button type="button" onClick={() => navigate(-1)} className="px-5 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-900 rounded-xl transition-colors">
               Cancel
-            </Button>
-            <Button type="submit" variant="primary" disabled={loading}>
-              {loading ? 'Submitting...' : 'Submit Request'}
-            </Button>
-          </CardFooter>
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 active:bg-indigo-800 disabled:opacity-60 transition-colors shadow-sm"
+            >
+              {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Submitting…</> : 'Submit Request'}
+            </button>
+          </div>
+
         </form>
-      </Card>
+      </div>
     </div>
   );
 }
