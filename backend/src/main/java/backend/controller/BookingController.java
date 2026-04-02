@@ -34,7 +34,13 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.getBookingById(id));
     }
 
+    @GetMapping("/my")
+    public ResponseEntity<List<BookingResponseDTO>> getMyBookings(@RequestParam String userId) {
+        return ResponseEntity.ok(bookingService.getBookingsByUserId(userId));
+    }
+
     @GetMapping("/user/{userId}")
+    @Deprecated // Replaced by /my for better RESTful approach on "My Booking" page
     public ResponseEntity<List<BookingResponseDTO>> getBookingsByUserId(@PathVariable String userId) {
         return ResponseEntity.ok(bookingService.getBookingsByUserId(userId));
     }

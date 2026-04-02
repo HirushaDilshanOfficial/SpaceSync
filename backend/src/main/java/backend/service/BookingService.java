@@ -21,6 +21,10 @@ public class BookingService {
 
     @Transactional
     public BookingResponseDTO createBooking(BookingRequestDTO request) {
+        if (!request.isValidTimeline()) {
+            throw new IllegalArgumentException("End time must be after start time");
+        }
+
         Booking booking = Booking.builder()
                 .userId(request.getUserId())
                 .resourceId(request.getResourceId())
@@ -46,7 +50,7 @@ public class BookingService {
     }
 
     public List<BookingResponseDTO> getBookingsByUserId(String userId) {
-        return bookingRepository.findByUserId(userId).stream()
+        return bookingRepository.findByUserIdOrderByCreatedAtDesc(userId).stream()
                 .map(this::mapToResponseDTO)
                 .collect(Collectors.toList());
     }

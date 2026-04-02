@@ -16,11 +16,55 @@ export function NewBookingPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [formData, setFormData] = useState({
+    resourceId: '',
+    date: '',
+    startTime: '',
+    endTime: '',
+    attendees: '',
+    purpose: ''
+  });
 
-  const handleSubmit = (e) => {
+  const handleChange = (e) => {
+    const { id, value } = e.target;
+    setFormData(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => { setLoading(false); setSubmitted(true); setTimeout(() => navigate('/dashboard'), 1800); }, 1200);
+    
+    try {
+      // Format dates for backend: LocalDateTime (ISO string)
+      const startDateTime = `${formData.date}T${formData.startTime}:00`;
+      const endDateTime = `${formData.date}T${formData.endTime}:00`;
+
+      const payload = {
+        userId: 'USER-001', // Hardcoded for now
+        resourceId: formData.resourceId,
+        startTime: startDateTime,
+        endTime: endDateTime
+      };
+
+      const response = await fetch('http://localhost:8080/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to submit booking');
+      }
+
+      setSubmitted(true);
+      setTimeout(() => navigate('/dashboard'), 1800);
+    } catch (err) {
+      console.error(err);
+      alert(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (submitted) {
@@ -64,7 +108,13 @@ export function NewBookingPage() {
           {/* Resource */}
           <div>
             <FieldLabel required>Resource / Location</FieldLabel>
-            <select className={inputClass} required defaultValue="">
+            <select 
+              id="resourceId"
+              className={inputClass} 
+              required 
+              value={formData.resourceId}
+              onChange={handleChange}
+            >
               <option value="" disabled>Select a workspace to book</option>
               {RESOURCES.map(r => <option key={r} value={r}>{r}</option>)}
             </select>
@@ -74,11 +124,27 @@ export function NewBookingPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <FieldLabel required>Date</FieldLabel>
-              <input type="date" className={inputClass} required />
+              <input 
+                id="date"
+                type="date" 
+                className={inputClass} 
+                required 
+                value={formData.date}
+                onChange={handleChange}
+              />
             </div>
             <div>
               <FieldLabel required>Expected Attendees</FieldLabel>
-              <input type="number" min="1" placeholder="e.g. 8" className={inputClass} required />
+              <input 
+                id="attendees"
+                type="number" 
+                min="1" 
+                placeholder="e.g. 8" 
+                className={inputClass} 
+                required 
+                value={formData.attendees}
+                onChange={handleChange}
+              />
             </div>
           </div>
 
@@ -86,11 +152,25 @@ export function NewBookingPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <FieldLabel required>Start Time</FieldLabel>
-              <input type="time" className={inputClass} required />
+              <input 
+                id="startTime"
+                type="time" 
+                className={inputClass} 
+                required 
+                value={formData.startTime}
+                onChange={handleChange}
+              />
             </div>
             <div>
               <FieldLabel required>End Time</FieldLabel>
-              <input type="time" className={inputClass} required />
+              <input 
+                id="endTime"
+                type="time" 
+                className={inputClass} 
+                required 
+                value={formData.endTime}
+                onChange={handleChange}
+              />
             </div>
           </div>
 
@@ -98,10 +178,13 @@ export function NewBookingPage() {
           <div>
             <FieldLabel required>Purpose of Booking</FieldLabel>
             <textarea
+              id="purpose"
               className={`${inputClass} resize-none`}
               rows={4}
               placeholder="Briefly describe why you need this space — e.g. client presentation, team standup, training session…"
               required
+              value={formData.purpose}
+              onChange={handleChange}
             />
           </div>
 
