@@ -35,8 +35,16 @@ public class Booking {
     private LocalDateTime endTime;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private BookingStatus status;
+
+    @Column(nullable = false)
+    private String purpose;
+
+    @Column(nullable = false)
+    private Integer attendees;
+
+    private String rejectReason;
 
     @CreationTimestamp
     @Column(updatable = false)

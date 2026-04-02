@@ -18,6 +18,7 @@ import java.util.stream.Collectors;
 public class BookingService {
 
     private final BookingRepository bookingRepository;
+    private final backend.repository.ResourceRepository resourceRepository;
 
     @Transactional
     public BookingResponseDTO createBooking(BookingRequestDTO request) {
@@ -30,6 +31,8 @@ public class BookingService {
                 .resourceId(request.getResourceId())
                 .startTime(request.getStartTime())
                 .endTime(request.getEndTime())
+                .purpose(request.getPurpose())
+                .attendees(request.getAttendees())
                 .status(BookingStatus.PENDING)
                 .build();
 
@@ -56,10 +59,13 @@ public class BookingService {
     }
 
     @Transactional
-    public BookingResponseDTO updateBookingStatus(Long id, BookingStatus status) {
+    public BookingResponseDTO updateBookingStatus(Long id, BookingStatus status, String rejectReason) {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + id));
         booking.setStatus(status);
+        if (status == BookingStatus.REJECTED && rejectReason != null) {
+            booking.setRejectReason(rejectReason);
+        }
         Booking updatedBooking = bookingRepository.save(booking);
         return mapToResponseDTO(updatedBooking);
     }
@@ -73,13 +79,22 @@ public class BookingService {
     }
 
     private BookingResponseDTO mapToResponseDTO(Booking booking) {
+        String resourceName = resourceRepository.findById(booking.getResourceId())
+                .map(backend.entity.Resource::getName)
+                .orElse("Unknown Resource");
+
         return BookingResponseDTO.builder()
                 .id(booking.getId())
                 .userId(booking.getUserId())
+                .userName("User " + booking.getUserId()) // Standardized mock for now
                 .resourceId(booking.getResourceId())
+                .resourceName(resourceName)
                 .startTime(booking.getStartTime())
                 .endTime(booking.getEndTime())
                 .status(booking.getStatus())
+                .purpose(booking.getPurpose())
+                .attendees(booking.getAttendees())
+                .rejectReason(booking.getRejectReason())
                 .createdAt(booking.getCreatedAt())
                 .updatedAt(booking.getUpdatedAt())
                 .build();

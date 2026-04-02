@@ -2,8 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, Loader2 } from 'lucide-react';
 
-const RESOURCES = ['Conference Room A', 'Conference Room B', 'Training Lab', 'Projector XYZ', 'Board Room'];
-
 const FieldLabel = ({ children, required }) => (
   <label className="block text-sm font-medium text-gray-700 mb-1.5">
     {children} {required && <span className="text-red-400">*</span>}
@@ -16,6 +14,7 @@ export function NewBookingPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [resources, setResources] = useState([]);
   const [formData, setFormData] = useState({
     resourceId: '',
     date: '',
@@ -24,6 +23,13 @@ export function NewBookingPage() {
     attendees: '',
     purpose: ''
   });
+
+  React.useEffect(() => {
+    fetch('http://localhost:8080/api/resources')
+      .then(res => res.json())
+      .then(data => setResources(data))
+      .catch(err => console.error("Failed to fetch resources:", err));
+  }, []);
 
   const handleChange = (e) => {
     const { id, value } = e.target;
@@ -43,7 +49,9 @@ export function NewBookingPage() {
         userId: 'USER-001', // Hardcoded for now
         resourceId: formData.resourceId,
         startTime: startDateTime,
-        endTime: endDateTime
+        endTime: endDateTime,
+        attendees: parseInt(formData.attendees, 10),
+        purpose: formData.purpose
       };
 
       const response = await fetch('http://localhost:8080/api/bookings', {
@@ -116,7 +124,7 @@ export function NewBookingPage() {
               onChange={handleChange}
             >
               <option value="" disabled>Select a workspace to book</option>
-              {RESOURCES.map(r => <option key={r} value={r}>{r}</option>)}
+              {resources.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
             </select>
           </div>
 
