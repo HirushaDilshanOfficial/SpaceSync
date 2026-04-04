@@ -26,6 +26,10 @@ public class BookingService {
             throw new IllegalArgumentException("End time must be after start time");
         }
 
+        if (bookingRepository.hasApprovedConflict(request.getResourceId(), request.getStartTime(), request.getEndTime())) {
+            throw new IllegalStateException("Selected time slot is already booked and approved");
+        }
+
         Booking booking = Booking.builder()
                 .userId(request.getUserId())
                 .resourceId(request.getResourceId())

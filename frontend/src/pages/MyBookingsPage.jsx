@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Clock, Users, Plus, XCircle, CheckCircle, AlertCircle, ChevronRight } from 'lucide-react';
+import { Calendar, Clock, Users, Plus, XCircle, CheckCircle, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const statusConfig = {
@@ -95,7 +95,7 @@ export function MyBookingsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {bookings.map((booking) => {
             const statusStyle = statusConfig[booking.status] || statusConfig.PENDING;
-            const { color, dot, icon: Icon } = statusStyle;
+            const { color, dot } = statusStyle;
             
             // Basic formatting for ISO strings
             const startDate = new Date(booking.startTime);
