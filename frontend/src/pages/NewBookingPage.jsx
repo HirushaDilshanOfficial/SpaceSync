@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, Loader2 } from 'lucide-react';
-
-const RESOURCES = ['Conference Room A', 'Conference Room B', 'Training Lab', 'Projector XYZ', 'Board Room'];
+import { ArrowLeft, CheckCircle, Loader2, XCircle } from 'lucide-react';
 
 const FieldLabel = ({ children, required }) => (
   <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -16,6 +14,8 @@ export function NewBookingPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [resources, setResources] = useState([]);
+  const [allBookings, setAllBookings] = useState([]);
   const [formData, setFormData] = useState({
     resourceId: '',
     date: '',
@@ -25,10 +25,58 @@ export function NewBookingPage() {
     purpose: ''
   });
 
+  React.useEffect(() => {
+    fetch('http://localhost:8080/api/resources')
+      .then(res => res.json())
+      .then(data => setResources(data))
+      .catch(err => console.error("Failed to fetch resources:", err));
+
+    fetch('http://localhost:8080/api/bookings')
+      .then(res => res.json())
+      .then(data => setAllBookings(data))
+      .catch(err => console.error("Failed to fetch bookings:", err));
+  }, []);
+
   const handleChange = (e) => {
     const { id, value } = e.target;
     setFormData(prev => ({ ...prev, [id]: value }));
   };
+
+  const parseT = (timeStr) => {
+    if (!timeStr) return 0;
+    const [h, m] = timeStr.split(':').map(Number);
+    return h * 60 + m;
+  };
+
+  const hasConflict = () => {
+    if (!formData.resourceId || !formData.date || !formData.startTime || !formData.endTime) return false;
+    
+    const start = parseT(formData.startTime);
+    const end = parseT(formData.endTime);
+    
+    const conflicting = allBookings.find(b => {
+      // Only conflict with APPROVED bookings for the SAME resource on the SAME date
+      if (b.status !== 'APPROVED') return false;
+      if (String(b.resourceId) !== String(formData.resourceId)) return false;
+      
+      const bDate = b.startTime ? b.startTime.split('T')[0] : null;
+      if (bDate !== formData.date) return false;
+
+      const bStartStr = b.startTime.split('T')[1].substring(0, 5);
+      const bEndStr = b.endTime.split('T')[1].substring(0, 5);
+      const bStart = parseT(bStartStr);
+      const bEnd = parseT(bEndStr);
+
+      return start < bEnd && end > bStart;
+    });
+
+    if (conflicting) {
+      console.log("Conflict detected with booking:", conflicting);
+    }
+    return !!conflicting;
+  };
+
+  const conflict = hasConflict();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -43,7 +91,9 @@ export function NewBookingPage() {
         userId: 'USER-001', // Hardcoded for now
         resourceId: formData.resourceId,
         startTime: startDateTime,
-        endTime: endDateTime
+        endTime: endDateTime,
+        attendees: parseInt(formData.attendees, 10),
+        purpose: formData.purpose
       };
 
       const response = await fetch('http://localhost:8080/api/bookings', {
@@ -116,7 +166,7 @@ export function NewBookingPage() {
               onChange={handleChange}
             >
               <option value="" disabled>Select a workspace to book</option>
-              {RESOURCES.map(r => <option key={r} value={r}>{r}</option>)}
+              {resources.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
             </select>
           </div>
 
@@ -194,6 +244,14 @@ export function NewBookingPage() {
             <span>Once submitted, an admin will review your request. You'll see the status under <strong>My Bookings</strong>.</span>
           </div>
 
+          {/* Conflict Warning */}
+          {conflict && (
+            <div className="flex items-start gap-2.5 bg-red-50 border border-red-100 rounded-xl px-4 py-3 text-sm text-red-700 animate-in fade-in slide-in-from-top-1 duration-200">
+              <XCircle className="w-4 h-4 mt-0.5 shrink-0 text-red-400" />
+              <span>This time slot overlaps with an already <strong>approved</strong> booking. Please select a different time or workspace.</span>
+            </div>
+          )}
+
           {/* Actions */}
           <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end pt-3 border-t border-gray-100">
             <button type="button" onClick={() => navigate(-1)} className="px-5 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-900 rounded-xl transition-colors">
@@ -201,8 +259,8 @@ export function NewBookingPage() {
             </button>
             <button
               type="submit"
-              disabled={loading}
-              className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 active:bg-indigo-800 disabled:opacity-60 transition-colors shadow-sm"
+              disabled={loading || conflict}
+              className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 active:bg-indigo-800 disabled:opacity-60 disabled:cursor-not-allowed transition-colors shadow-sm"
             >
               {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Submitting…</> : 'Submit Request'}
             </button>

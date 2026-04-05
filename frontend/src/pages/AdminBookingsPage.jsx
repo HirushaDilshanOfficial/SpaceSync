@@ -1,12 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Calendar, Clock, MapPin, Users, CheckCircle, XCircle, Search, AlertTriangle, ShieldX, SlidersHorizontal } from 'lucide-react';
-
-const ALL_MOCK_BOOKINGS = [
-  { id: 'BKG-001', user: 'Hirusha Dilshan', resource: 'Conference Room A', date: '2026-04-10', startTime: '10:00 AM', endTime: '11:00 AM', purpose: 'Quarterly Planning', attendees: 8, status: 'APPROVED' },
-  { id: 'BKG-002', user: 'John Doe', resource: 'Projector XYZ', date: '2026-04-12', startTime: '01:00 PM', endTime: '03:00 PM', purpose: 'Client Presentation', attendees: 12, status: 'PENDING' },
-  { id: 'BKG-003', user: 'Jane Smith', resource: 'Training Lab', date: '2026-04-05', startTime: '09:00 AM', endTime: '05:00 PM', purpose: 'New Hire Onboarding', attendees: 15, status: 'APPROVED' },
-  { id: 'BKG-005', user: 'Alex Perera', resource: 'Conference Room A', date: '2026-04-10', startTime: '10:30 AM', endTime: '11:30 AM', purpose: 'Ad-hoc Sync', attendees: 3, status: 'PENDING' },
-];
 
 const statusConfig = {
   PENDING:   { color: 'text-amber-700 bg-amber-50 border-amber-200',   dot: 'bg-amber-400' },
@@ -15,12 +8,21 @@ const statusConfig = {
   CANCELLED: { color: 'text-gray-500 bg-gray-50 border-gray-200',      dot: 'bg-gray-300' },
 };
 
-const parseTime = (t) => {
-  const [time, period] = t.trim().split(' ');
-  let [h, m] = time.split(':').map(Number);
-  if (period === 'PM' && h !== 12) h += 12;
-  if (period === 'AM' && h === 12) h = 0;
-  return h * 60 + m;
+const formatBackendTime = (isoString) => {
+  if (!isoString) return '';
+  const date = new Date(isoString);
+  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+};
+
+const formatBackendDate = (isoString) => {
+  if (!isoString) return '';
+  return isoString.split('T')[0];
+};
+
+const parseTime = (isoString) => {
+  if (!isoString) return 0;
+  const date = new Date(isoString);
+  return date.getHours() * 60 + date.getMinutes();
 };
 
 const toHHMM = (mins) => `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
@@ -28,8 +30,10 @@ const toHHMM = (mins) => `${String(Math.floor(mins / 60)).padStart(2, '0')}:${St
 const hasConflict = (b, all) => {
   if (b.status !== 'PENDING') return false;
   const bS = parseTime(b.startTime), bE = parseTime(b.endTime);
+  const bDate = formatBackendDate(b.startTime);
+  
   return all.some(o => {
-    if (o.id === b.id || o.status !== 'APPROVED' || o.resource !== b.resource || o.date !== b.date) return false;
+    if (o.id === b.id || o.status !== 'APPROVED' || o.resourceId !== b.resourceId || formatBackendDate(o.startTime) !== bDate) return false;
     return bS < parseTime(o.endTime) && parseTime(o.startTime) < bE;
   });
 };
@@ -41,35 +45,183 @@ const TAB_STYLES = {
   inactive: 'text-gray-500 hover:text-gray-700',
 };
 
+const API_BASE = 'http://localhost:8080/api';
+
 export function AdminBookingsPage() {
-  const [bookings, setBookings] = useState(ALL_MOCK_BOOKINGS);
+  const [bookings, setBookings] = useState([]);
+  const [stats, setStats] = useState({ pending: 0, approved: 0, total: 0 });
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('PENDING');
   const [search, setSearch] = useState('');
   const [filterDate, setFilterDate] = useState('');
   const [filterTime, setFilterTime] = useState('');
   const [rejectModal, setRejectModal] = useState({ open: false, booking: null, reason: '' });
+  const [approveConfirmModal, setApproveConfirmModal] = useState({ open: false, booking: null });
+  const [showConflictsOnly, setShowConflictsOnly] = useState(false);
+  const [viewMode, setViewMode] = useState('GRID'); // 'GRID' or 'CALENDAR'
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDay, setSelectedDay] = useState(null); // { dateStr, bookings }
+
+  const fetchData = useCallback(async () => {
+    try {
+      const [bookingsRes, statsRes] = await Promise.all([
+        fetch(`${API_BASE}/bookings`),
+        fetch(`${API_BASE}/admin/stats`)
+      ]);
+      
+      if (bookingsRes.ok && statsRes.ok) {
+        const bookingsData = await bookingsRes.json();
+        const statsData = await statsRes.json();
+        setBookings(bookingsData);
+        setStats(statsData);
+      }
+    } catch (error) {
+      console.error("Failed to fetch data:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const updateStatus = async (id, status, reason = '') => {
+    try {
+      const url = new URL(`${API_BASE}/admin/bookings/${id}/status`);
+      url.searchParams.append('status', status);
+      if (reason) url.searchParams.append('rejectReason', reason);
+
+      const res = await fetch(url, { method: 'PATCH' });
+      if (res.ok) {
+        fetchData(); // Refresh all data
+      }
+    } catch (error) {
+      console.error(`Failed to update status to ${status}:`, error);
+    }
+  };
 
   const filtered = bookings.filter(b => {
-    if (b.status !== activeTab) return false;
+    const conflict = hasConflict(b, bookings);
+    if (showConflictsOnly) {
+      if (!conflict) return false;
+    } else {
+      if (b.status !== activeTab) return false;
+    }
+    
     const s = search.toLowerCase();
-    if (s && !b.resource.toLowerCase().includes(s) && !b.user.toLowerCase().includes(s) && !b.id.toLowerCase().includes(s)) return false;
-    if (filterDate && b.date !== filterDate) return false;
+    const bUser = b.userName || b.userId || '';
+    const bResource = b.resourceName || b.resourceId || '';
+    
+    if (s && !bResource.toLowerCase().includes(s) && !bUser.toLowerCase().includes(s) && !String(b.id).toLowerCase().includes(s)) return false;
+    if (filterDate && formatBackendDate(b.startTime) !== filterDate) return false;
     if (filterTime && toHHMM(parseTime(b.startTime)) !== filterTime) return false;
     return true;
   });
 
-  const approve = (id) => setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'APPROVED' } : b));
-  const cancel = (id) => setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'CANCELLED' } : b));
+  const openApprove = (booking) => setApproveConfirmModal({ open: true, booking });
+  const cancel = (id) => updateStatus(id, 'PENDING'); // Moving back to pending
+
+  const confirmApprove = async () => {
+    await updateStatus(approveConfirmModal.booking.id, 'APPROVED');
+    setApproveConfirmModal({ open: false, booking: null });
+  };
   const openReject = (booking, conflict) => setRejectModal({ open: true, booking, reason: conflict ? 'Rejected due to scheduling conflict with an approved booking.' : '' });
-  const confirmReject = () => {
+  
+  const confirmReject = async () => {
     if (!rejectModal.reason.trim()) return;
-    setBookings(prev => prev.map(b => b.id === rejectModal.booking.id ? { ...b, status: 'REJECTED', rejectReason: rejectModal.reason } : b));
+    await updateStatus(rejectModal.booking.id, 'REJECTED', rejectModal.reason);
     setRejectModal({ open: false, booking: null, reason: '' });
   };
 
-  const hasFilters = search || filterDate || filterTime;
-  const pendingCount = bookings.filter(b => b.status === 'PENDING').length;
-  const approvedCount = bookings.filter(b => b.status === 'APPROVED').length;
+  const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1));
+  const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
+
+  const daysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
+  const firstDay = (year, month) => new Date(year, month, 1).getDay();
+
+  const CalendarView = () => {
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+    const totalDays = daysInMonth(year, month);
+    const startOffset = firstDay(year, month);
+    const monthName = currentDate.toLocaleString('default', { month: 'long' });
+
+    const days = [];
+    // Padding for first week
+    for (let i = 0; i < startOffset; i++) days.push(null);
+    for (let d = 1; d <= totalDays; d++) days.push(d);
+
+    return (
+      <div className="bg-white border border-gray-100 rounded-3xl shadow-card overflow-hidden">
+        {/* Calendar Nav */}
+        <div className="p-6 border-b border-gray-50 flex items-center justify-between">
+          <h2 className="text-xl font-bold text-gray-900">{monthName} {year}</h2>
+          <div className="flex gap-2">
+            <button onClick={prevMonth} className="p-2 hover:bg-gray-50 rounded-xl border border-gray-200 text-gray-500 transition-colors">
+              <SlidersHorizontal className="w-4 h-4 rotate-90" />
+            </button>
+            <button onClick={() => setCurrentDate(new Date())} className="px-3 py-2 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors">
+              Today
+            </button>
+            <button onClick={nextMonth} className="p-2 hover:bg-gray-50 rounded-xl border border-gray-200 text-gray-500 transition-colors">
+              <SlidersHorizontal className="w-4 h-4 -rotate-90" />
+            </button>
+          </div>
+        </div>
+
+        {/* Grid Header */}
+        <div className="grid grid-cols-7 bg-gray-50/50 border-b border-gray-50">
+          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+            <div key={day} className="py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">{day}</div>
+          ))}
+        </div>
+
+        {/* Grid Body */}
+        <div className="grid grid-cols-7">
+          {days.map((day, idx) => {
+            if (day === null) return <div key={`empty-${idx}`} className="h-28 border-r border-b border-gray-50 last:border-r-0" />;
+            
+            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            const dayBookings = bookings.filter(b => b.status === 'APPROVED' && formatBackendDate(b.startTime) === dateStr);
+            const isToday = new Date().toDateString() === new Date(year, month, day).toDateString();
+
+            return (
+              <div 
+                key={day} 
+                onClick={() => setSelectedDay({ dateStr, bookings: dayBookings })}
+                className={`h-28 p-2 border-r border-b border-gray-50 hover:bg-gray-50/50 transition-colors group cursor-pointer relative last:border-r-0 ${isToday ? 'bg-indigo-50/20' : ''}`}
+              >
+                <span className={`text-xs font-bold ${isToday ? 'text-indigo-600 bg-white shadow-sm ring-1 ring-indigo-100' : 'text-gray-400'} w-6 h-6 flex items-center justify-center rounded-lg mb-1`}>
+                  {day}
+                </span>
+                
+                <div className="space-y-1 overflow-y-auto max-h-[70px] pr-1 scrollbar-hide">
+                  {dayBookings.slice(0, 3).map(b => (
+                    <div 
+                      key={b.id} 
+                      className={`text-[9px] px-1.5 py-0.5 rounded-md truncate font-medium border ${
+                        b.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 
+                        b.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border-amber-100' : 
+                        'bg-gray-50 text-gray-500 border-gray-100'
+                      }`}
+                    >
+                      {formatBackendTime(b.startTime)} {b.resourceName}
+                    </div>
+                  ))}
+                  {dayBookings.length > 3 && (
+                    <div className="text-[9px] text-gray-400 font-semibold px-1.5">
+                      + {dayBookings.length - 3} more
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-7">
@@ -82,11 +234,17 @@ export function AdminBookingsPage() {
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> {pendingCount} Pending
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> {stats.pending} Pending
           </span>
           <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> {approvedCount} Approved
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> {stats.approved} Approved
           </span>
+          {bookings.filter(b => hasConflict(b, bookings)).length > 0 && (
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+              <AlertTriangle className="w-3.5 h-3.5 text-rose-500" /> 
+              {bookings.filter(b => hasConflict(b, bookings)).length} Overlaps
+            </span>
+          )}
         </div>
       </div>
 
@@ -104,10 +262,26 @@ export function AdminBookingsPage() {
               >
                 {tab[0] + tab.slice(1).toLowerCase()}
                 <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-full font-medium ${activeTab === tab ? 'bg-indigo-50 text-indigo-600' : 'bg-gray-200 text-gray-500'}`}>
-                  {tab === 'PENDING' ? pendingCount : approvedCount}
+                  {tab === 'PENDING' ? stats.pending : stats.approved}
                 </span>
               </button>
             ))}
+          </div>
+
+          {/* View Toggle */}
+          <div className="flex bg-gray-100 p-1 rounded-xl shrink-0 gap-1">
+            <button
+              onClick={() => setViewMode('GRID')}
+              className={`px-4 py-1.5 rounded-lg text-sm transition-all ${viewMode === 'GRID' ? TAB_STYLES.active : TAB_STYLES.inactive}`}
+            >
+              List
+            </button>
+            <button
+              onClick={() => setViewMode('CALENDAR')}
+              className={`px-4 py-1.5 rounded-lg text-sm transition-all ${viewMode === 'CALENDAR' ? TAB_STYLES.active : TAB_STYLES.inactive}`}
+            >
+              Calendar
+            </button>
           </div>
 
           {/* Filters */}
@@ -122,6 +296,20 @@ export function AdminBookingsPage() {
                 onChange={e => setSearch(e.target.value)}
               />
             </div>
+
+            {/* Conflict Toggle */}
+            <button
+              onClick={() => setShowConflictsOnly(!showConflictsOnly)}
+              className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all text-sm font-medium whitespace-nowrap ${
+                showConflictsOnly 
+                ? 'bg-rose-50 border-rose-200 text-rose-700 ring-2 ring-rose-500/10' 
+                : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+              }`}
+            >
+              <AlertTriangle className={`w-4 h-4 ${showConflictsOnly ? 'text-rose-500' : 'text-gray-300'}`} />
+              Conflicts Only
+            </button>
+
             <div className="relative sm:w-44">
               <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 pointer-events-none" />
               <input type="date" className={`${inputClass} pl-9`} value={filterDate} onChange={e => setFilterDate(e.target.value)} />
@@ -130,7 +318,7 @@ export function AdminBookingsPage() {
               <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 pointer-events-none" />
               <input type="time" className={`${inputClass} pl-9`} value={filterTime} onChange={e => setFilterTime(e.target.value)} />
             </div>
-            {hasFilters && (
+            {(search || filterDate || filterTime) && (
               <button
                 onClick={() => { setSearch(''); setFilterDate(''); setFilterTime(''); }}
                 className="text-sm text-gray-400 hover:text-gray-700 px-3 py-2 rounded-xl hover:bg-gray-50 transition-colors whitespace-nowrap"
@@ -142,43 +330,45 @@ export function AdminBookingsPage() {
         </div>
       </div>
 
-      {/* Cards Grid */}
-      {filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 bg-white border border-gray-100 border-dashed rounded-2xl gap-3 text-center">
-          <SlidersHorizontal className="w-10 h-10 text-gray-200" />
-          <p className="font-semibold text-gray-500">No {activeTab.toLowerCase()} bookings found</p>
-          <p className="text-sm text-gray-400">Try adjusting your search or filters.</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filtered.map(booking => {
-            const conflict = hasConflict(booking, bookings);
-            const { color, dot } = statusConfig[booking.status];
-            return (
-              <div
-                key={booking.id}
-                className={`bg-white border rounded-2xl shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200 flex flex-col ${conflict ? 'border-amber-200 ring-1 ring-amber-100' : 'border-gray-100'}`}
-              >
-                <div className="p-5 flex flex-col flex-1">
+    {loading ? (
+      <div className="flex items-center justify-center py-20">
+        <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    ) : viewMode === 'CALENDAR' ? (
+      <CalendarView />
+    ) : filtered.length === 0 ? (
+      <div className="flex flex-col items-center justify-center py-20 bg-white border border-gray-100 border-dashed rounded-2xl gap-3 text-center">
+        <SlidersHorizontal className="w-10 h-10 text-gray-200" />
+        <p className="font-semibold text-gray-500">No {activeTab.toLowerCase()} bookings found</p>
+        <p className="text-sm text-gray-400">Try adjusting your search or filters.</p>
+      </div>
+    ) : (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        {filtered.map(booking => {
+          const conflict = hasConflict(booking, bookings);
+          const { color, dot } = statusConfig[booking.status];
+          return (
+            <div
+              key={booking.id}
+              className={`bg-white border rounded-2xl shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200 flex flex-col ${conflict ? 'border-amber-200 ring-1 ring-amber-100' : 'border-gray-100'}`}
+            >
+              <div className="p-5 flex flex-col flex-1">
+                <div className="flex items-start justify-between mb-3">
+                  <span className="text-[10px] font-bold text-gray-400 tracking-widest uppercase bg-gray-50 border border-gray-100 px-2 py-1 rounded-md">{booking.id}</span>
+                  <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${color}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
+                    {booking.status}
+                  </span>
+                </div>
 
-                  {/* Top Row */}
-                  <div className="flex items-start justify-between mb-3">
-                    <span className="text-[10px] font-bold text-gray-400 tracking-widest uppercase bg-gray-50 border border-gray-100 px-2 py-1 rounded-md">{booking.id}</span>
-                    <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${color}`}>
-                      <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
-                      {booking.status}
-                    </span>
+                <h2 className="font-semibold text-gray-900 text-lg leading-snug mb-1">{booking.resourceName}</h2>
+
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[9px] font-bold shrink-0">
+                    {(booking.userName || 'U').substring(0, 2).toUpperCase()}
                   </div>
-
-                  <h2 className="font-semibold text-gray-900 text-lg leading-snug mb-1">{booking.resource}</h2>
-
-                  {/* Requester */}
-                  <div className="flex items-center gap-2 mb-4">
-                    <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[9px] font-bold shrink-0">
-                      {booking.user.substring(0, 2).toUpperCase()}
-                    </div>
-                    <span className="text-sm text-gray-400">{booking.user}</span>
-                  </div>
+                  <span className="text-sm text-gray-400">{booking.userName}</span>
+                </div>
 
                   {/* Conflict alert */}
                   {conflict && (
@@ -191,11 +381,11 @@ export function AdminBookingsPage() {
                   {/* Details */}
                   <div className="space-y-2 flex-1 mb-4">
                     <div className="flex items-center gap-2.5 text-sm text-gray-500">
-                      <Calendar className="w-3.5 h-3.5 text-gray-300 shrink-0" /> {booking.date}
+                      <Calendar className="w-3.5 h-3.5 text-gray-300 shrink-0" /> {formatBackendDate(booking.startTime)}
                     </div>
                     <div className="flex items-center gap-2.5 text-sm text-gray-500">
                       <Clock className="w-3.5 h-3.5 text-gray-300 shrink-0" />
-                      <span className={conflict ? 'text-amber-700 font-semibold' : ''}>{booking.startTime} – {booking.endTime}</span>
+                      <span className={conflict ? 'text-amber-700 font-semibold' : ''}>{formatBackendTime(booking.startTime)} – {formatBackendTime(booking.endTime)}</span>
                     </div>
                     <div className="flex items-center gap-2.5 text-sm text-gray-500">
                       <Users className="w-3.5 h-3.5 text-gray-300 shrink-0" /> {booking.attendees} attendees
@@ -211,7 +401,7 @@ export function AdminBookingsPage() {
                     {booking.status === 'PENDING' && (
                       <div className="flex gap-2">
                         <button
-                          onClick={() => approve(booking.id)}
+                          onClick={() => openApprove(booking)}
                           disabled={conflict}
                           title={conflict ? 'Cannot approve — scheduling conflict detected' : 'Approve this booking'}
                           className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed rounded-xl transition-colors"
@@ -236,49 +426,143 @@ export function AdminBookingsPage() {
                     )}
                   </div>
 
-                </div>
               </div>
-            );
-          })}
-        </div>
-      )}
+            </div>
+          );
+        })}
+      </div>
+    )}
 
-      {/* Reject Modal */}
+      {/* Rejection Modal (already exists) */}
       {rejectModal.open && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-gray-100">
-            <div className="p-6">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="w-8 h-8 bg-red-50 rounded-xl flex items-center justify-center">
-                  <XCircle className="w-4 h-4 text-red-500" />
-                </div>
-                <h3 className="font-bold text-gray-900 text-lg">Reject Booking</h3>
+            <div className="p-6 text-center">
+              <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <XCircle className="w-6 h-6 text-red-500" />
               </div>
-              <p className="text-sm text-gray-500 mb-4 mt-1">
-                Provide a reason for rejecting <span className="font-medium text-gray-700">{rejectModal.booking?.resource}</span>.
+              <h3 className="font-bold text-gray-900 text-lg mb-1">Reject Booking?</h3>
+              <p className="text-sm text-gray-500 mb-6">
+                Are you sure you want to reject <span className="font-medium text-gray-700">{rejectModal.booking?.resourceName}</span> for <span className="font-medium text-gray-700">{rejectModal.booking?.userName}</span>?
               </p>
               <textarea
-                className="w-full h-24 px-3.5 py-2.5 text-sm text-gray-900 bg-gray-50 border border-gray-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-400 transition-all"
-                placeholder="Reason for rejection…"
+                className="w-full h-24 px-3.5 py-2.5 text-sm text-gray-900 bg-gray-50 border border-gray-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-400 transition-all mb-4"
+                placeholder="Reason for rejection (required)…"
                 value={rejectModal.reason}
                 onChange={e => setRejectModal(m => ({ ...m, reason: e.target.value }))}
                 autoFocus
               />
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setRejectModal({ open: false, booking: null, reason: '' })}
+                  className="flex-1 py-2.5 text-sm font-medium text-gray-600 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={confirmReject}
+                  disabled={!rejectModal.reason.trim()}
+                  className="flex-1 py-2.5 text-sm font-bold text-white bg-red-500 hover:bg-red-600 disabled:opacity-50 rounded-xl shadow-sm transition-colors"
+                >
+                  Confirm Reject
+                </button>
+              </div>
             </div>
-            <div className="flex gap-2 px-6 pb-6 pt-0">
-              <button
-                onClick={() => setRejectModal({ open: false, booking: null, reason: '' })}
-                className="flex-1 py-2.5 text-sm font-medium text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors"
+          </div>
+        </div>
+      )}
+
+      {/* Approve Confirmation Modal */}
+      {approveConfirmModal.open && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-gray-100">
+            <div className="p-6 text-center">
+              <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-6 h-6 text-emerald-500" />
+              </div>
+              <h3 className="font-bold text-gray-900 text-lg mb-1">Confirm Approval</h3>
+              <p className="text-sm text-gray-500 mb-6 px-2">
+                You are about to approve the <span className="font-medium text-gray-900">{approveConfirmModal.booking?.resourceName}</span> booking for <span className="font-medium text-gray-900">{approveConfirmModal.booking?.userName}</span>. This will notify the user.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setApproveConfirmModal({ open: false, booking: null })}
+                  className="flex-1 py-2.5 text-sm font-medium text-gray-600 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                >
+                  Go Back
+                </button>
+                <button
+                  onClick={confirmApprove}
+                  className="flex-1 py-2.5 text-sm font-bold text-white bg-emerald-500 hover:bg-emerald-600 rounded-xl shadow-sm transition-colors"
+                >
+                  Yes, Approve
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Day Detail Sidebar/Modal */}
+      {selectedDay && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-gray-900/20 backdrop-blur-[2px]">
+          <div className="w-full max-w-md bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+              <div>
+                <h3 className="font-bold text-gray-900 text-lg">Bookings for {new Date(selectedDay.dateStr).toLocaleDateString('default', { month: 'long', day: 'numeric', year: 'numeric' })}</h3>
+                <p className="text-xs text-gray-400 mt-0.5">{selectedDay.bookings.length} reservations scheduled</p>
+              </div>
+              <button 
+                onClick={() => setSelectedDay(null)}
+                className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-colors"
               >
-                Cancel
+                <XCircle className="w-6 h-6" />
               </button>
-              <button
-                onClick={confirmReject}
-                disabled={!rejectModal.reason.trim()}
-                className="flex-1 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 disabled:opacity-50 rounded-xl transition-colors"
-              >
-                Reject Request
-              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {selectedDay.bookings.length === 0 ? (
+                <div className="text-center py-12">
+                  <Calendar className="w-10 h-10 text-gray-200 mx-auto mb-3" />
+                  <p className="text-gray-400 text-sm">No bookings for this date.</p>
+                </div>
+              ) : (
+                selectedDay.bookings.sort((a,b) => parseTime(a.startTime) - parseTime(b.startTime)).map(b => {
+                  const { color, dot } = statusConfig[b.status];
+                  return (
+                    <div key={b.id} className="p-4 rounded-2xl border border-gray-100 bg-gray-50/50 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full border ${color}`}>
+                           <span className={`w-1 h-1 rounded-full ${dot}`} />
+                           {b.status}
+                        </span>
+                        <span className="text-[10px] font-bold text-gray-300 tracking-widest uppercase">#{b.id}</span>
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900 leading-none mb-1">{b.resourceName}</h4>
+                        <p className="text-xs text-gray-500 font-medium">{formatBackendTime(b.startTime)} – {formatBackendTime(b.endTime)}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                         <div className="flex items-center gap-1 text-[11px] text-gray-400">
+                           <Users className="w-3 h-3" /> {b.attendees}
+                         </div>
+                         <div className="flex items-center gap-1 text-[11px] text-gray-400">
+                           <Calendar className="w-3 h-3" /> {b.userName}
+                         </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="p-6 border-t border-gray-100">
+               <button 
+                onClick={() => setSelectedDay(null)}
+                className="w-full py-3 bg-gray-900 text-white font-bold rounded-2xl hover:bg-gray-800 transition-colors shadow-lg shadow-gray-200"
+               >
+                 Close Overview
+               </button>
             </div>
           </div>
         </div>

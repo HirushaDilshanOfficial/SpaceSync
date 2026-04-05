@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Calendar, Clock, Users, Plus, XCircle, CheckCircle, AlertCircle, ChevronRight } from 'lucide-react';
+import { Calendar, Clock, Users, Plus, XCircle, CheckCircle, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const statusConfig = {
@@ -95,7 +95,7 @@ export function MyBookingsPage() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {bookings.map((booking) => {
             const statusStyle = statusConfig[booking.status] || statusConfig.PENDING;
-            const { color, dot, icon: Icon } = statusStyle;
+            const { color, dot } = statusStyle;
             
             // Basic formatting for ISO strings
             const startDate = new Date(booking.startTime);
@@ -120,7 +120,8 @@ export function MyBookingsPage() {
                   </div>
 
                   {/* Resource */}
-                  <h2 className="font-semibold text-gray-900 text-lg leading-snug mb-4">{booking.resourceId}</h2>
+                  <h2 className="font-semibold text-gray-900 text-lg leading-snug mb-1">{booking.resourceName}</h2>
+                  <p className="text-xs text-gray-400 mb-4 font-medium uppercase tracking-tighter">{booking.resourceId}</p>
 
                   {/* Details */}
                   <div className="space-y-2 flex-1 mb-4">
@@ -130,7 +131,22 @@ export function MyBookingsPage() {
                     <div className="flex items-center gap-2.5 text-sm text-gray-500">
                       <Clock className="w-4 h-4 text-gray-300 shrink-0" /> {timeRange}
                     </div>
+                    <div className="flex items-center gap-2.5 text-sm text-gray-500">
+                      <Users className="w-4 h-4 text-gray-300 shrink-0" /> {booking.attendees} attendees
+                    </div>
+                    <div className="flex items-start gap-2.5 text-sm text-gray-500 italic">
+                      <div className="w-1 h-full bg-indigo-100 rounded-full mt-1" />
+                      <span>{booking.purpose}</span>
+                    </div>
                   </div>
+
+                  {/* Rejection Reason */}
+                  {booking.status === 'REJECTED' && booking.rejectReason && (
+                    <div className="mt-2 p-3 bg-red-50 border border-red-100 rounded-xl mb-4">
+                      <p className="text-[10px] font-bold text-red-400 uppercase tracking-widest mb-1 leading-none">Admin Note</p>
+                      <p className="text-xs text-red-700 leading-relaxed">{booking.rejectReason}</p>
+                    </div>
+                  )}
 
                   {/* Actions */}
                   {(booking.status === 'APPROVED' || booking.status === 'PENDING') && (

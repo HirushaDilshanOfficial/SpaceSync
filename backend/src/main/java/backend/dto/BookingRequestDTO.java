@@ -31,6 +31,12 @@ public class BookingRequestDTO {
     @Future(message = "End time must be in the future")
     private LocalDateTime endTime;
 
+    @NotBlank(message = "Purpose is required")
+    private String purpose;
+
+    @NotNull(message = "Attendees count is required")
+    private Integer attendees;
+
     public boolean isValidTimeline() {
         return startTime != null && endTime != null && endTime.isAfter(startTime);
     }
