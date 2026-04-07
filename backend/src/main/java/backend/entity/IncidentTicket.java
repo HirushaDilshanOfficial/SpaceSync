@@ -57,5 +57,8 @@ public class IncidentTicket {
     @UpdateTimestamp
     private LocalDateTime updatedAt;
 
+    private LocalDateTime scheduledStart;
+    private LocalDateTime scheduledEnd;
+
     private String notes;
 }

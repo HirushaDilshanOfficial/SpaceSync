@@ -29,5 +29,7 @@ public class IncidentTicketResponseDTO {
     private LocalDateTime createdAt;
     private LocalDateTime resolvedAt;
     private LocalDateTime updatedAt;
+    private LocalDateTime scheduledStart;
+    private LocalDateTime scheduledEnd;
     private String notes;
 }

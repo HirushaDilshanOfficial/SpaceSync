@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, CheckCircle, Clock, Search, SlidersHorizontal, Plus, Wrench, Zap, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, Search, SlidersHorizontal, Plus, Wrench, Zap, XCircle, Download, Calendar, Filter } from 'lucide-react';
 
 const priorityConfig = {
   CRITICAL: { color: 'text-red-700 bg-red-50 border-red-200', dot: 'bg-red-400', icon: AlertTriangle },
@@ -35,24 +35,37 @@ export function IncidentDashboardPage() {
   const navigate = useNavigate();
   const [incidents, setIncidents] = useState([]);
   const [stats, setStats] = useState({ open: 0, inProgress: 0, resolved: 0 });
+  const [analytics, setAnalytics] = useState({});
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('OPEN');
   const [search, setSearch] = useState('');
   const [filterPriority, setFilterPriority] = useState('');
   const [filterType, setFilterType] = useState('');
+  const [filterResource, setFilterResource] = useState('');
+  const [filterAssignedTo, setFilterAssignedTo] = useState('');
+  const [filterReportedBy, setFilterReportedBy] = useState('');
+  const [filterStartDate, setFilterStartDate] = useState('');
+  const [filterEndDate, setFilterEndDate] = useState('');
+  const [resources, setResources] = useState([]);
 
   const fetchData = useCallback(async () => {
     try {
-      const [incidentsRes, statsRes] = await Promise.all([
+      const [incidentsRes, statsRes, analyticsRes, resourcesRes] = await Promise.all([
         fetch(`${API_BASE}/incidents`),
-        fetch(`${API_BASE}/incidents/stats`)
+        fetch(`${API_BASE}/incidents/stats`),
+        fetch(`${API_BASE}/incidents/analytics/dashboard`),
+        fetch(`${API_BASE}/resources`)
       ]);
 
-      if (incidentsRes.ok && statsRes.ok) {
+      if (incidentsRes.ok && statsRes.ok && analyticsRes.ok && resourcesRes.ok) {
         const incidentsData = await incidentsRes.json();
         const statsData = await statsRes.json();
+        const analyticsData = await analyticsRes.json();
+        const resourcesData = await resourcesRes.json();
         setIncidents(incidentsData);
         setStats(statsData);
+        setAnalytics(analyticsData);
+        setResources(resourcesData);
       }
     } catch (error) {
       console.error("Failed to fetch data:", error);
@@ -64,6 +77,29 @@ export function IncidentDashboardPage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  const fetchFilteredIncidents = useCallback(async () => {
+    try {
+      const params = new URLSearchParams();
+      if (activeTab) params.append('status', activeTab);
+      if (filterPriority) params.append('priority', filterPriority);
+      if (filterType) params.append('ticketType', filterType);
+      if (filterResource) params.append('resourceId', filterResource);
+      if (filterAssignedTo) params.append('assignedTo', filterAssignedTo);
+      if (filterReportedBy) params.append('reportedBy', filterReportedBy);
+      if (filterStartDate) params.append('startDate', new Date(filterStartDate).toISOString());
+      if (filterEndDate) params.append('endDate', new Date(filterEndDate).toISOString());
+      if (search) params.append('searchText', search);
+
+      const response = await fetch(`${API_BASE}/incidents/filter?${params}`);
+      if (response.ok) {
+        const filteredData = await response.json();
+        setIncidents(filteredData);
+      }
+    } catch (error) {
+      console.error("Failed to fetch filtered incidents:", error);
+    }
+  }, [activeTab, filterPriority, filterType, filterResource, filterAssignedTo, filterReportedBy, filterStartDate, filterEndDate, search]);
 
   const updateStatus = async (id, status) => {
     try {
@@ -94,18 +130,38 @@ export function IncidentDashboardPage() {
   };
 
   const filtered = incidents.filter(incident => {
-    if (incident.status !== activeTab) return false;
-
-    const s = search.toLowerCase();
-    if (s && !incident.title.toLowerCase().includes(s) &&
-        !incident.description.toLowerCase().includes(s) &&
-        !incident.resourceName.toLowerCase().includes(s)) return false;
-
-    if (filterPriority && incident.priority !== filterPriority) return false;
-    if (filterType && incident.ticketType !== filterType) return false;
-
+    if (activeTab && incident.status !== activeTab) return false;
     return true;
   });
+
+  const exportData = async (format) => {
+    try {
+      const params = new URLSearchParams();
+      if (filterPriority) params.append('priority', filterPriority);
+      if (filterType) params.append('ticketType', filterType);
+      if (filterResource) params.append('resourceId', filterResource);
+      if (filterAssignedTo) params.append('assignedTo', filterAssignedTo);
+      if (filterReportedBy) params.append('reportedBy', filterReportedBy);
+      if (filterStartDate) params.append('startDate', new Date(filterStartDate).toISOString());
+      if (filterEndDate) params.append('endDate', new Date(filterEndDate).toISOString());
+      if (search) params.append('searchText', search);
+
+      const response = await fetch(`${API_BASE}/incidents/export/${format}?${params}`);
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `incident_tickets.${format}`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }
+    } catch (error) {
+      console.error(`Failed to export ${format}:`, error);
+    }
+  };
 
   const formatDate = (isoString) => {
     if (!isoString) return '';
@@ -133,38 +189,84 @@ export function IncidentDashboardPage() {
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Incident Management</h1>
           <p className="text-gray-500 mt-1 text-sm">Track and manage maintenance requests and incidents</p>
         </div>
-        <button
-          onClick={() => navigate('/report-incident')}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 active:bg-indigo-800 transition-colors shadow-sm w-full sm:w-auto justify-center"
-        >
-          <Plus className="w-4 h-4" />
-          Report Incident
-        </button>
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          <div className="flex gap-2">
+            <button
+              onClick={() => exportData('csv')}
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white text-sm font-semibold rounded-xl hover:bg-green-700 active:bg-green-800 transition-colors shadow-sm"
+            >
+              <Download className="w-4 h-4" />
+              CSV
+            </button>
+            <button
+              onClick={() => exportData('pdf')}
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 text-white text-sm font-semibold rounded-xl hover:bg-red-700 active:bg-red-800 transition-colors shadow-sm"
+            >
+              <Download className="w-4 h-4" />
+              PDF
+            </button>
+            <button
+              onClick={() => navigate('/maintenance-calendar')}
+              className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-sm"
+            >
+              <Calendar className="w-4 h-4" />
+              Calendar
+            </button>
+          </div>
+          <button
+            onClick={() => navigate('/report-incident')}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 active:bg-indigo-800 transition-colors shadow-sm w-full sm:w-auto justify-center"
+          >
+            <Plus className="w-4 h-4" />
+            Report Incident
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
         {[
           { key: 'open', label: 'Open', bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-100' },
           { key: 'inProgress', label: 'In Progress', bg: 'bg-purple-50', text: 'text-purple-600', border: 'border-purple-100' },
           { key: 'resolved', label: 'Resolved', bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-100' },
-          { key: 'total', label: 'Total', bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-100', value: stats.open + stats.inProgress + stats.resolved }
+          { key: 'total', label: 'Total', bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-100', value: stats.total || 0 },
+          { key: 'resolvedThisMonth', label: 'Resolved This Month', bg: 'bg-green-50', text: 'text-green-600', border: 'border-green-100', value: analytics.resolvedThisMonth || 0 },
+          { key: 'avgResolutionTime', label: 'Avg Resolution Time', bg: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-100', value: `${analytics.avgResolutionTimeHours || 0}h` }
         ].map(({ key, label, bg, text, border, value }) => (
           <div key={key} className={`${bg} ${border} border rounded-2xl p-4`}>
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">{label}</p>
-            <p className={`text-3xl font-bold ${text}`}>{value || stats[key] || 0}</p>
+            <p className={`text-2xl font-bold ${text}`}>{value || stats[key] || 0}</p>
           </div>
         ))}
+      </div>
+
+      {/* Analytics Summary */}
+      <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100 p-6">
+        <h3 className="font-semibold text-gray-900 mb-4">Performance Overview</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="text-center">
+            <p className="text-2xl font-bold text-indigo-600">{analytics.resolutionRate || 0}%</p>
+            <p className="text-sm text-gray-600">Resolution Rate</p>
+          </div>
+          <div className="text-center">
+            <p className="text-2xl font-bold text-purple-600">{stats.open || 0}</p>
+            <p className="text-sm text-gray-600">Active Tickets</p>
+          </div>
+          <div className="text-center">
+            <p className="text-2xl font-bold text-green-600">{analytics.resolvedThisMonth || 0}</p>
+            <p className="text-sm text-gray-600">Resolved This Month</p>
+          </div>
+        </div>
       </div>
 
       {/* Filters */}
       <div className="bg-white rounded-2xl border border-gray-200 p-6">
         <div className="flex items-center gap-2 mb-4">
-          <SlidersHorizontal className="w-5 h-5 text-gray-400" />
-          <h3 className="font-semibold text-gray-900">Filters</h3>
+          <Filter className="w-5 h-5 text-gray-400" />
+          <h3 className="font-semibold text-gray-900">Advanced Filters</h3>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">Search</label>
             <div className="relative">
@@ -208,12 +310,83 @@ export function IncidentDashboardPage() {
             </select>
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Resource</label>
+            <select
+              value={filterResource}
+              onChange={(e) => setFilterResource(e.target.value)}
+              className={inputClass}
+            >
+              <option value="">All Resources</option>
+              {resources.map(resource => (
+                <option key={resource.id} value={resource.id}>{resource.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Assigned To</label>
+            <input
+              type="text"
+              value={filterAssignedTo}
+              onChange={(e) => setFilterAssignedTo(e.target.value)}
+              placeholder="Assigned user..."
+              className={inputClass}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Reported By</label>
+            <input
+              type="text"
+              value={filterReportedBy}
+              onChange={(e) => setFilterReportedBy(e.target.value)}
+              placeholder="Reporter..."
+              className={inputClass}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">Start Date</label>
+            <input
+              type="date"
+              value={filterStartDate}
+              onChange={(e) => setFilterStartDate(e.target.value)}
+              className={inputClass}
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1.5">End Date</label>
+            <input
+              type="date"
+              value={filterEndDate}
+              onChange={(e) => setFilterEndDate(e.target.value)}
+              className={inputClass}
+            />
+          </div>
+
+          <div className="flex items-end">
+            <button
+              onClick={fetchFilteredIncidents}
+              className="w-full px-4 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors"
+            >
+              Apply Filters
+            </button>
+          </div>
+
           <div className="flex items-end">
             <button
               onClick={() => {
                 setSearch('');
                 setFilterPriority('');
                 setFilterType('');
+                setFilterResource('');
+                setFilterAssignedTo('');
+                setFilterReportedBy('');
+                setFilterStartDate('');
+                setFilterEndDate('');
+                fetchData();
               }}
               className="w-full px-4 py-2.5 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
             >
@@ -253,7 +426,11 @@ export function IncidentDashboardPage() {
             const TypeIcon = typeStyle.icon;
 
             return (
-              <div key={incident.id} className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-md transition-shadow">
+              <div
+                key={incident.id}
+                className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => navigate(`/incidents/${incident.id}`)}
+              >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
                     <div className={`p-2 rounded-xl ${priorityStyle.color}`}>

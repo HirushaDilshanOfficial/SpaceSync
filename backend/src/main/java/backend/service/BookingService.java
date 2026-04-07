@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -19,6 +20,7 @@ public class BookingService {
 
     private final BookingRepository bookingRepository;
     private final backend.repository.ResourceRepository resourceRepository;
+    private final backend.repository.IncidentTicketRepository incidentTicketRepository;
 
     @Transactional
     public BookingResponseDTO createBooking(BookingRequestDTO request) {
@@ -28,6 +30,10 @@ public class BookingService {
 
         if (bookingRepository.hasApprovedConflict(request.getResourceId(), request.getStartTime(), request.getEndTime())) {
             throw new IllegalStateException("Selected time slot is already booked and approved");
+        }
+
+        if (hasMaintenanceConflict(request.getResourceId(), request.getStartTime(), request.getEndTime())) {
+            throw new IllegalStateException("Selected time slot conflicts with scheduled maintenance");
         }
 
         Booking booking = Booking.builder()
@@ -102,5 +108,16 @@ public class BookingService {
                 .createdAt(booking.getCreatedAt())
                 .updatedAt(booking.getUpdatedAt())
                 .build();
+    }
+
+    private boolean hasMaintenanceConflict(String resourceId, LocalDateTime startTime, LocalDateTime endTime) {
+        List<backend.entity.IncidentTicket> maintenanceTickets = incidentTicketRepository.findMaintenanceForCalendar(startTime, endTime);
+        return maintenanceTickets.stream()
+                .filter(ticket -> ticket.getResourceId().equals(resourceId))
+                .filter(ticket -> ticket.getScheduledStart() != null && ticket.getScheduledEnd() != null)
+                .anyMatch(ticket ->
+                    // Check if maintenance overlaps with booking time
+                    (ticket.getScheduledStart().isBefore(endTime) && ticket.getScheduledEnd().isAfter(startTime))
+                );
     }
 }

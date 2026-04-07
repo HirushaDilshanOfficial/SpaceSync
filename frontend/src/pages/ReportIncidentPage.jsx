@@ -23,6 +23,8 @@ export function ReportIncidentPage() {
     resourceId: '',
     priority: '',
     ticketType: '',
+    scheduledStart: '',
+    scheduledEnd: '',
     notes: ''
   });
 
@@ -50,6 +52,8 @@ export function ReportIncidentPage() {
         priority: formData.priority,
         ticketType: formData.ticketType,
         reportedBy: 'USER-001', // Hardcoded for now
+        scheduledStart: formData.scheduledStart ? new Date(formData.scheduledStart).toISOString() : null,
+        scheduledEnd: formData.scheduledEnd ? new Date(formData.scheduledEnd).toISOString() : null,
         notes: formData.notes
       };
 
@@ -192,6 +196,35 @@ export function ReportIncidentPage() {
             </select>
           </div>
         </div>
+
+        {/* Scheduled Dates for Maintenance */}
+        {formData.ticketType === 'MAINTENANCE' && (
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <FieldLabel required>Scheduled Start</FieldLabel>
+              <input
+                id="scheduledStart"
+                type="datetime-local"
+                value={formData.scheduledStart}
+                onChange={handleChange}
+                className={inputClass}
+                required={formData.ticketType === 'MAINTENANCE'}
+              />
+            </div>
+
+            <div>
+              <FieldLabel required>Scheduled End</FieldLabel>
+              <input
+                id="scheduledEnd"
+                type="datetime-local"
+                value={formData.scheduledEnd}
+                onChange={handleChange}
+                className={inputClass}
+                required={formData.ticketType === 'MAINTENANCE'}
+              />
+            </div>
+          </div>
+        )}
 
         {/* Notes */}
         <div>

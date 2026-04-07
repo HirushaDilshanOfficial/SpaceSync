@@ -9,6 +9,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -32,6 +34,9 @@ public class IncidentTicketRequestDTO {
 
     @NotBlank(message = "Reported by is required")
     private String reportedBy;
+
+    private LocalDateTime scheduledStart;
+    private LocalDateTime scheduledEnd;
 
     private String notes;
 }
