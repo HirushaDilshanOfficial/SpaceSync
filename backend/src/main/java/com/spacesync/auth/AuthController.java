@@ -9,9 +9,11 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
@@ -35,6 +37,7 @@ public class AuthController {
 
     private final UserRepository userRepository;
     private final JwtTokenProvider jwtTokenProvider;
+    private final PasswordEncoder passwordEncoder;
 
     // ─────────────────────────────────────────────────────────────────────────
     // GET /api/auth/me
@@ -141,8 +144,73 @@ public class AuthController {
     }
 
     // ─────────────────────────────────────────────────────────────────────────
+    // POST /api/auth/signup
+    // ─────────────────────────────────────────────────────────────────────────
+    @PostMapping("/signup")
+    public ResponseEntity<?> signup(@Valid @RequestBody SignupRequest request) {
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "Email already registered"));
+        }
+
+        User user = User.builder()
+                .name(request.getName())
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .role(Role.USER)
+                .active(true)
+                .build();
+
+        userRepository.save(user);
+
+        String token = jwtTokenProvider.generateToken(user.getEmail(), user.getRole().name(), user.getId());
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(Map.of(
+                "message", "User registered successfully",
+                "token", token,
+                "user", Map.of("name", user.getName(), "email", user.getEmail(), "role", user.getRole().name())
+        ));
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // POST /api/auth/signin
+    // ─────────────────────────────────────────────────────────────────────────
+    @PostMapping("/signin")
+    public ResponseEntity<?> signin(@Valid @RequestBody LoginRequest request) {
+        return userRepository.findByEmail(request.getEmail())
+                .filter(user -> passwordEncoder.matches(request.getPassword(), user.getPassword()))
+                .map(user -> {
+                    String token = jwtTokenProvider.generateToken(user.getEmail(), user.getRole().name(), user.getId());
+                    return ResponseEntity.ok(Map.of(
+                            "token", token,
+                            "user", Map.of("name", user.getName(), "email", user.getEmail(), "role", user.getRole().name())
+                    ));
+                })
+                .orElse(ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("error", "Invalid credentials")));
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
     // Request DTOs
     // ─────────────────────────────────────────────────────────────────────────
+
+    @Data
+    public static class SignupRequest {
+        @NotBlank
+        private String name;
+        @NotBlank @Email
+        private String email;
+        @NotBlank
+        private String password;
+    }
+
+    @Data
+    public static class LoginRequest {
+        @NotBlank @Email
+        private String email;
+        @NotBlank
+        private String password;
+    }
 
     @Data
     public static class AssignRoleRequest {

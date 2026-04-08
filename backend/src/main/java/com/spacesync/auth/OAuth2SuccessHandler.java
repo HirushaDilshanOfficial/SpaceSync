@@ -32,9 +32,10 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
     private final JwtTokenProvider jwtTokenProvider;
     private final UserRepository   userRepository;
+    private final HttpCookieOAuth2AuthorizationRequestRepository httpCookieOAuth2AuthorizationRequestRepository;
 
-    @Value("${app.cors.allowed-origins}")
-    private String frontendUrl;
+    @Value("${app.cors.allowed-origins:http://localhost:5173}")
+    private String allowedOrigins;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request,
@@ -80,12 +81,22 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         );
 
         // ── Redirect to frontend with token in query param ───────────────────
+        String targetUrl = determineTargetUrl(request);
         String redirectUrl = UriComponentsBuilder
-                .fromUriString(frontendUrl + "/oauth2/callback")
+                .fromUriString(targetUrl + "/oauth2/callback")
                 .queryParam("token", token)
                 .build()
                 .toUriString();
 
+        // ── Clear OAuth2 cookies ─────────────────────────────────────────────
+        httpCookieOAuth2AuthorizationRequestRepository.removeAuthorizationRequestCookies(request, response);
+
         getRedirectStrategy().sendRedirect(request, response, redirectUrl);
+    }
+
+    private String determineTargetUrl(HttpServletRequest request) {
+        // If multiple origins are allowed, try to find a match or use first one
+        String[] origins = allowedOrigins.split(",");
+        return origins[0].trim();
     }
 }
