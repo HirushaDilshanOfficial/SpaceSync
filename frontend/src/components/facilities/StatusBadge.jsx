@@ -4,8 +4,8 @@ const STYLES = {
 };
 
 const LABELS = {
-  ACTIVE:         'Active',
-  OUT_OF_SERVICE: 'Out of Service',
+  ACTIVE:         'Available',
+  OUT_OF_SERVICE: 'Unavailable',
 };
 
 export default function StatusBadge({ status }) {
