@@ -2,15 +2,15 @@ import { useState } from 'react';
 import StatusBadge from './StatusBadge';
 
 const TYPE_META = {
-  LECTURE_HALL: { icon: '🏛', bg: '#e8f0fe', color: '#3b5bdb' },
-  LAB:          { icon: '🔬', bg: '#e6f4ea', color: '#1a7a34' },
-  MEETING_ROOM: { icon: '🤝', bg: '#fff3e0', color: '#e65100' },
-  EQUIPMENT:    { icon: '📽', bg: '#f3e5f5', color: '#7b1fa2' },
+  LECTURE_HALL: { bg: '#e8f0fe', color: '#3b5bdb' },
+  LAB:          { bg: '#e6f4ea', color: '#1a7a34' },
+  MEETING_ROOM: { bg: '#fff3e0', color: '#e65100' },
+  EQUIPMENT:    { bg: '#f3e5f5', color: '#7b1fa2' },
 };
 
 export default function ResourceCard({ resource, onEdit, onDelete, onStatusChange }) {
   const [hovered, setHovered] = useState(false);
-  const meta = TYPE_META[resource.type] ?? { icon: '📦', bg: '#f0f4f8', color: '#555' };
+  const meta = TYPE_META[resource.type] ?? { bg: '#f0f4f8', color: '#555' };
 
   return (
     <div
@@ -33,7 +33,7 @@ export default function ResourceCard({ resource, onEdit, onDelete, onStatusChang
             borderRadius: '11px', display: 'flex',
             alignItems: 'center', justifyContent: 'center',
             fontSize: '20px', flexShrink: 0,
-          }}>{meta.icon}</div>
+          }}></div>
           <div>
             <div style={{ fontSize: '14px', fontWeight: '700', color: '#1a2a3a', lineHeight: 1.3 }}>
               {resource.name}
@@ -51,27 +51,26 @@ export default function ResourceCard({ resource, onEdit, onDelete, onStatusChang
 
       {/* Details */}
       <div style={{
-        background: '#f8fafc', border: '1px solid #eef2f7',
-        borderRadius: '9px', padding: '12px',
-        display: 'flex', flexDirection: 'column', gap: '7px',
+        display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px',
+        fontSize: '12px', color: '#5a7a9a',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '12px', color: '#5a7a9a' }}>
-          <span>🏢</span>
-          <span>{resource.building}</span>
+        <div>
+          <div style={{ fontSize: '10px', fontWeight: '700', color: '#7a9cc0', marginBottom: '3px', textTransform: 'uppercase' }}>Building</div>
+          <div style={{ color: '#1a2a3a', fontWeight: '500' }}>{resource.building}</div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '12px', color: '#5a7a9a' }}>
-          <span>📍</span>
-          <span>{resource.location}</span>
+        <div>
+          <div style={{ fontSize: '10px', fontWeight: '700', color: '#7a9cc0', marginBottom: '3px', textTransform: 'uppercase' }}>Location</div>
+          <div style={{ color: '#1a2a3a', fontWeight: '500' }}>{resource.location}</div>
         </div>
         {resource.capacity && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '12px', color: '#5a7a9a' }}>
-            <span>👥</span>
-            <span>Capacity: <strong style={{ color: '#1a2a3a' }}>{resource.capacity}</strong></span>
+          <div>
+            <div style={{ fontSize: '10px', fontWeight: '700', color: '#7a9cc0', marginBottom: '3px', textTransform: 'uppercase' }}>Capacity</div>
+            <div style={{ color: '#1a2a3a', fontWeight: '500' }}>{resource.capacity} persons</div>
           </div>
         )}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '12px', color: '#5a7a9a' }}>
-          <span>🕐</span>
-          <span>{resource.availabilityStart} – {resource.availabilityEnd}</span>
+        <div>
+          <div style={{ fontSize: '10px', fontWeight: '700', color: '#7a9cc0', marginBottom: '3px', textTransform: 'uppercase' }}>Hours</div>
+          <div style={{ color: '#1a2a3a', fontWeight: '500' }}>{resource.availabilityStart} – {resource.availabilityEnd}</div>
         </div>
       </div>
 
@@ -84,7 +83,7 @@ export default function ResourceCard({ resource, onEdit, onDelete, onStatusChang
           flex: 1, background: '#eef2ff', border: 'none',
           borderRadius: '8px', padding: '8px', fontSize: '12px',
           fontWeight: '700', color: '#3b5bdb', cursor: 'pointer',
-        }}>✏ Edit</button>
+        }}>Edit</button>
 
         <select value={resource.status}
           onChange={(e) => onStatusChange(resource.id, e.target.value)}
@@ -99,8 +98,8 @@ export default function ResourceCard({ resource, onEdit, onDelete, onStatusChang
 
         <button onClick={() => onDelete(resource.id)} style={{
           background: '#fff0f0', border: 'none', borderRadius: '8px',
-          padding: '8px 12px', fontSize: '14px', color: '#e03131', cursor: 'pointer',
-        }}>🗑</button>
+          padding: '8px 12px', fontSize: '12px', fontWeight: '700', color: '#e03131', cursor: 'pointer',
+        }}>Delete</button>
       </div>
     </div>
   );
