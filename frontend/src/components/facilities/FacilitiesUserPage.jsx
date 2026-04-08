@@ -1,15 +1,12 @@
 import { useEffect, useState, useCallback } from 'react';
-import { resourceApi }    from '../../api/resourceApi';
-import ResourceCard       from '../../components/facilities/ResourceCard';
-import ResourceForm       from '../../components/facilities/ResourceForm';
-import ResourceFilters    from '../../components/facilities/ResourceFilters';
+import { resourceApi }   from '../../api/resourceApi';
+import ResourceCard      from '../../components/facilities/ResourceCard';
+import ResourceFilters   from '../../components/facilities/ResourceFilters';
 
-export default function FacilitiesPage() {
+export default function FacilitiesUserPage() {
   const [resources,  setResources]  = useState([]);
   const [loading,    setLoading]    = useState(false);
   const [error,      setError]      = useState('');
-  const [showForm,   setShowForm]   = useState(false);
-  const [editTarget, setEditTarget] = useState(null);
   const [filters,    setFilters]    = useState({});
 
   const load = useCallback(async (f = filters) => {
@@ -24,26 +21,7 @@ export default function FacilitiesPage() {
 
   useEffect(() => { load(); }, []);
 
-  const handleFilter       = (f)  => { setFilters(f); load(f); };
-  const handleStatusChange = async (id, status) => {
-    try { await resourceApi.updateStatus(id, status); load(); }
-    catch { alert('Failed to update status.'); }
-  };
-  const handleDelete = async (id) => {
-    if (!window.confirm('Delete this resource?')) return;
-    try { await resourceApi.remove(id); load(); }
-    catch { alert('Failed to delete.'); }
-  };
-  const handleSubmit = async (payload) => {
-    try {
-      editTarget
-        ? await resourceApi.update(editTarget.id, payload)
-        : await resourceApi.create(payload);
-      setShowForm(false); setEditTarget(null); load();
-    } catch (err) {
-      alert(err.response?.data?.message ?? 'Failed to save.');
-    }
-  };
+  const handleFilter = (f) => { setFilters(f); load(f); };
 
   const stats = [
     { label: 'Total Resources', value: resources.length,
@@ -63,7 +41,6 @@ export default function FacilitiesPage() {
         display: 'flex', flexDirection: 'column',
         position: 'fixed', top: 0, left: 0, bottom: 0, zIndex: 100,
       }}>
-        {/* Logo */}
         <div style={{ padding: '22px 18px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
             <div style={{
@@ -77,15 +54,14 @@ export default function FacilitiesPage() {
             </div>
           </div>
           <div style={{
-            background: 'rgba(232,135,26,0.15)', border: '1px solid rgba(232,135,26,0.3)',
-            borderRadius: '6px', padding: '4px 10px', fontSize: '10px',
-            color: '#e8871a', fontWeight: '700', letterSpacing: '0.5px', display: 'inline-block',
-          }}>
-            Faculty of Computing
-          </div>
+            background: 'rgba(232,135,26,0.15)',
+            border: '1px solid rgba(232,135,26,0.3)',
+            borderRadius: '6px', padding: '4px 10px',
+            fontSize: '10px', color: '#e8871a',
+            fontWeight: '700', letterSpacing: '0.5px', display: 'inline-block',
+          }}>Faculty of Computing</div>
         </div>
 
-        {/* Nav */}
         <nav style={{ padding: '16px 0', flex: 1 }}>
           <p style={{
             color: '#3a5a7a', fontSize: '10px', fontWeight: '700',
@@ -94,10 +70,9 @@ export default function FacilitiesPage() {
           }}>Main Menu</p>
 
           {[
-            { icon: '🏛', label: 'Facilities',     active: true },
-            { icon: '📅', label: 'Bookings',        active: false },
-            { icon: '🔧', label: 'Incidents',       active: false },
-            { icon: '🔔', label: 'Notifications',   active: false },
+            { icon: '🏛', label: 'Facilities',    active: true  },
+            { icon: '📅', label: 'My Bookings',   active: false },
+            { icon: '🔔', label: 'Notifications', active: false },
           ].map(({ icon, label, active }) => (
             <div key={label} style={{
               display: 'flex', alignItems: 'center', gap: '10px',
@@ -113,16 +88,21 @@ export default function FacilitiesPage() {
           ))}
         </nav>
 
-        {/* Bottom */}
-        <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)', padding: '12px 0' }}>
-          {[{ icon: '⚙', label: 'Settings' }, { icon: '🚪', label: 'Sign Out' }].map(({ icon, label }) => (
-            <div key={label} style={{
-              display: 'flex', alignItems: 'center', gap: '10px',
-              padding: '9px 18px', color: '#6a8caa', fontSize: '13px', cursor: 'pointer',
-            }}>
-              <span>{icon}</span>{label}
-            </div>
-          ))}
+        <div style={{
+          borderTop: '1px solid rgba(255,255,255,0.07)',
+          padding: '14px 18px',
+          display: 'flex', alignItems: 'center', gap: '10px',
+        }}>
+          <div style={{
+            width: '34px', height: '34px', background: '#1e3a5f',
+            borderRadius: '50%', display: 'flex', alignItems: 'center',
+            justifyContent: 'center', color: '#7ab0d0',
+            fontSize: '11px', fontWeight: '700', flexShrink: 0,
+          }}>ST</div>
+          <div>
+            <div style={{ color: '#fff', fontSize: '12px', fontWeight: '600' }}>Student User</div>
+            <div style={{ color: '#6a8caa', fontSize: '10px', marginTop: '2px' }}>student@sliit.lk</div>
+          </div>
         </div>
       </aside>
 
@@ -135,7 +115,8 @@ export default function FacilitiesPage() {
           borderBottom: '1px solid #e0e6ed',
           display: 'flex', alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '0 28px', position: 'sticky', top: 0, zIndex: 50,
+          padding: '0 28px',
+          position: 'sticky', top: 0, zIndex: 50,
         }}>
           <div style={{ fontSize: '15px', fontWeight: '600', color: '#1a2a3a' }}>
             Facilities &amp; Assets Catalogue
@@ -144,24 +125,24 @@ export default function FacilitiesPage() {
             <div style={{
               width: '36px', height: '36px', background: '#f0f4f8',
               border: '1px solid #e0e6ed', borderRadius: '9px',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: '15px', cursor: 'pointer',
+              display: 'flex', alignItems: 'center',
+              justifyContent: 'center', fontSize: '15px', cursor: 'pointer',
             }}>🔔</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{
                 width: '36px', height: '36px', background: '#0a1628',
-                borderRadius: '50%', display: 'flex', alignItems: 'center',
-                justifyContent: 'center', color: '#fff', fontSize: '12px', fontWeight: '700',
-              }}>AD</div>
+                borderRadius: '50%', display: 'flex',
+                alignItems: 'center', justifyContent: 'center',
+                color: '#fff', fontSize: '12px', fontWeight: '700',
+              }}>ST</div>
               <div>
-                <div style={{ fontSize: '13px', fontWeight: '600', color: '#1a2a3a', lineHeight: 1.2 }}>Admin</div>
-                <div style={{ fontSize: '11px', color: '#7a9cc0' }}>Administrator</div>
+                <div style={{ fontSize: '13px', fontWeight: '600', color: '#1a2a3a', lineHeight: 1.2 }}>Student</div>
+                <div style={{ fontSize: '11px', color: '#7a9cc0' }}>student@sliit.lk</div>
               </div>
             </div>
           </div>
         </header>
 
-        {/* Page Body */}
         <main style={{ flex: 1, padding: '28px' }}>
 
           {/* Breadcrumb */}
@@ -170,28 +151,13 @@ export default function FacilitiesPage() {
           </p>
 
           {/* Page Header */}
-          <div style={{
-            display: 'flex', justifyContent: 'space-between',
-            alignItems: 'flex-start', marginBottom: '22px',
-          }}>
-            <div>
-              <h1 style={{ margin: 0, fontSize: '22px', fontWeight: '700', color: '#1a2a3a' }}>
-                Facilities &amp; Assets
-              </h1>
-              <p style={{ margin: '5px 0 0', fontSize: '13px', color: '#7a9cc0' }}>
-                Manage all bookable campus resources
-              </p>
-            </div>
-            <button
-              onClick={() => { setEditTarget(null); setShowForm(true); }}
-              style={{
-                background: '#e8871a', color: '#fff', border: 'none',
-                borderRadius: '10px', padding: '10px 22px',
-                fontSize: '13px', fontWeight: '700', cursor: 'pointer',
-                boxShadow: '0 3px 10px rgba(232,135,26,0.3)',
-              }}>
-              + Add Resource
-            </button>
+          <div style={{ marginBottom: '22px' }}>
+            <h1 style={{ margin: 0, fontSize: '22px', fontWeight: '700', color: '#1a2a3a' }}>
+              Facilities &amp; Assets
+            </h1>
+            <p style={{ margin: '5px 0 0', fontSize: '13px', color: '#7a9cc0' }}>
+              Browse and request available campus resources
+            </p>
           </div>
 
           {/* Stat Cards */}
@@ -244,7 +210,7 @@ export default function FacilitiesPage() {
               <p style={{ fontSize: '40px', marginBottom: '12px' }}>📭</p>
               <p style={{ fontSize: '14px', color: '#7a9cc0', margin: 0 }}>No resources found.</p>
               <p style={{ fontSize: '12px', color: '#aab4be', marginTop: '6px' }}>
-                Try adjusting your filters or add a new resource.
+                Try adjusting your filters.
               </p>
             </div>
           ) : (
@@ -254,25 +220,16 @@ export default function FacilitiesPage() {
               gap: '18px',
             }}>
               {resources.map(r => (
-                <ResourceCard key={r.id} resource={r}
-                  onEdit={(r) => { setEditTarget(r); setShowForm(true); }}
-                  onDelete={handleDelete}
-                  onStatusChange={handleStatusChange}
+                <ResourceCard
+                  key={r.id}
+                  resource={r}
+                  isUser={true}       
                 />
               ))}
             </div>
           )}
         </main>
       </div>
-
-      {/* Modal */}
-      {showForm && (
-        <ResourceForm
-          initial={editTarget}
-          onSubmit={handleSubmit}
-          onClose={() => { setShowForm(false); setEditTarget(null); }}
-        />
-      )}
     </div>
   );
 }
