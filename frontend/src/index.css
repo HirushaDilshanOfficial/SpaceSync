@@ -1,0 +1,383 @@
+/* ============================================================
+   SpaceSync – Global Design System
+   Author: Member 4 – Module D & E
+   ============================================================ */
+
+/* ── Google Font is loaded in index.html ── */
+
+:root {
+  /* Color palette */
+  --clr-bg:           #0d1117;
+  --clr-bg-card:      #161b22;
+  --clr-bg-hover:     #1c2128;
+  --clr-border:       #30363d;
+  --clr-border-glow:  rgba(88, 166, 255, 0.4);
+
+  --clr-primary:      #58a6ff;
+  --clr-primary-dark: #388bfd;
+  --clr-accent:       #a371f7;
+  --clr-success:      #3fb950;
+  --clr-warning:      #d29922;
+  --clr-danger:       #f85149;
+  --clr-info:         #58a6ff;
+
+  --clr-text:         #e6edf3;
+  --clr-text-muted:   #8b949e;
+  --clr-text-faint:   #484f58;
+
+  /* Gradients */
+  --grad-primary: linear-gradient(135deg, #58a6ff 0%, #a371f7 100%);
+  --grad-card:    linear-gradient(145deg, #161b22 0%, #1c2128 100%);
+  --grad-glow:    radial-gradient(ellipse at top, rgba(88,166,255,0.15) 0%, transparent 70%);
+
+  /* Typography */
+  --font: 'Inter', system-ui, sans-serif;
+
+  /* Spacing / radius */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.5);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.6);
+  --shadow-glow: 0 0 24px rgba(88,166,255,0.25);
+
+  /* Transitions */
+  --t-fast: 150ms ease;
+  --t-med:  250ms ease;
+  --t-slow: 400ms ease;
+}
+
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: var(--font);
+  background-color: var(--clr-bg);
+  color: var(--clr-text);
+  line-height: 1.6;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--clr-primary); text-decoration: none; transition: color var(--t-fast); }
+a:hover { color: var(--clr-accent); }
+
+img { max-width: 100%; display: block; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--clr-bg); }
+::-webkit-scrollbar-thumb { background: var(--clr-border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--clr-text-muted); }
+
+/* ── Utility classes ── */
+.container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 20px; border-radius: var(--radius-md);
+  font-family: var(--font); font-size: 14px; font-weight: 600;
+  cursor: pointer; border: none; transition: all var(--t-med);
+  white-space: nowrap;
+}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-primary {
+  background: var(--grad-primary);
+  color: #fff;
+  box-shadow: 0 2px 12px rgba(88,166,255,0.3);
+}
+.btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(88,166,255,0.5);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--clr-text-muted);
+  border: 1px solid var(--clr-border);
+}
+.btn-ghost:hover:not(:disabled) {
+  background: var(--clr-bg-hover);
+  color: var(--clr-text);
+  border-color: var(--clr-primary);
+}
+
+.btn-danger {
+  background: rgba(248,81,73,0.15);
+  color: var(--clr-danger);
+  border: 1px solid rgba(248,81,73,0.3);
+}
+.btn-danger:hover:not(:disabled) {
+  background: rgba(248,81,73,0.25);
+}
+
+.btn-sm { padding: 6px 14px; font-size: 12px; }
+
+/* ── Cards ── */
+.card {
+  background: var(--grad-card);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  transition: all var(--t-med);
+}
+.card:hover { border-color: var(--clr-border-glow); box-shadow: var(--shadow-glow); }
+
+/* ── Badge ── */
+.badge {
+  display: inline-flex; align-items: center;
+  padding: 3px 10px; border-radius: 100px;
+  font-size: 11px; font-weight: 600; letter-spacing: 0.5px;
+}
+.badge-success { background: rgba(63,185,80,0.15); color: var(--clr-success); }
+.badge-warning { background: rgba(210,153,34,0.15); color: var(--clr-warning); }
+.badge-danger  { background: rgba(248,81,73,0.15);  color: var(--clr-danger);  }
+.badge-info    { background: rgba(88,166,255,0.15);  color: var(--clr-info);    }
+.badge-accent  { background: rgba(163,113,247,0.15); color: var(--clr-accent);  }
+.badge-neutral { background: rgba(139,148,158,0.15); color: var(--clr-text-muted); }
+
+/* ── Form inputs ── */
+.form-group { margin-bottom: 20px; }
+.form-label { 
+  display: block; 
+  font-size: 13px; 
+  font-weight: 500; 
+  color: var(--clr-text-muted); 
+  margin-bottom: 8px; 
+  letter-spacing: 0.2px;
+}
+
+.input {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(13, 17, 23, 0.4);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-md);
+  color: var(--clr-text);
+  font-family: var(--font);
+  font-size: 15px;
+  transition: all var(--t-med);
+  outline: none;
+  backdrop-filter: blur(4px);
+}
+.input:focus {
+  border-color: var(--clr-primary);
+  background: rgba(13, 17, 23, 0.6);
+  box-shadow: 0 0 0 4px rgba(88, 166, 255, 0.1), 0 0 20px rgba(88, 166, 255, 0.1);
+  transform: translateY(-1px);
+}
+.input::placeholder { color: var(--clr-text-faint); }
+
+/* ── Glassmorphism ── */
+.glass-card {
+  background: rgba(22, 27, 34, 0.6);
+  backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 24px 80px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.05);
+}
+.glass-card:hover {
+  border-color: rgba(88, 166, 255, 0.3);
+}
+
+/* ── Form-control helper (legacy alias if needed) ── */
+.form-control {
+  width: 100%;
+  padding: 12px 16px;
+  background: rgba(13, 17, 23, 0.4);
+  border: 1px solid var(--clr-border);
+  border-radius: var(--radius-md);
+  color: var(--clr-text);
+  font-family: var(--font);
+  font-size: 15px;
+  transition: all var(--t-med);
+  outline: none;
+  backdrop-filter: blur(4px);
+}
+.form-control:focus {
+  border-color: var(--clr-primary);
+  background: rgba(13, 17, 23, 0.6);
+  box-shadow: 0 0 0 4px rgba(88, 166, 255, 0.1), 0 0 20px rgba(88, 166, 255, 0.1);
+  transform: translateY(-1px);
+}
+
+/* ── Tag dots for notification types ── */
+.dot {
+  width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+}
+.dot-success { background: var(--clr-success); }
+.dot-danger  { background: var(--clr-danger); }
+.dot-info    { background: var(--clr-info); }
+.dot-warning { background: var(--clr-warning); }
+.dot-accent  { background: var(--clr-accent); }
+
+/* ── Divider ── */
+.divider {
+  height: 1px; background: var(--clr-border);
+  margin: 16px 0; border: none;
+}
+
+/* ── Loading spinner ── */
+@keyframes spin { to { transform: rotate(360deg); } }
+.spinner {
+  width: 20px; height: 20px;
+  border: 2px solid var(--clr-border);
+  border-top-color: var(--clr-primary);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+/* ── Fade-in animation helper ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fadeUp var(--t-slow) both; }
+
+/* ── Page layout ── */
+.page-wrapper { display: flex; min-height: 100vh; }
+.sidebar { width: 260px; flex-shrink: 0; }
+.main-content { flex: 1; overflow-y: auto; }
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .main-content { width: 100%; }
+  .container { padding: 0 16px; }
+}
+
+/* ── Login & Sign Up Pages ── */
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  background: var(--clr-bg);
+  overflow: hidden;
+  padding: 24px;
+}
+
+.login-bg { 
+  position: absolute; 
+  inset: 0; 
+  z-index: 0; 
+  pointer-events: none;
+}
+
+.login-bg .glow-orb { position: absolute; border-radius: 50%; filter: blur(140px); opacity: 0.35; }
+.login-bg .glow-orb.top-left { width: 600px; height: 600px; background: rgba(88, 166, 255, 0.4); top: -200px; left: -100px; }
+.login-bg .glow-orb.bottom-right { width: 700px; height: 700px; background: rgba(163, 113, 247, 0.3); bottom: -250px; right: -150px; }
+
+.login-card {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  max-width: 440px;
+  padding: 48px 40px;
+  border-radius: var(--radius-xl);
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 32px 64px rgba(0, 0, 0, 0.6), inset 0 1px 1px rgba(255, 255, 255, 0.05);
+}
+
+.login-card h2 { 
+  font-size: 32px; 
+  font-weight: 800; 
+  color: #fff; 
+  margin-bottom: 8px; 
+  letter-spacing: -0.5px;
+}
+
+.login-subtitle { 
+  color: var(--clr-text-muted); 
+  font-size: 16px; 
+  font-weight: 500;
+}
+
+.lock-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 80px;
+  height: 80px;
+  background: rgba(88, 166, 255, 0.1);
+  border: 1px solid rgba(88, 166, 255, 0.2);
+  border-radius: 24px;
+  font-size: 40px;
+  margin-bottom: 24px;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.google-btn {
+  width: 100%;
+  background: #fff;
+  color: #1a1a1a;
+  justify-content: center;
+  height: 52px;
+  border-radius: var(--radius-md);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-size: 16px;
+  font-weight: 600;
+  margin-top: 12px;
+}
+
+.google-btn:hover {
+  background: #f8f9fa;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+
+.login-footer {
+  margin-top: 40px;
+  font-size: 13px;
+  color: var(--clr-text-muted);
+  line-height: 1.5;
+}
+
+.login-card .divider {
+  margin: 32px 0;
+  opacity: 0.8;
+  display: flex !important; /* Force flex as general divider might be just a line */
+  align-items: center;
+  background: transparent; /* Override 1px bg line */
+  height: auto;
+}
+
+.login-card .divider-line {
+  flex: 1;
+  height: 1px;
+  background: var(--clr-border);
+}
+
+.login-card .divider-text {
+  padding: 0 16px;
+  font-size: 12px;
+  color: var(--clr-text-faint);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.login-card-link {
+  color: var(--clr-primary);
+  font-weight: 600;
+  transition: all var(--t-med);
+}
+
+.login-card-link:hover {
+  color: var(--clr-accent);
+  text-decoration: underline;
+}
