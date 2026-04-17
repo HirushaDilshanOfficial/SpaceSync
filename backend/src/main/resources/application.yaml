@@ -1,8 +1,10 @@
 spring:
+  application:
+    name: backend
   datasource:
-    url: jdbc:mysql://localhost:3306/spacesynce
+    url: jdbc:mysql://localhost:3306/spacesync_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
     username: root
-    password: admin
+    password: "root"
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
@@ -10,9 +12,5 @@ spring:
     show-sql: true
     properties:
       hibernate:
+        format_sql: true
         dialect: org.hibernate.dialect.MySQLDialect
-
-server:
-  port: 8081
-  servlet:
-    context-path: /api
