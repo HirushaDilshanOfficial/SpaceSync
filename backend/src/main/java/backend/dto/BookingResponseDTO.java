@@ -19,6 +19,8 @@ public class BookingResponseDTO {
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private BookingStatus status;
+    private String checkInToken;
+    private LocalDateTime checkedInAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

@@ -3,5 +3,7 @@ package backend.entity;
 public enum BookingStatus {
     PENDING,
     CONFIRMED,
-    CANCELLED
+    APPROVED,
+    CANCELLED,
+    CHECKED_IN
 }

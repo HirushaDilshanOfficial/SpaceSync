@@ -35,8 +35,22 @@ public class Booking {
     private LocalDateTime endTime;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 20)
     private BookingStatus status;
+
+    // Existing DB column — kept with a sensible default so INSERT always has a value
+    @Builder.Default
+    @Column(nullable = false)
+    private Integer attendees = 1;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private String purpose = "General";
+
+    @Column(unique = true)
+    private String checkInToken;
+
+    private LocalDateTime checkedInAt;
 
     @CreationTimestamp
     @Column(updatable = false)
