@@ -28,7 +28,7 @@ export function MyBookingsPage() {
     try {
       setLoading(true);
       // Using a hardcoded userId for demo purposes until auth is implemented
-      const response = await fetch('http://localhost:8080/api/bookings/my?userId=USER-001');
+      const response = await fetch('http://localhost:8081/api/bookings/my?userId=USER-001');
       if (!response.ok) throw new Error('Failed to fetch bookings');
       const data = await response.json();
       setBookings(data);
@@ -46,7 +46,7 @@ export function MyBookingsPage() {
 
   const handleCancel = async (id) => {
     try {
-      const response = await fetch(`http://localhost:8080/api/bookings/${id}/status?status=CANCELLED`, {
+      const response = await fetch(`http://localhost:8081/api/bookings/${id}/status?status=CANCELLED`, {
         method: 'PATCH',
       });
       if (response.ok) {
@@ -175,7 +175,7 @@ export function MyBookingsPage() {
               
               <div className="aspect-square w-full max-w-[240px] mx-auto bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center mb-6 overflow-hidden">
                 <img 
-                  src={`http://localhost:8080/api/bookings/${qrModal.bookingId}/qr`} 
+                  src={`http://localhost:8081/api/bookings/${qrModal.bookingId}/qr`} 
                   alt="Check-in QR" 
                   className="w-full h-full object-contain p-2"
                   onError={(e) => {

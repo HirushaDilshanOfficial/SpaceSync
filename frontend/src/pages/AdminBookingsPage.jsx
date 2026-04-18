@@ -50,7 +50,7 @@ export function AdminBookingsPage() {
   const fetchBookings = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8080/api/bookings');
+      const response = await fetch('http://localhost:8081/api/bookings');
       if (!response.ok) throw new Error('Failed to fetch bookings');
       const data = await response.json();
       setBookings(data);
@@ -79,7 +79,7 @@ export function AdminBookingsPage() {
 
   const handleStatusChange = async (id, status) => {
     try {
-      const response = await fetch(`http://localhost:8080/api/bookings/${id}/status?status=${status}`, {
+      const response = await fetch(`http://localhost:8081/api/bookings/${id}/status?status=${status}`, {
         method: 'PATCH',
       });
       if (response.ok) fetchBookings();
@@ -91,7 +91,7 @@ export function AdminBookingsPage() {
   const handleCheckIn = async (token) => {
     setScannerModal(prev => ({ ...prev, processing: true, feedback: 'Validating token...' }));
     try {
-      const response = await fetch(`http://localhost:8080/api/bookings/check-in?token=${token}`, {
+      const response = await fetch(`http://localhost:8081/api/bookings/check-in?token=${token}`, {
         method: 'POST',
       });
       const data = await response.json();
