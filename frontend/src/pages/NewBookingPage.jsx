@@ -46,7 +46,7 @@ export function NewBookingPage() {
         endTime: endDateTime
       };
 
-      const response = await fetch('http://localhost:8080/api/bookings', {
+      const response = await fetch('http://localhost:8081/api/bookings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)

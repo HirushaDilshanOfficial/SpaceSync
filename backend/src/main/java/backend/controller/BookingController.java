@@ -6,7 +6,9 @@ import backend.entity.BookingStatus;
 import backend.service.BookingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -50,6 +52,32 @@ public class BookingController {
             @PathVariable Long id,
             @RequestParam BookingStatus status) {
         return ResponseEntity.ok(bookingService.updateBookingStatus(id, status));
+    }
+
+    /**
+     * Returns the QR code image (PNG) for a confirmed booking.
+     * Student uses this to view/download their check-in QR code.
+     *
+     * GET /api/bookings/{id}/qr
+     */
+    @GetMapping(value = "/{id}/qr", produces = MediaType.IMAGE_PNG_VALUE)
+    public ResponseEntity<byte[]> getBookingQrCode(@PathVariable Long id) {
+        byte[] qrBytes = bookingService.getQrCodeBytes(id);
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.IMAGE_PNG);
+        headers.setContentLength(qrBytes.length);
+        return new ResponseEntity<>(qrBytes, headers, HttpStatus.OK);
+    }
+
+    /**
+     * Validates a QR token and marks the booking as CHECKED_IN.
+     * Admin scans the QR and the token is submitted here.
+     *
+     * POST /api/bookings/check-in?token=<uuid>
+     */
+    @PostMapping("/check-in")
+    public ResponseEntity<BookingResponseDTO> checkIn(@RequestParam String token) {
+        return ResponseEntity.ok(bookingService.validateCheckIn(token));
     }
 
     @DeleteMapping("/{id}")

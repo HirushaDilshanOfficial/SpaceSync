@@ -1,32 +1,34 @@
 import React, { useState } from 'react';
-import { Calendar, Clock, Users, Plus, XCircle, CheckCircle, AlertCircle, ChevronRight } from 'lucide-react';
+import { Calendar, Clock, Users, Plus, XCircle, CheckCircle, AlertCircle, ChevronRight, QrCode, X } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const statusConfig = {
-  PENDING:   { color: 'text-amber-700 bg-amber-50 border-amber-200',   dot: 'bg-amber-400',   icon: AlertCircle },
-  APPROVED:  { color: 'text-emerald-700 bg-emerald-50 border-emerald-200', dot: 'bg-emerald-400', icon: CheckCircle },
-  REJECTED:  { color: 'text-red-700 bg-red-50 border-red-200',         dot: 'bg-red-400',     icon: XCircle },
-  CANCELLED: { color: 'text-gray-500 bg-gray-50 border-gray-200',      dot: 'bg-gray-300',    icon: XCircle },
+  PENDING:    { color: 'text-amber-700 bg-amber-50 border-amber-200',   dot: 'bg-amber-400',   icon: AlertCircle },
+  APPROVED:   { color: 'text-emerald-700 bg-emerald-50 border-emerald-200', dot: 'bg-emerald-400', icon: CheckCircle },
+  CHECKED_IN: { color: 'text-indigo-700 bg-indigo-50 border-indigo-200', dot: 'bg-indigo-400', icon: CheckCircle },
+  REJECTED:   { color: 'text-red-700 bg-red-50 border-red-200',         dot: 'bg-red-400',     icon: XCircle },
+  CANCELLED:  { color: 'text-gray-500 bg-gray-50 border-gray-200',      dot: 'bg-gray-300',    icon: XCircle },
 };
 
 const statCards = [
-  { key: 'PENDING',   label: 'Pending',   bg: 'bg-amber-50',   text: 'text-amber-600',   border: 'border-amber-100'  },
-  { key: 'APPROVED',  label: 'Approved',  bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-100' },
-  { key: 'REJECTED',  label: 'Rejected',  bg: 'bg-red-50',     text: 'text-red-600',     border: 'border-red-100'   },
-  { key: 'CANCELLED', label: 'Cancelled', bg: 'bg-gray-50',    text: 'text-gray-500',    border: 'border-gray-100'  },
+  { key: 'PENDING',    label: 'Pending',    bg: 'bg-amber-50',   text: 'text-amber-600',   border: 'border-amber-100'  },
+  { key: 'APPROVED',   label: 'Approved',   bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-100' },
+  { key: 'CHECKED_IN', label: 'Checked In', bg: 'bg-indigo-50', text: 'text-indigo-600', border: 'border-indigo-100' },
+  { key: 'CANCELLED',  label: 'Cancelled',  bg: 'bg-gray-50',    text: 'text-gray-500',    border: 'border-gray-100'  },
 ];
 
 export function MyBookingsPage() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [qrModal, setQrModal] = useState({ open: false, bookingId: null });
   const navigate = useNavigate();
 
   const fetchBookings = async () => {
     try {
       setLoading(true);
       // Using a hardcoded userId for demo purposes until auth is implemented
-      const response = await fetch('http://localhost:8080/api/bookings/my?userId=USER-001');
+      const response = await fetch('http://localhost:8081/api/bookings/my?userId=USER-001');
       if (!response.ok) throw new Error('Failed to fetch bookings');
       const data = await response.json();
       setBookings(data);
@@ -44,7 +46,7 @@ export function MyBookingsPage() {
 
   const handleCancel = async (id) => {
     try {
-      const response = await fetch(`http://localhost:8080/api/bookings/${id}/status?status=CANCELLED`, {
+      const response = await fetch(`http://localhost:8081/api/bookings/${id}/status?status=CANCELLED`, {
         method: 'PATCH',
       });
       if (response.ok) {
@@ -133,20 +135,70 @@ export function MyBookingsPage() {
                   </div>
 
                   {/* Actions */}
-                  {(booking.status === 'APPROVED' || booking.status === 'PENDING') && (
-                    <div className="pt-3 border-t border-gray-100 mt-auto">
+                  <div className="pt-3 border-t border-gray-100 mt-auto space-y-2">
+                    {(booking.status === 'APPROVED' || booking.status === 'CHECKED_IN') && (
+                      <button
+                        onClick={() => setQrModal({ open: true, bookingId: booking.id })}
+                        className="w-full py-2 px-3 flex items-center justify-center gap-2 text-sm font-semibold text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-xl hover:bg-indigo-100 transition-colors"
+                      >
+                        <QrCode className="w-4 h-4" />
+                        View Check-in QR
+                      </button>
+                    )}
+                    {(booking.status === 'APPROVED' || booking.status === 'PENDING') && (
                       <button
                         onClick={() => handleCancel(booking.id)}
-                        className="w-full py-2 px-3 text-sm font-medium text-red-600 border border-red-200 rounded-xl hover:bg-red-50 transition-colors"
+                        className="w-full py-2 px-3 text-sm font-medium text-red-600 border border-red-100 rounded-xl hover:bg-red-50 transition-colors"
                       >
                         {booking.status === 'APPROVED' ? 'Cancel Booking' : 'Withdraw Request'}
                       </button>
-                    </div>
-                  )}
+                    )}
+                  </div>
                 </div>
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* QR Modal */}
+      {qrModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden border border-gray-100 animate-in fade-in zoom-in duration-200">
+            <div className="p-6 text-center">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="font-bold text-gray-900 text-lg">Check-in QR Code</h3>
+                <button onClick={() => setQrModal({ open: false, bookingId: null })} className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+                  <X className="w-5 h-5 text-gray-400" />
+                </button>
+              </div>
+              
+              <div className="aspect-square w-full max-w-[240px] mx-auto bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center mb-6 overflow-hidden">
+                <img 
+                  src={`http://localhost:8081/api/bookings/${qrModal.bookingId}/qr`} 
+                  alt="Check-in QR" 
+                  className="w-full h-full object-contain p-2"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = 'https://via.placeholder.com/240?text=QR+Error';
+                  }}
+                />
+              </div>
+
+              <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4 mb-2">
+                <p className="text-sm text-indigo-700 font-medium">Scan this at the entrance</p>
+                <p className="text-xs text-indigo-500 mt-1">Show this to the administrator to check-in.</p>
+              </div>
+            </div>
+            <div className="p-4 bg-gray-50 border-t border-gray-100">
+              <button
+                onClick={() => setQrModal({ open: false, bookingId: null })}
+                className="w-full py-3 text-sm font-bold text-gray-700 bg-white border border-gray-200 rounded-2xl hover:bg-gray-100 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

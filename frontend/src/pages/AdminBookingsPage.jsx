@@ -1,18 +1,14 @@
-import React, { useState } from 'react';
-import { Calendar, Clock, MapPin, Users, CheckCircle, XCircle, Search, AlertTriangle, ShieldX, SlidersHorizontal } from 'lucide-react';
-
-const ALL_MOCK_BOOKINGS = [
-  { id: 'BKG-001', user: 'Hirusha Dilshan', resource: 'Conference Room A', date: '2026-04-10', startTime: '10:00 AM', endTime: '11:00 AM', purpose: 'Quarterly Planning', attendees: 8, status: 'APPROVED' },
-  { id: 'BKG-002', user: 'John Doe', resource: 'Projector XYZ', date: '2026-04-12', startTime: '01:00 PM', endTime: '03:00 PM', purpose: 'Client Presentation', attendees: 12, status: 'PENDING' },
-  { id: 'BKG-003', user: 'Jane Smith', resource: 'Training Lab', date: '2026-04-05', startTime: '09:00 AM', endTime: '05:00 PM', purpose: 'New Hire Onboarding', attendees: 15, status: 'APPROVED' },
-  { id: 'BKG-005', user: 'Alex Perera', resource: 'Conference Room A', date: '2026-04-10', startTime: '10:30 AM', endTime: '11:30 AM', purpose: 'Ad-hoc Sync', attendees: 3, status: 'PENDING' },
-];
+import React, { useState, useEffect } from 'react';
+import { Calendar, Clock, MapPin, Users, CheckCircle, XCircle, Search, AlertTriangle, ShieldX, SlidersHorizontal, QrCode, ScanLine, Loader2, X } from 'lucide-react';
+import { Html5QrcodeScanner } from 'html5-qrcode';
 
 const statusConfig = {
-  PENDING:   { color: 'text-amber-700 bg-amber-50 border-amber-200',   dot: 'bg-amber-400' },
-  APPROVED:  { color: 'text-emerald-700 bg-emerald-50 border-emerald-200', dot: 'bg-emerald-400' },
-  REJECTED:  { color: 'text-red-700 bg-red-50 border-red-200',         dot: 'bg-red-400' },
-  CANCELLED: { color: 'text-gray-500 bg-gray-50 border-gray-200',      dot: 'bg-gray-300' },
+  PENDING:    { color: 'text-amber-700 bg-amber-50 border-amber-200',   dot: 'bg-amber-400' },
+  APPROVED:   { color: 'text-emerald-700 bg-emerald-50 border-emerald-200', dot: 'bg-emerald-400' },
+  CONFIRMED:  { color: 'text-emerald-700 bg-emerald-50 border-emerald-200', dot: 'bg-emerald-400' }, // Map CONFIRMED same as APPROVED
+  CHECKED_IN: { color: 'text-indigo-700 bg-indigo-50 border-indigo-200', dot: 'bg-indigo-400' },
+  REJECTED:   { color: 'text-red-700 bg-red-50 border-red-200',         dot: 'bg-red-400' },
+  CANCELLED:  { color: 'text-gray-500 bg-gray-50 border-gray-200',      dot: 'bg-gray-300' },
 };
 
 const parseTime = (t) => {
@@ -42,34 +38,103 @@ const TAB_STYLES = {
 };
 
 export function AdminBookingsPage() {
-  const [bookings, setBookings] = useState(ALL_MOCK_BOOKINGS);
+  const [bookings, setBookings] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('PENDING');
   const [search, setSearch] = useState('');
   const [filterDate, setFilterDate] = useState('');
   const [filterTime, setFilterTime] = useState('');
   const [rejectModal, setRejectModal] = useState({ open: false, booking: null, reason: '' });
+  const [scannerModal, setScannerModal] = useState({ open: false, processing: false, feedback: null });
+
+  const fetchBookings = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('http://localhost:8081/api/bookings');
+      if (!response.ok) throw new Error('Failed to fetch bookings');
+      const data = await response.json();
+      setBookings(data);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchBookings();
+  }, []);
 
   const filtered = bookings.filter(b => {
-    if (b.status !== activeTab) return false;
+    // Map CONFIRMED to APPROVED for UI tabs if needed
+    const status = (b.status === 'CONFIRMED' || b.status === 'APPROVED') ? 'APPROVED' : b.status;
+    if (status !== activeTab && b.status !== activeTab) return false;
+    
     const s = search.toLowerCase();
-    if (s && !b.resource.toLowerCase().includes(s) && !b.user.toLowerCase().includes(s) && !b.id.toLowerCase().includes(s)) return false;
-    if (filterDate && b.date !== filterDate) return false;
-    if (filterTime && toHHMM(parseTime(b.startTime)) !== filterTime) return false;
+    if (s && !b.resourceId.toLowerCase().includes(s) && !b.userId.toLowerCase().includes(s) && !`BKG-${b.id}`.toLowerCase().includes(s)) return false;
+    
+    if (filterDate && b.startTime.split('T')[0] !== filterDate) return false;
     return true;
   });
 
-  const approve = (id) => setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'APPROVED' } : b));
-  const cancel = (id) => setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'CANCELLED' } : b));
-  const openReject = (booking, conflict) => setRejectModal({ open: true, booking, reason: conflict ? 'Rejected due to scheduling conflict with an approved booking.' : '' });
+  const handleStatusChange = async (id, status) => {
+    try {
+      const response = await fetch(`http://localhost:8081/api/bookings/${id}/status?status=${status}`, {
+        method: 'PATCH',
+      });
+      if (response.ok) fetchBookings();
+    } catch (err) {
+      console.error('Failed to update status:', err);
+    }
+  };
+
+  const handleCheckIn = async (token) => {
+    setScannerModal(prev => ({ ...prev, processing: true, feedback: 'Validating token...' }));
+    try {
+      const response = await fetch(`http://localhost:8081/api/bookings/check-in?token=${token}`, {
+        method: 'POST',
+      });
+      const data = await response.json();
+      
+      if (response.ok) {
+        setScannerModal(prev => ({ ...prev, feedback: `Success! Checked-in ${data.userId}`, processing: false }));
+        setTimeout(() => {
+          setScannerModal({ open: false, processing: false, feedback: null });
+          fetchBookings();
+        }, 2000);
+      } else {
+        throw new Error(data.message || 'Check-in failed');
+      }
+    } catch (err) {
+      setScannerModal(prev => ({ ...prev, feedback: `Error: ${err.message}`, processing: false }));
+    }
+  };
+
+  const openReject = (booking) => setRejectModal({ open: true, booking, reason: '' });
+
   const confirmReject = () => {
     if (!rejectModal.reason.trim()) return;
-    setBookings(prev => prev.map(b => b.id === rejectModal.booking.id ? { ...b, status: 'REJECTED', rejectReason: rejectModal.reason } : b));
+    handleStatusChange(rejectModal.booking.id, 'REJECTED');
     setRejectModal({ open: false, booking: null, reason: '' });
   };
 
+  useEffect(() => {
+    if (scannerModal.open) {
+      const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: { width: 250, height: 250 } }, false);
+      scanner.render((decodedText) => {
+        scanner.clear();
+        handleCheckIn(decodedText);
+      }, (error) => {
+        // console.warn(error);
+      });
+      return () => scanner.clear();
+    }
+  }, [scannerModal.open]);
+
   const hasFilters = search || filterDate || filterTime;
   const pendingCount = bookings.filter(b => b.status === 'PENDING').length;
-  const approvedCount = bookings.filter(b => b.status === 'APPROVED').length;
+  const approvedCount = bookings.filter(b => b.status === 'APPROVED' || b.status === 'CONFIRMED').length;
+  const checkedInCount = bookings.filter(b => b.status === 'CHECKED_IN').length;
 
   return (
     <div className="space-y-7">
@@ -80,13 +145,23 @@ export function AdminBookingsPage() {
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Booking Dashboard</h1>
           <p className="text-gray-500 mt-1 text-sm">Review, approve, and manage workspace reservations.</p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> {pendingCount} Pending
-          </span>
-          <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> {approvedCount} Approved
-          </span>
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            onClick={() => setScannerModal({ open: true, processing: false, feedback: null })}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors shadow-sm"
+          >
+            <ScanLine className="w-4 h-4" />
+            Scan QR to Check-in
+          </button>
+          <div className="flex items-center gap-2 h-10 px-3 bg-gray-50 border border-gray-100 rounded-xl">
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-amber-600">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> {pendingCount} Pending
+            </span>
+            <div className="w-px h-3 bg-gray-200 mx-1" />
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> {approvedCount} Approved
+            </span>
+          </div>
         </div>
       </div>
 
@@ -95,16 +170,16 @@ export function AdminBookingsPage() {
         <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center">
 
           {/* Tabs */}
-          <div className="flex bg-gray-100 p-1 rounded-xl shrink-0 gap-1">
-            {['PENDING', 'APPROVED'].map(tab => (
+          <div className="flex bg-gray-100 p-1 rounded-xl shrink-0 gap-1 overflow-x-auto">
+            {['PENDING', 'APPROVED', 'CHECKED_IN'].map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-4 py-1.5 rounded-lg text-sm transition-all ${activeTab === tab ? TAB_STYLES.active : TAB_STYLES.inactive}`}
+                className={`px-4 py-1.5 rounded-lg text-sm transition-all whitespace-nowrap ${activeTab === tab ? TAB_STYLES.active : TAB_STYLES.inactive}`}
               >
-                {tab[0] + tab.slice(1).toLowerCase()}
+                {tab.replace('_', ' ')[0] + tab.replace('_', ' ').slice(1).toLowerCase()}
                 <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-full font-medium ${activeTab === tab ? 'bg-indigo-50 text-indigo-600' : 'bg-gray-200 text-gray-500'}`}>
-                  {tab === 'PENDING' ? pendingCount : approvedCount}
+                  {tab === 'PENDING' ? pendingCount : tab === 'APPROVED' ? approvedCount : checkedInCount}
                 </span>
               </button>
             ))}
@@ -170,39 +245,24 @@ export function AdminBookingsPage() {
                     </span>
                   </div>
 
-                  <h2 className="font-semibold text-gray-900 text-lg leading-snug mb-1">{booking.resource}</h2>
+                  <h2 className="font-semibold text-gray-900 text-lg leading-snug mb-1">{booking.resourceId}</h2>
 
                   {/* Requester */}
                   <div className="flex items-center gap-2 mb-4">
                     <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[9px] font-bold shrink-0">
-                      {booking.user.substring(0, 2).toUpperCase()}
+                      {booking.userId.substring(0, 2).toUpperCase()}
                     </div>
-                    <span className="text-sm text-gray-400">{booking.user}</span>
+                    <span className="text-sm text-gray-400">{booking.userId}</span>
                   </div>
-
-                  {/* Conflict alert */}
-                  {conflict && (
-                    <div className="flex items-center gap-2 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-3">
-                      <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                      Conflicts with an approved booking
-                    </div>
-                  )}
 
                   {/* Details */}
                   <div className="space-y-2 flex-1 mb-4">
                     <div className="flex items-center gap-2.5 text-sm text-gray-500">
-                      <Calendar className="w-3.5 h-3.5 text-gray-300 shrink-0" /> {booking.date}
+                      <Calendar className="w-3.5 h-3.5 text-gray-300 shrink-0" /> {new Date(booking.startTime).toLocaleDateString()}
                     </div>
                     <div className="flex items-center gap-2.5 text-sm text-gray-500">
                       <Clock className="w-3.5 h-3.5 text-gray-300 shrink-0" />
-                      <span className={conflict ? 'text-amber-700 font-semibold' : ''}>{booking.startTime} – {booking.endTime}</span>
-                    </div>
-                    <div className="flex items-center gap-2.5 text-sm text-gray-500">
-                      <Users className="w-3.5 h-3.5 text-gray-300 shrink-0" /> {booking.attendees} attendees
-                    </div>
-                    <div className="flex items-start gap-2.5 text-sm text-gray-500">
-                      <MapPin className="w-3.5 h-3.5 text-gray-300 shrink-0 mt-0.5" />
-                      <span className="line-clamp-2">{booking.purpose}</span>
+                      <span>{new Date(booking.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – {new Date(booking.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
                   </div>
 
@@ -211,28 +271,31 @@ export function AdminBookingsPage() {
                     {booking.status === 'PENDING' && (
                       <div className="flex gap-2">
                         <button
-                          onClick={() => approve(booking.id)}
-                          disabled={conflict}
-                          title={conflict ? 'Cannot approve — scheduling conflict detected' : 'Approve this booking'}
-                          className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed rounded-xl transition-colors"
+                          onClick={() => handleStatusChange(booking.id, 'APPROVED')}
+                          className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl transition-colors"
                         >
                           <CheckCircle className="w-4 h-4" /> Approve
                         </button>
                         <button
-                          onClick={() => openReject(booking, conflict)}
+                          onClick={() => openReject(booking)}
                           className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 text-sm font-semibold text-red-600 border border-red-200 hover:bg-red-50 rounded-xl transition-colors"
                         >
                           <XCircle className="w-4 h-4" /> Reject
                         </button>
                       </div>
                     )}
-                    {booking.status === 'APPROVED' && (
+                    {(booking.status === 'APPROVED' || booking.status === 'CONFIRMED') && (
                       <button
-                        onClick={() => cancel(booking.id)}
+                        onClick={() => handleStatusChange(booking.id, 'CANCELLED')}
                         className="w-full flex items-center justify-center gap-2 py-2 px-3 text-sm font-medium text-gray-600 border border-gray-200 hover:bg-gray-50 rounded-xl transition-colors"
                       >
                         <ShieldX className="w-4 h-4" /> Cancel Approval
                       </button>
+                    )}
+                    {booking.status === 'CHECKED_IN' && (
+                      <div className="text-center py-2 px-3 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-xl border border-indigo-100 flex items-center justify-center gap-2">
+                        <CheckCircle className="w-3.5 h-3.5" /> Checked in at {new Date(booking.checkedInAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      </div>
                     )}
                   </div>
 
@@ -279,6 +342,56 @@ export function AdminBookingsPage() {
               >
                 Reject Request
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* QR Scanner Modal */}
+      {scannerModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden border border-gray-100 animate-in fade-in zoom-in duration-200">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center gap-2">
+                   <QrCode className="w-5 h-5 text-indigo-600" />
+                   <h3 className="font-bold text-gray-900 text-lg">Scan Check-in QR</h3>
+                </div>
+                <button 
+                  onClick={() => setScannerModal({ open: false, processing: false, feedback: null })} 
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <X className="w-5 h-5 text-gray-400" />
+                </button>
+              </div>
+
+              <div id="reader" className="w-full aspect-square bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200 flex items-center justify-center mb-6 overflow-hidden relative">
+                {!scannerModal.processing && !scannerModal.feedback && (
+                  <div className="text-center p-8">
+                     <ScanLine className="w-12 h-12 text-gray-200 mx-auto mb-3 animate-pulse" />
+                     <p className="text-sm text-gray-400">Position the QR code within the frame</p>
+                  </div>
+                )}
+                {(scannerModal.processing || scannerModal.feedback) && (
+                   <div className="text-center p-8 bg-white/90 absolute inset-0 z-10 flex flex-col items-center justify-center">
+                      {scannerModal.processing ? (
+                        <Loader2 className="w-10 h-10 text-indigo-600 animate-spin mb-4" />
+                      ) : (
+                        <CheckCircle className={`w-12 h-12 mb-4 ${scannerModal.feedback.includes('Error') ? 'text-red-500' : 'text-emerald-500'}`} />
+                      )}
+                      <p className={`font-semibold ${scannerModal.feedback?.includes('Error') ? 'text-red-700' : 'text-gray-900'}`}>
+                        {scannerModal.feedback}
+                      </p>
+                   </div>
+                )}
+              </div>
+
+              <p className="text-sm text-center text-gray-500 mb-2">
+                Scan the student's booking QR code to instantly validate their presence.
+              </p>
+              <p className="text-[10px] text-center text-gray-400">
+                Grant camera permissions in your browser to enable scanning.
+              </p>
             </div>
           </div>
         </div>
