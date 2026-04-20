@@ -19,6 +19,11 @@ pnpm-debug.log*
 lerna-debug.log*
 
 # Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 .env*.local
 
 # Editor / OS files
@@ -31,4 +36,3 @@ lerna-debug.log*
 *.njsproj
 *.sln
 *.sw?
-
