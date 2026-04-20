@@ -154,8 +154,8 @@ export default function ResourceCard({
               onClick={() => onEdit(resource)}
               style={{
                 flex: 1,
-                background: '#eef2ff',
-                border: 'none',
+                background: '#ffffff',
+                border: '1px solid #e0e6ed',
                 borderRadius: '8px',
                 padding: '8px',
                 fontSize: '12px',
@@ -188,8 +188,8 @@ export default function ResourceCard({
             <button
               onClick={() => onDelete(resource.id)}
               style={{
-                background: '#fff0f0',
-                border: 'none',
+                background: '#ffffff',
+                border: '1px solid #e0e6ed',
                 borderRadius: '8px',
                 padding: '8px 12px',
                 fontSize: '12px',
