@@ -42,8 +42,8 @@ export default function ResourceFilters({ onFilter }) {
 
       <select name="status" value={f.status} onChange={handle} style={sel}>
         <option value="">All Statuses</option>
-        <option value="ACTIVE">Active</option>
-        <option value="OUT_OF_SERVICE">Out of Service</option>
+        <option value="ACTIVE">Available</option>
+        <option value="OUT_OF_SERVICE">Unavailable</option>
       </select>
 
       <input name="building" value={f.building} onChange={handle}
