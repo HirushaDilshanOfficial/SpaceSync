@@ -181,8 +181,8 @@ export default function ResourceCard({
                 height: '34px',
               }}
             >
-              <option value="ACTIVE">Active</option>
-              <option value="OUT_OF_SERVICE">Out of Service</option>
+              <option value="ACTIVE">Available</option>
+              <option value="OUT_OF_SERVICE">Unavailable</option>
             </select>
 
             <button
