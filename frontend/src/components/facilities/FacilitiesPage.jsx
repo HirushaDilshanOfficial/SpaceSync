@@ -47,11 +47,11 @@ export default function FacilitiesPage() {
 
   const stats = [
     { label: 'Total Resources', value: resources.length,
-      bg: '#eef2ff', color: '#3b5bdb', border: '#c5d0fa', icon: '🏛' },
+      bg: '#ffffff', color: '#000000', border: '#ffffff', icon: '🏛' },
     { label: 'Available', value: resources.filter(r => r.status === 'ACTIVE').length,
-      bg: '#e6f4ea', color: '#1a7a34', border: '#b0dbb8', icon: '✅' },
+      bg: '#ffffff', color: '#000000', border: '#ffffff', icon: '✅' },
     { label: 'Unavailable', value: resources.filter(r => r.status === 'OUT_OF_SERVICE').length,
-      bg: '#fdecea', color: '#c0392b', border: '#f5b7b1', icon: '⛔' },
+      bg: '#ffffff', color: '#000000', border: '#ffffff', icon: '⛔' },
   ];
 
   return (
