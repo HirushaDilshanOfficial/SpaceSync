@@ -2,9 +2,9 @@ server:
   port: 8081
 spring:
   application:
-    name: backend
+    name: SpaceSync
   datasource:
-    url: jdbc:mysql://localhost:3306/spacesync_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC
+    url: jdbc:mysql://localhost:3306/spacesync_db?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
     username: root
     password: "#Space123"
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -16,3 +16,25 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.MySQLDialect
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: 17562938906-02iad5u99qd1pl7rhq2207u7vfhu6uen.apps.googleusercontent.com
+            client-secret: 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
+            scope: openid,profile,email
+            redirect-uri: http://localhost:5173/login/oauth2/code/google
+
+app:
+  jwt:
+    secret: SpaceSyncSuperSecretKeyForJWTSigningMustBe256BitsOrMoreInProductionReplaceThis2026
+    expiration-ms: 86400000
+  cors:
+    allowed-origins: http://localhost:5173,http://localhost:5174,http://localhost:3000
+
+logging:
+  level:
+    com.spacesync: DEBUG
+    org.springframework.security: INFO
+

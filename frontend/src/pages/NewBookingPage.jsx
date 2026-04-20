@@ -1,19 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Loader2, Info, AlertTriangle, X } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
 
 const RESOURCES = ['Conference Room A', 'Conference Room B', 'Training Lab', 'Projector XYZ', 'Board Room'];
 
-const FieldLabel = ({ children, required }) => (
-  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-    {children} {required && <span className="text-red-400">*</span>}
-  </label>
-);
-
-const inputClass = "w-full px-3.5 py-2.5 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all placeholder:text-gray-400";
-
 export function NewBookingPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [formData, setFormData] = useState({
@@ -24,6 +19,8 @@ export function NewBookingPage() {
     attendees: '',
     purpose: ''
   });
+  const [error, setError] = useState('');
+  const [showError, setShowError] = useState(false);
 
   const handleChange = (e) => {
     const { id, value } = e.target;
@@ -33,6 +30,8 @@ export function NewBookingPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
+    setShowError(false);
     
     try {
       // Format dates for backend: LocalDateTime (ISO string)
@@ -40,15 +39,19 @@ export function NewBookingPage() {
       const endDateTime = `${formData.date}T${formData.endTime}:00`;
 
       const payload = {
-        userId: 'USER-001', // Hardcoded for now
+        userId: user?.id || 'USER-001',
         resourceId: formData.resourceId,
         startTime: startDateTime,
         endTime: endDateTime
       };
 
+      const token = localStorage.getItem('token');
       const response = await fetch('http://localhost:8081/api/bookings', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(payload)
       });
 
@@ -61,7 +64,10 @@ export function NewBookingPage() {
       setTimeout(() => navigate('/dashboard'), 1800);
     } catch (err) {
       console.error(err);
-      alert(err.message);
+      setError(err.message);
+      setShowError(true);
+      // Auto-hide after 3 seconds
+      setTimeout(() => setShowError(false), 3000);
     } finally {
       setLoading(false);
     }
@@ -69,48 +75,90 @@ export function NewBookingPage() {
 
   if (submitted) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-5 text-center px-4">
-        <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center border-4 border-emerald-100">
-          <CheckCircle className="w-10 h-10 text-emerald-500" strokeWidth={1.5} />
+      <div className="submit-success-view">
+        <div className="success-icon-wrapper">
+          <CheckCircle size={40} className="text-success" />
         </div>
-        <div>
-          <h2 className="text-xl font-bold text-gray-900">Request Submitted!</h2>
-          <p className="text-gray-400 text-sm mt-2 max-w-xs">Your booking is now pending admin approval. Redirecting to dashboard…</p>
+        <div className="success-text">
+          <h2>Request Submitted!</h2>
+          <p>Your booking is now pending admin approval. Redirecting to dashboard...</p>
         </div>
-        <div className="flex gap-1 mt-2">
-          <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-          <div className="w-1.5 h-1.5 bg-indigo-300 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-          <div className="w-1.5 h-1.5 bg-indigo-200 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+        <div className="loading-dots">
+          <span></span>
+          <span></span>
+          <span></span>
         </div>
+        <style>{`
+          .submit-success-view {
+            display: flex;
+            flex-direction: column;
+            items-center: center;
+            justify-content: center;
+            min-height: 60vh;
+            gap: 24px;
+            text-align: center;
+          }
+          .success-icon-wrapper {
+            width: 80px;
+            height: 80px;
+            background: rgba(63, 185, 80, 0.1);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+            border: 4px solid rgba(63, 185, 80, 0.05);
+          }
+          .success-text h2 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
+          .success-text p { color: var(--clr-text-muted); font-size: 15px; max-width: 320px; margin: 0 auto; }
+          .loading-dots { display: flex; gap: 6px; justify-content: center; margin-top: 8px; }
+          .loading-dots span { width: 6px; height: 6px; background: var(--clr-primary); border-radius: 50%; animation: bounce 1.4s infinite ease-in-out; }
+          .loading-dots span:nth-child(2) { animation-delay: 0.2s; opacity: 0.7; }
+          .loading-dots span:nth-child(3) { animation-delay: 0.4s; opacity: 0.4; }
+          @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
+        `}</style>
       </div>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
+    <div className="booking-page-container">
+      {/* Custom Timed Notification */}
+      <AnimatePresence>
+        {showError && (
+          <motion.div 
+            className="custom-toast error"
+            initial={{ opacity: 0, y: -20, x: '-50%' }}
+            animate={{ opacity: 1, y: 20, x: '-50%' }}
+            exit={{ opacity: 0, y: -20, x: '-50%' }}
+          >
+            <div className="toast-content">
+              <AlertTriangle size={18} />
+              <span>{error}</span>
+            </div>
+            <button className="toast-close" onClick={() => setShowError(false)}>
+              <X size={14} />
+            </button>
+            <div className="toast-progress"></div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-      {/* Header */}
-      <div>
-        <button
-          onClick={() => navigate(-1)}
-          className="inline-flex items-center gap-1.5 text-sm text-gray-400 hover:text-gray-700 transition-colors mb-4"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+      <header className="page-header">
+        <button onClick={() => navigate(-1)} className="back-btn">
+          <ArrowLeft size={16} /> Back
         </button>
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Book a Workspace</h1>
-        <p className="text-gray-500 mt-1 text-sm">Fill in the details. Your request goes to an admin for approval.</p>
-      </div>
+        <h1 className="page-title">Book a Workspace</h1>
+        <p className="page-subtitle">Fill in the details to request a workspace reservation.</p>
+      </header>
 
-      {/* Form Card */}
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-card">
-        <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-5">
-
-          {/* Resource */}
-          <div>
-            <FieldLabel required>Resource / Location</FieldLabel>
+      <div className="booking-card glass-card">
+        <form onSubmit={handleSubmit} className="booking-form">
+          <div className="form-group">
+            <label htmlFor="resourceId">Resource / Location <span className="req">*</span></label>
             <select 
               id="resourceId"
-              className={inputClass} 
+              className="form-control" 
               required 
               value={formData.resourceId}
               onChange={handleChange}
@@ -120,27 +168,26 @@ export function NewBookingPage() {
             </select>
           </div>
 
-          {/* Date + Attendees */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <FieldLabel required>Date</FieldLabel>
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="date">Date <span className="req">*</span></label>
               <input 
                 id="date"
                 type="date" 
-                className={inputClass} 
+                className="form-control" 
                 required 
                 value={formData.date}
                 onChange={handleChange}
               />
             </div>
-            <div>
-              <FieldLabel required>Expected Attendees</FieldLabel>
+            <div className="form-group">
+              <label htmlFor="attendees">Expected Attendees <span className="req">*</span></label>
               <input 
                 id="attendees"
                 type="number" 
                 min="1" 
                 placeholder="e.g. 8" 
-                className={inputClass} 
+                className="form-control" 
                 required 
                 value={formData.attendees}
                 onChange={handleChange}
@@ -148,25 +195,24 @@ export function NewBookingPage() {
             </div>
           </div>
 
-          {/* Time */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <FieldLabel required>Start Time</FieldLabel>
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="startTime">Start Time <span className="req">*</span></label>
               <input 
                 id="startTime"
                 type="time" 
-                className={inputClass} 
+                className="form-control" 
                 required 
                 value={formData.startTime}
                 onChange={handleChange}
               />
             </div>
-            <div>
-              <FieldLabel required>End Time</FieldLabel>
+            <div className="form-group">
+              <label htmlFor="endTime">End Time <span className="req">*</span></label>
               <input 
                 id="endTime"
                 type="time" 
-                className={inputClass} 
+                className="form-control" 
                 required 
                 value={formData.endTime}
                 onChange={handleChange}
@@ -174,42 +220,134 @@ export function NewBookingPage() {
             </div>
           </div>
 
-          {/* Purpose */}
-          <div>
-            <FieldLabel required>Purpose of Booking</FieldLabel>
+          <div className="form-group">
+            <label htmlFor="purpose">Purpose of Booking <span className="req">*</span></label>
             <textarea
               id="purpose"
-              className={`${inputClass} resize-none`}
+              className="form-control textarea"
               rows={4}
-              placeholder="Briefly describe why you need this space — e.g. client presentation, team standup, training session…"
+              placeholder="Briefly describe why you need this space..."
               required
               value={formData.purpose}
               onChange={handleChange}
             />
           </div>
 
-          {/* Info note */}
-          <div className="flex items-start gap-2.5 bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 text-sm text-indigo-700">
-            <svg className="w-4 h-4 mt-0.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" d="M12 8v4m0 4h.01"/></svg>
+          <div className="info-box">
+            <Info size={16} />
             <span>Once submitted, an admin will review your request. You'll see the status under <strong>My Bookings</strong>.</span>
           </div>
 
-          {/* Actions */}
-          <div className="flex flex-col-reverse sm:flex-row gap-3 justify-end pt-3 border-t border-gray-100">
-            <button type="button" onClick={() => navigate(-1)} className="px-5 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-900 rounded-xl transition-colors">
+          <div className="form-actions">
+            <button type="button" onClick={() => navigate(-1)} className="btn btn-ghost">
               Cancel
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 active:bg-indigo-800 disabled:opacity-60 transition-colors shadow-sm"
+              className="btn btn-primary"
             >
-              {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Submitting…</> : 'Submit Request'}
+              {loading ? <><Loader2 size={16} className="animate-spin" /> Submitting...</> : 'Submit Request'}
             </button>
           </div>
-
         </form>
       </div>
+
+      <style>{`
+        .booking-page-container {
+          max-width: 800px;
+          margin: 40px auto;
+          padding: 0 20px;
+        }
+        .page-header { margin-bottom: 32px; }
+        .back-btn {
+          background: none;
+          border: none;
+          color: var(--clr-text-muted);
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 14px;
+          cursor: pointer;
+          padding: 0;
+          margin-bottom: 12px;
+          transition: color 0.2s;
+        }
+        .back-btn:hover { color: var(--clr-primary); }
+        .page-title { font-size: 32px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.5px; }
+        .page-subtitle { color: var(--clr-text-muted); font-size: 15px; }
+        
+        .booking-card { padding: 40px; border-radius: 24px; }
+        .booking-form { display: flex; flex-direction: column; gap: 24px; }
+        
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+        
+        .form-group { display: flex; flex-direction: column; gap: 8px; }
+        .form-group label { font-size: 14px; font-weight: 600; color: var(--clr-text); }
+        .req { color: var(--clr-danger); }
+        
+        .textarea { min-height: 120px; resize: vertical; }
+        
+        .info-box {
+          display: flex;
+          gap: 12px;
+          background: rgba(88, 166, 255, 0.08);
+          border: 1px solid rgba(88, 166, 255, 0.15);
+          padding: 16px;
+          border-radius: 12px;
+          color: var(--clr-primary);
+          font-size: 13px;
+          line-height: 1.5;
+        }
+        .info-box strong { color: var(--clr-text); }
+        
+        .form-actions {
+          display: flex;
+          justify-content: flex-end;
+          gap: 12px;
+          padding-top: 24px;
+          border-top: 1px solid var(--clr-border);
+        }
+        
+        .animate-spin { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+        /* ── Custom Toast ── */
+        .custom-toast {
+          position: fixed;
+          top: 0;
+          left: 50%;
+          z-index: 9999;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 20px;
+          background: rgba(248, 81, 73, 0.95);
+          backdrop-filter: blur(8px);
+          border: 1px solid rgba(248, 81, 73, 0.2);
+          border-radius: 12px;
+          color: #fff;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+          min-width: 320px;
+          max-width: 90vw;
+          justify-content: space-between;
+        }
+        .toast-content { display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 500; }
+        .toast-close { background: none; border: none; color: rgba(255,255,255,0.7); cursor: pointer; padding: 4px; display: flex; }
+        .toast-close:hover { color: #fff; }
+        .toast-progress {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          height: 3px;
+          background: rgba(255,255,255,0.3);
+          width: 100%;
+          animation: progress 3s linear forwards;
+          border-bottom-left-radius: 12px;
+        }
+        @keyframes progress { from { width: 100%; } to { width: 0%; } }
+      `}</style>
     </div>
   );
 }
