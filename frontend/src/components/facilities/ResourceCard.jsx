@@ -160,7 +160,7 @@ export default function ResourceCard({
                 padding: '8px',
                 fontSize: '12px',
                 fontWeight: '700',
-                color: '#3b5bdb',
+                color: '#080707',
                 cursor: 'pointer',
               }}
             >
@@ -194,7 +194,7 @@ export default function ResourceCard({
                 padding: '8px 12px',
                 fontSize: '12px',
                 fontWeight: '700',
-                color: '#e03131',
+                color: '#080707',
                 cursor: 'pointer',
               }}
             >
