@@ -125,8 +125,8 @@ export default function ResourceForm({ initial, onSubmit, onClose }) {
             <div style={{ marginBottom: '16px' }}>
               <label style={lbl}>Status</label>
               <select name="status" value={form.status} onChange={set} style={inp(false)}>
-                <option value="ACTIVE">Active</option>
-                <option value="OUT_OF_SERVICE">Out of Service</option>
+                <option value="ACTIVE">Available</option>
+                <option value="OUT_OF_SERVICE">Unavailable</option>
               </select>
             </div>
 
