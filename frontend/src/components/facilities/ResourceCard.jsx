@@ -19,7 +19,7 @@ export default function ResourceCard({
   const meta = TYPE_META[resource.type] ?? { bg: '#f0f4f8', color: '#555' };
   
   const isAvailable = resource.status === 'ACTIVE';
-  const statusColor = isAvailable ? '#1a7a34' : '#e65100';
+  const statusColor = isAvailable ? '#000000' : '#000000';
   const statusBg = isAvailable ? '#e6f4ea' : '#fff3e0';
   const statusText = isAvailable ? 'Available' : 'Unavailable';
 
