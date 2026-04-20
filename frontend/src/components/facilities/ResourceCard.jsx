@@ -2,10 +2,10 @@ import { useState } from 'react';
 import StatusBadge from './StatusBadge';
 
 const TYPE_META = {
-  LECTURE_HALL: { bg: '#e8f0fe', color: '#3b5bdb' },
-  LAB:          { bg: '#e6f4ea', color: '#1a7a34' },
-  MEETING_ROOM: { bg: '#fff3e0', color: '#e65100' },
-  EQUIPMENT:    { bg: '#f3e5f5', color: '#7b1fa2' },
+  LECTURE_HALL: { bg: '#e8f0fe', color: '#000000' },
+  LAB:          { bg: '#e6f4ea', color: '#000000' },
+  MEETING_ROOM: { bg: '#fff3e0', color: '#000000' },
+  EQUIPMENT:    { bg: '#f3e5f5', color: '#000000' },
 };
 
 export default function ResourceCard({
