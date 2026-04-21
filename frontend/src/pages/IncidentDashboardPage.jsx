@@ -226,14 +226,16 @@ export function IncidentDashboardPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
         {[
           { key: 'open', label: 'Open', bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-100' },
           { key: 'inProgress', label: 'In Progress', bg: 'bg-purple-50', text: 'text-purple-600', border: 'border-purple-100' },
           { key: 'resolved', label: 'Resolved', bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-100' },
           { key: 'total', label: 'Total', bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-100', value: stats.total || 0 },
           { key: 'resolvedThisMonth', label: 'Resolved This Month', bg: 'bg-green-50', text: 'text-green-600', border: 'border-green-100', value: analytics.resolvedThisMonth || 0 },
-          { key: 'avgResolutionTime', label: 'Avg Resolution Time', bg: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-100', value: `${analytics.avgResolutionTimeHours || 0}h` }
+          { key: 'avgResolutionTime', label: 'Avg Resolution Time', bg: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-100', value: `${analytics.avgResolutionTimeHours || 0}h` },
+          { key: 'overdueTickets', label: 'Overdue', bg: 'bg-rose-50', text: 'text-rose-600', border: 'border-rose-100', value: analytics.overdueTickets || 0 },
+          { key: 'slaComplianceRate', label: 'SLA Compliance', bg: 'bg-cyan-50', text: 'text-cyan-600', border: 'border-cyan-100', value: `${analytics.slaComplianceRate || 0}%` }
         ].map(({ key, label, bg, text, border, value }) => (
           <div key={key} className={`${bg} ${border} border rounded-2xl p-4`}>
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">{label}</p>
@@ -245,7 +247,7 @@ export function IncidentDashboardPage() {
       {/* Analytics Summary */}
       <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100 p-6">
         <h3 className="font-semibold text-gray-900 mb-4">Performance Overview</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           <div className="text-center">
             <p className="text-2xl font-bold text-indigo-600">{analytics.resolutionRate || 0}%</p>
             <p className="text-sm text-gray-600">Resolution Rate</p>
@@ -257,6 +259,10 @@ export function IncidentDashboardPage() {
           <div className="text-center">
             <p className="text-2xl font-bold text-green-600">{analytics.resolvedThisMonth || 0}</p>
             <p className="text-sm text-gray-600">Resolved This Month</p>
+          </div>
+          <div className="text-center">
+            <p className="text-2xl font-bold text-rose-600">{analytics.breachedResolvedTickets || 0}</p>
+            <p className="text-sm text-gray-600">SLA Breaches</p>
           </div>
         </div>
       </div>

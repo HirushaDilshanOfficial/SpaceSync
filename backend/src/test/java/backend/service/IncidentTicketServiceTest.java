@@ -16,8 +16,11 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -124,5 +127,55 @@ class IncidentTicketServiceTest {
 
         assertThrows(ResourceNotFoundException.class,
                 () -> incidentTicketService.addTicketComment(999L, "TECH-1", "Checked wiring"));
+    }
+
+    @Test
+    void getDashboardAnalytics_ShouldIncludeOverdueAndSlaMetrics() {
+        LocalDateTime now = LocalDateTime.now();
+        IncidentTicket overdueOpen = IncidentTicket.builder()
+                .id(1L)
+                .title("Critical outage")
+                .description("Network down")
+                .resourceId("R-1")
+                .priority(TicketPriority.CRITICAL)
+                .ticketType(TicketType.INCIDENT)
+                .reportedBy("USER-1")
+                .status(TicketStatus.OPEN)
+                .createdAt(now.minusHours(10))
+                .build();
+
+        IncidentTicket breachedResolved = IncidentTicket.builder()
+                .id(2L)
+                .title("High priority HVAC")
+                .description("Cooling issue")
+                .resourceId("R-2")
+                .priority(TicketPriority.HIGH)
+                .ticketType(TicketType.MAINTENANCE)
+                .reportedBy("USER-2")
+                .status(TicketStatus.RESOLVED)
+                .createdAt(now.minusHours(30))
+                .resolvedAt(now.minusHours(10))
+                .build();
+
+        IncidentTicket onTimeResolved = IncidentTicket.builder()
+                .id(3L)
+                .title("Low priority light")
+                .description("Replace bulb")
+                .resourceId("R-3")
+                .priority(TicketPriority.LOW)
+                .ticketType(TicketType.REPAIR)
+                .reportedBy("USER-3")
+                .status(TicketStatus.RESOLVED)
+                .createdAt(now.minusHours(20))
+                .resolvedAt(now.minusHours(1))
+                .build();
+
+        when(incidentTicketRepository.findAll()).thenReturn(List.of(overdueOpen, breachedResolved, onTimeResolved));
+
+        Map<String, Object> analytics = incidentTicketService.getDashboardAnalytics();
+
+        assertEquals(1L, analytics.get("overdueTickets"));
+        assertEquals(1L, analytics.get("breachedResolvedTickets"));
+        assertEquals(50.0, analytics.get("slaComplianceRate"));
     }
 }

@@ -237,28 +237,64 @@ public class IncidentTicketService {
     }
 
     public Map<String, Object> getDashboardAnalytics() {
-        long totalTickets = incidentTicketRepository.count();
-        long openTickets = incidentTicketRepository.countByStatus(TicketStatus.OPEN);
-        long resolvedThisMonth = incidentTicketRepository.findAll().stream()
+        LocalDateTime now = LocalDateTime.now();
+        List<IncidentTicket> allTickets = incidentTicketRepository.findAll();
+
+        long totalTickets = allTickets.size();
+        long openTickets = allTickets.stream()
+            .filter(ticket -> ticket.getStatus() == TicketStatus.OPEN || ticket.getStatus() == TicketStatus.IN_PROGRESS)
+            .count();
+
+        long resolvedThisMonth = allTickets.stream()
                 .filter(ticket -> ticket.getResolvedAt() != null &&
-                        ticket.getResolvedAt().getMonth() == LocalDateTime.now().getMonth() &&
-                        ticket.getResolvedAt().getYear() == LocalDateTime.now().getYear())
+                ticket.getResolvedAt().getMonth() == now.getMonth() &&
+                ticket.getResolvedAt().getYear() == now.getYear())
                 .count();
 
-        double avgResolutionTime = incidentTicketRepository.findAll().stream()
+        double avgResolutionTime = allTickets.stream()
                 .filter(ticket -> ticket.getResolvedAt() != null)
                 .mapToLong(ticket -> java.time.Duration.between(ticket.getCreatedAt(), ticket.getResolvedAt()).toHours())
                 .average()
                 .orElse(0.0);
+
+        long overdueTickets = allTickets.stream()
+            .filter(ticket -> ticket.getStatus() == TicketStatus.OPEN || ticket.getStatus() == TicketStatus.IN_PROGRESS)
+            .filter(ticket -> java.time.Duration.between(ticket.getCreatedAt(), now).toHours() > getSlaHours(ticket.getPriority()))
+            .count();
+
+        long totalResolvedTickets = allTickets.stream()
+            .filter(ticket -> ticket.getResolvedAt() != null)
+            .count();
+
+        long breachedResolvedTickets = allTickets.stream()
+            .filter(ticket -> ticket.getResolvedAt() != null)
+            .filter(ticket -> java.time.Duration.between(ticket.getCreatedAt(), ticket.getResolvedAt()).toHours() > getSlaHours(ticket.getPriority()))
+            .count();
+
+        double slaComplianceRate = totalResolvedTickets > 0
+            ? ((double) (totalResolvedTickets - breachedResolvedTickets) / totalResolvedTickets) * 100
+            : 0.0;
 
         return Map.of(
             "totalTickets", totalTickets,
             "openTickets", openTickets,
             "resolvedThisMonth", resolvedThisMonth,
             "avgResolutionTimeHours", Math.round(avgResolutionTime * 10.0) / 10.0,
-            "resolutionRate", totalTickets > 0 ? Math.round((double) resolvedThisMonth / totalTickets * 100 * 10.0) / 10.0 : 0.0
+            "resolutionRate", totalTickets > 0 ? Math.round((double) resolvedThisMonth / totalTickets * 100 * 10.0) / 10.0 : 0.0,
+            "overdueTickets", overdueTickets,
+            "breachedResolvedTickets", breachedResolvedTickets,
+            "slaComplianceRate", Math.round(slaComplianceRate * 10.0) / 10.0
         );
     }
+
+        private long getSlaHours(TicketPriority priority) {
+        return switch (priority) {
+            case CRITICAL -> 4;
+            case HIGH -> 12;
+            case MEDIUM -> 24;
+            case LOW -> 72;
+        };
+        }
 
     // Maintenance Log functionality
     public List<MaintenanceLogResponseDTO> getTicketLogs(Long ticketId) {
