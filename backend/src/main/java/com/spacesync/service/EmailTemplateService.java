@@ -187,4 +187,84 @@ public class EmailTemplateService {
                 "</body>" +
                 "</html>";
     }
+
+    public String buildCheckInEmail(String userName, String resourceName, String checkInTime) {
+        return "<!DOCTYPE html>" +
+                "<html>" +
+                "<head>" +
+                "<style>" +
+                "  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f6f8fa; margin: 0; padding: 0; }" +
+                "  .container { max-width: 600px; margin: 40px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }" +
+                "  .header { background-color: #8957e5; padding: 30px 20px; text-align: center; color: white; }" +
+                "  .header h1 { margin: 0; font-size: 24px; font-weight: 600; }" +
+                "  .content { padding: 40px 30px; color: #24292f; line-height: 1.6; }" +
+                "  .content p { margin: 0 0 15px 0; font-size: 16px; }" +
+                "  .highlight-box { background-color: rgba(137,87,229,0.1); border: 1px solid #8957e5; border-radius: 8px; padding: 25px; margin: 25px 0; text-align: center; }" +
+                "  .highlight-box h2 { margin: 0 0 10px 0; color: #8957e5; font-size: 20px; }" +
+                "  .highlight-box .time { font-size: 20px; font-weight: 700; color: #24292f; }" +
+                "  .footer { padding: 20px; text-align: center; color: #57606a; font-size: 13px; border-top: 1px solid #eaeef2; }" +
+                "</style>" +
+                "</head>" +
+                "<body>" +
+                "  <div class='container'>" +
+                "    <div class='header'>" +
+                "      <h1>Check-In Successful</h1>" +
+                "    </div>" +
+                "    <div class='content'>" +
+                "      <p>Hello " + userName + ",</p>" +
+                "      <p>You have successfully checked in to your workspace.</p>" +
+                "      <div class='highlight-box'>" +
+                "        <h2>Resource</h2>" +
+                "        <div class='time'>" + resourceName + "</div>" +
+                "        <h2 style='margin-top: 15px;'>Check-In Time</h2>" +
+                "        <div class='time'>" + checkInTime + "</div>" +
+                "      </div>" +
+                "      <p>Enjoy your time at SpaceSync!</p>" +
+                "    </div>" +
+                "    <div class='footer'>" +
+                "      &copy; 2026 SpaceSync Inc. All rights reserved." +
+                "    </div>" +
+                "  </div>" +
+                "</body>" +
+                "</html>";
+    }
+
+    public String buildEndReminderEmail(String userName, String resourceName, String endTime) {
+        return "<!DOCTYPE html>" +
+                "<html>" +
+                "<head>" +
+                "<style>" +
+                "  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f6f8fa; margin: 0; padding: 0; }" +
+                "  .container { max-width: 600px; margin: 40px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }" +
+                "  .header { background-color: #d29922; padding: 30px 20px; text-align: center; color: white; }" +
+                "  .header h1 { margin: 0; font-size: 24px; font-weight: 600; }" +
+                "  .content { padding: 40px 30px; color: #24292f; line-height: 1.6; }" +
+                "  .content p { margin: 0 0 15px 0; font-size: 16px; }" +
+                "  .highlight-box { background-color: rgba(210,153,34,0.1); border: 1px solid #d29922; border-radius: 8px; padding: 25px; margin: 25px 0; text-align: center; }" +
+                "  .highlight-box h2 { margin: 0 0 10px 0; color: #d29922; font-size: 20px; }" +
+                "  .highlight-box .time { font-size: 28px; font-weight: 700; color: #24292f; }" +
+                "  .footer { padding: 20px; text-align: center; color: #57606a; font-size: 13px; border-top: 1px solid #eaeef2; }" +
+                "</style>" +
+                "</head>" +
+                "<body>" +
+                "  <div class='container'>" +
+                "    <div class='header'>" +
+                "      <h1>Booking Ending Soon</h1>" +
+                "    </div>" +
+                "    <div class='content'>" +
+                "      <p>Hello " + userName + ",</p>" +
+                "      <p>This is a quick reminder that your booking for <strong>" + resourceName + "</strong> will end in 15 minutes.</p>" +
+                "      <div class='highlight-box'>" +
+                "        <h2>Ends At</h2>" +
+                "        <div class='time'>" + endTime + "</div>" +
+                "      </div>" +
+                "      <p>Please ensure you wrap up your activities and leave the workspace tidy for the next person.</p>" +
+                "    </div>" +
+                "    <div class='footer'>" +
+                "      &copy; 2026 SpaceSync Inc. All rights reserved." +
+                "    </div>" +
+                "  </div>" +
+                "</body>" +
+                "</html>";
+    }
 }

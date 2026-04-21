@@ -49,7 +49,21 @@ public class BookingService {
 
         booking.setStatus(BookingStatus.CHECKED_IN);
         booking.setCheckedInAt(LocalDateTime.now());
-        return mapToResponseDTO(bookingRepository.save(booking));
+        Booking savedBooking = bookingRepository.save(booking);
+
+        com.spacesync.user.User user = userRepository.findById(savedBooking.getUserId()).orElse(null);
+        if (user != null && user.getEmail() != null) {
+            String userName = user.getName() != null ? user.getName() : "User";
+            String resourceName = resourceRepository.findById(savedBooking.getResourceId())
+                    .map(com.spacesync.entity.Resource::getName)
+                    .orElse(savedBooking.getResourceId());
+            String checkInTime = savedBooking.getCheckedInAt().toString().replace("T", " ");
+            
+            String htmlBody = emailTemplateService.buildCheckInEmail(userName, resourceName, checkInTime);
+            emailService.sendEmail(user.getEmail(), "Check-In Successful - SpaceSync", htmlBody);
+        }
+
+        return mapToResponseDTO(savedBooking);
     }
 
     @Transactional
