@@ -29,6 +29,7 @@ public class ResourceServiceImpl implements ResourceService {
                 .capacity(r.getCapacity())
                 .location(r.getLocation())
                 .building(r.getBuilding())
+                .description(r.getDescription())
                 .status(r.getStatus())
                 .availabilityStart(r.getAvailabilityStart())
                 .availabilityEnd(r.getAvailabilityEnd())
@@ -43,6 +44,7 @@ public class ResourceServiceImpl implements ResourceService {
         resource.setCapacity(dto.getCapacity());
         resource.setLocation(dto.getLocation());
         resource.setBuilding(dto.getBuilding());
+        resource.setDescription(dto.getDescription());
         resource.setStatus(dto.getStatus() != null ? dto.getStatus() : ResourceStatus.ACTIVE);
         resource.setAvailabilityStart(dto.getAvailabilityStart());
         resource.setAvailabilityEnd(dto.getAvailabilityEnd());
@@ -61,7 +63,7 @@ public class ResourceServiceImpl implements ResourceService {
     }
 
     @Override
-    public ResourceResponseDTO getResourceById(Long id) {
+    public ResourceResponseDTO getResourceById(String id) {
         Resource resource = resourceRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found with ID: " + id));
         return toDTO(resource);
@@ -77,7 +79,7 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     @Transactional
-    public ResourceResponseDTO updateResource(Long id, ResourceRequestDTO dto) {
+    public ResourceResponseDTO updateResource(String id, ResourceRequestDTO dto) {
         Resource resource = resourceRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found with ID: " + id));
         applyDTO(resource, dto);
@@ -86,7 +88,7 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     @Transactional
-    public ResourceResponseDTO updateResourceStatus(Long id, ResourceStatus status) {
+    public ResourceResponseDTO updateResourceStatus(String id, ResourceStatus status) {
         Resource resource = resourceRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Resource not found with ID: " + id));
         resource.setStatus(status);
@@ -95,7 +97,7 @@ public class ResourceServiceImpl implements ResourceService {
 
     @Override
     @Transactional
-    public void deleteResource(Long id) {
+    public void deleteResource(String id) {
         if (!resourceRepository.existsById(id)) {
             throw new ResourceNotFoundException("Resource not found with ID: " + id);
         }

@@ -29,6 +29,9 @@ public class ResourceRequestDTO {
 
     private ResourceStatus status;
 
+    private String description;
+
+
     @NotNull(message = "Availability start time is required")
     private LocalTime availabilityStart;
 

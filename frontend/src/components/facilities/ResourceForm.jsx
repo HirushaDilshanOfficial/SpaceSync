@@ -97,6 +97,7 @@ export default function ResourceForm({ initial, onSubmit, onClose }) {
                 <option value="LAB">Lab</option>
                 <option value="MEETING_ROOM">Meeting Room</option>
                 <option value="EQUIPMENT">Equipment</option>
+                <option value="ROOM">Room</option>
               </select>
             </div>
 

@@ -102,7 +102,7 @@ public class GlobalExceptionHandler {
         log.error("Unhandled exception at {}: {}", request.getRequestURI(), ex.getMessage(), ex);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(buildError(HttpStatus.INTERNAL_SERVER_ERROR,
-                        "An unexpected error occurred.",
+                        "An unexpected error occurred: " + ex.getMessage(),
                         request.getRequestURI(), null));
     }
 

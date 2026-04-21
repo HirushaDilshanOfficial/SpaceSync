@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.UuidGenerator;
 
 import java.time.LocalTime;
 import java.time.LocalDateTime;
@@ -20,8 +21,9 @@ import java.time.LocalDateTime;
 public class Resource {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @UuidGenerator
+    @Column(length = 255)
+    private String id;
 
     @Column(nullable = false, length = 150)
     private String name;
@@ -38,6 +40,9 @@ public class Resource {
 
     @Column(nullable = false, length = 100)
     private String building;
+
+    @Column
+    private String description;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

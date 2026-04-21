@@ -4,8 +4,9 @@ import StatusBadge from './StatusBadge';
 const TYPE_META = {
   LECTURE_HALL: { bg: '#e8f0fe', color: '#3b5bdb' },
   LAB:          { bg: '#e6f4ea', color: '#1a7a34' },
-  MEETING_ROOM: { bg: '#fff3e0', color: '#e65100' },
-  EQUIPMENT:    { bg: '#f3e5f5', color: '#7b1fa2' },
+  MEETING_ROOM: { bg: '#fff3e0', color: '#e65100', emoji: '🤝', label: 'Meeting Room'  },
+  EQUIPMENT:    { bg: '#f3e5f5', color: '#7b1fa2', emoji: '🖥️', label: 'Equipment'     },
+  ROOM:         { bg: '#f0f4f8', color: '#444444', emoji: '🚪', label: 'Room'           },
 };
 
 export default function ResourceCard({

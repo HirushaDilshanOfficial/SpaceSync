@@ -18,7 +18,7 @@ import java.util.Map;
  * @author Member 4 – Module E (Authentication & Authorization)
  */
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/users")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
 public class UserController {

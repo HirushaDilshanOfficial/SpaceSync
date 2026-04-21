@@ -11,7 +11,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface ResourceRepository extends JpaRepository<Resource, Long> {
+public interface ResourceRepository extends JpaRepository<Resource, String> {
 
     @Query("""
         SELECT r FROM Resource r

@@ -37,7 +37,7 @@ public class ResourceController {
 
     // GET /api/v1/resources/{id}
     @GetMapping("/{id}")
-    public ResponseEntity<ResourceResponseDTO> getResourceById(@PathVariable Long id) {
+    public ResponseEntity<ResourceResponseDTO> getResourceById(@PathVariable String id) {
         return ResponseEntity.ok(resourceService.getResourceById(id));
     }
 
@@ -52,7 +52,7 @@ public class ResourceController {
     // PUT /api/v1/resources/{id}
     @PutMapping("/{id}")
     public ResponseEntity<ResourceResponseDTO> updateResource(
-            @PathVariable Long id,
+            @PathVariable String id,
             @Valid @RequestBody ResourceRequestDTO dto) {
         return ResponseEntity.ok(resourceService.updateResource(id, dto));
     }
@@ -60,7 +60,7 @@ public class ResourceController {
     // PATCH /api/v1/resources/{id}/status  body: { "status": "OUT_OF_SERVICE" }
     @PatchMapping("/{id}/status")
     public ResponseEntity<ResourceResponseDTO> updateStatus(
-            @PathVariable Long id,
+            @PathVariable String id,
             @RequestBody Map<String, String> body) {
         ResourceStatus status = ResourceStatus.valueOf(body.get("status").toUpperCase());
         return ResponseEntity.ok(resourceService.updateResourceStatus(id, status));
@@ -68,7 +68,7 @@ public class ResourceController {
 
     // DELETE /api/v1/resources/{id}
     @DeleteMapping("/{id}")
-    public ResponseEntity<Map<String, String>> deleteResource(@PathVariable Long id) {
+    public ResponseEntity<Map<String, String>> deleteResource(@PathVariable String id) {
         resourceService.deleteResource(id);
         return ResponseEntity.ok(Map.of("message", "Resource deleted successfully"));
     }

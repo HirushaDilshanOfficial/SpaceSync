@@ -6,35 +6,46 @@ const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
 
+// Create an axios instance for authorized requests globally so it's not recreated on every render
+const api = axios.create({
+  baseURL: '/api'
+});
+
+api.interceptors.request.use(config => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Handle unauthorized responses globally
+api.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response?.status === 401) {
+      // We will handle logout in the component or via a custom event
+      localStorage.removeItem('token');
+      window.dispatchEvent(new Event('auth-logout'));
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Create an axios instance for authorized requests
-  const api = axios.create({
-    baseURL: '/api'
-  });
-
-  api.interceptors.request.use(config => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  });
-
-  // Handle unauthorized responses globally
-  api.interceptors.response.use(
-    response => response,
-    error => {
-      if (error.response?.status === 401) {
-        logout();
-      }
-      return Promise.reject(error);
-    }
-  );
+  useEffect(() => {
+    const handleLogout = () => {
+      setUser(null);
+      navigate('/login');
+    };
+    window.addEventListener('auth-logout', handleLogout);
+    return () => window.removeEventListener('auth-logout', handleLogout);
+  }, [navigate]);
 
   const checkAuth = async () => {
     const token = localStorage.getItem('token');
@@ -48,6 +59,7 @@ export const AuthProvider = ({ children }) => {
       setUser(response.data);
     } catch (error) {
       console.error('Failed to fetch user:', error);
+      alert('Login failed: ' + (error.response?.data?.error || error.message));
       localStorage.removeItem('token');
       setUser(null);
     } finally {
@@ -76,7 +88,7 @@ export const AuthProvider = ({ children }) => {
   const loginWithGoogle = () => {
     // Redirect to Spring Boot OAuth2 endpoint
     // In dev mode, Vite proxy will forward this to localhost:8080
-    window.location.href = '/oauth2/authorization/google';
+    window.location.href = '/api/oauth2/authorization/google';
   };
 
   const signIn = async (email, password) => {

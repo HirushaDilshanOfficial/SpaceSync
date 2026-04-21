@@ -16,13 +16,13 @@ public interface ResourceService {
             Integer minCapacity
     );
 
-    ResourceResponseDTO getResourceById(Long id);
+    ResourceResponseDTO getResourceById(String id);
 
     ResourceResponseDTO createResource(ResourceRequestDTO dto);
 
-    ResourceResponseDTO updateResource(Long id, ResourceRequestDTO dto);
+    ResourceResponseDTO updateResource(String id, ResourceRequestDTO dto);
 
-    ResourceResponseDTO updateResourceStatus(Long id, ResourceStatus status);
+    ResourceResponseDTO updateResourceStatus(String id, ResourceStatus status);
 
-    void deleteResource(Long id);
+    void deleteResource(String id);
 }
