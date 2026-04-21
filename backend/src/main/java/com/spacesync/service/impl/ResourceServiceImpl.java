@@ -1,13 +1,13 @@
-package backend.service.impl;
+package com.spacesync.service.impl;
 
-import backend.dto.ResourceRequestDTO;
-import backend.dto.ResourceResponseDTO;
-import backend.entity.Resource;
-import backend.enums.ResourceStatus;
-import backend.enums.ResourceType;
-import backend.exception.ResourceNotFoundException;
-import backend.repository.ResourceRepository;
-import backend.service.ResourceService;
+import com.spacesync.dto.ResourceRequestDTO;
+import com.spacesync.dto.ResourceResponseDTO;
+import com.spacesync.entity.Resource;
+import com.spacesync.entity.ResourceStatus;
+import com.spacesync.entity.ResourceType;
+import com.spacesync.exception.ResourceNotFoundException;
+import com.spacesync.repository.ResourceRepository;
+import com.spacesync.service.ResourceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

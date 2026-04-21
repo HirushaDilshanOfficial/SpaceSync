@@ -1,504 +1,296 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, CheckCircle, Clock, Search, SlidersHorizontal, Plus, Wrench, Zap, XCircle, Download, Calendar, Filter } from 'lucide-react';
+import {
+  AlertTriangle, Clock, CheckCircle, Plus, Search,
+  ChevronRight, Wrench, Zap, Filter, X, Calendar
+} from 'lucide-react';
 
-const priorityConfig = {
-  CRITICAL: { color: 'text-red-700 bg-red-50 border-red-200', dot: 'bg-red-400', icon: AlertTriangle },
-  HIGH: { color: 'text-orange-700 bg-orange-50 border-orange-200', dot: 'bg-orange-400', icon: AlertTriangle },
-  MEDIUM: { color: 'text-yellow-700 bg-yellow-50 border-yellow-200', dot: 'bg-yellow-400', icon: Clock },
-  LOW: { color: 'text-green-700 bg-green-50 border-green-200', dot: 'bg-green-400', icon: CheckCircle },
+/* ── Static config ───────────────────────────────────────── */
+const STATUS_TABS = [
+  { key: 'ALL',         label: 'All'         },
+  { key: 'OPEN',        label: 'Open'        },
+  { key: 'IN_PROGRESS', label: 'In Progress' },
+  { key: 'RESOLVED',    label: 'Resolved'    },
+  { key: 'CLOSED',      label: 'Closed'      },
+];
+
+const PRIORITY_CFG = {
+  CRITICAL: { bg: 'rgba(239,68,68,.18)',  text: '#f87171', label: 'Critical', dot: '#ef4444' },
+  HIGH:     { bg: 'rgba(249,115,22,.18)', text: '#fb923c', label: 'High',     dot: '#f97316' },
+  MEDIUM:   { bg: 'rgba(234,179,8,.18)',  text: '#facc15', label: 'Medium',   dot: '#eab308' },
+  LOW:      { bg: 'rgba(34,197,94,.18)',  text: '#4ade80', label: 'Low',      dot: '#22c55e' },
 };
 
-const statusConfig = {
-  OPEN: { color: 'text-blue-700 bg-blue-50 border-blue-200', dot: 'bg-blue-400', label: 'Open' },
-  IN_PROGRESS: { color: 'text-purple-700 bg-purple-50 border-purple-200', dot: 'bg-purple-400', label: 'In Progress' },
-  RESOLVED: { color: 'text-emerald-700 bg-emerald-50 border-emerald-200', dot: 'bg-emerald-400', label: 'Resolved' },
-  CLOSED: { color: 'text-gray-700 bg-gray-50 border-gray-200', dot: 'bg-gray-400', label: 'Closed' },
+const STATUS_CFG = {
+  OPEN:        { bg: 'rgba(59,130,246,.18)',  text: '#60a5fa', label: 'Open'        },
+  IN_PROGRESS: { bg: 'rgba(139,92,246,.18)', text: '#a78bfa', label: 'In Progress' },
+  RESOLVED:    { bg: 'rgba(16,185,129,.18)', text: '#34d399', label: 'Resolved'    },
+  CLOSED:      { bg: 'rgba(107,114,128,.18)',text: '#9ca3af', label: 'Closed'      },
 };
 
-const typeConfig = {
-  INCIDENT: { icon: Zap, color: 'text-red-500' },
-  MAINTENANCE: { icon: Wrench, color: 'text-blue-500' },
-  REPAIR: { icon: Wrench, color: 'text-orange-500' },
-};
+const TYPE_ICON = { INCIDENT: Zap, MAINTENANCE: Wrench, REPAIR: Wrench };
 
-const inputClass = "h-10 px-3 text-sm text-gray-700 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all placeholder:text-gray-400 w-full";
-
-const TAB_STYLES = {
-  active: 'bg-white text-gray-900 font-semibold shadow-sm border border-gray-200',
-  inactive: 'text-gray-500 hover:text-gray-700',
-};
-
-const API_BASE = 'http://localhost:8080/api';
-
+/* ── Component ───────────────────────────────────────────── */
 export function IncidentDashboardPage() {
   const navigate = useNavigate();
+
   const [incidents, setIncidents] = useState([]);
-  const [stats, setStats] = useState({ open: 0, inProgress: 0, resolved: 0 });
-  const [analytics, setAnalytics] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState('OPEN');
-  const [search, setSearch] = useState('');
+  const [loading,   setLoading]   = useState(true);
+  const [activeTab, setActiveTab] = useState('ALL');
+
+  // Filter state
+  const [search,       setSearch]       = useState('');
+  const [filterType,   setFilterType]   = useState('');
   const [filterPriority, setFilterPriority] = useState('');
-  const [filterType, setFilterType] = useState('');
-  const [filterResource, setFilterResource] = useState('');
-  const [filterAssignedTo, setFilterAssignedTo] = useState('');
-  const [filterReportedBy, setFilterReportedBy] = useState('');
-  const [filterStartDate, setFilterStartDate] = useState('');
-  const [filterEndDate, setFilterEndDate] = useState('');
-  const [resources, setResources] = useState([]);
+  const [filterStart,  setFilterStart]  = useState('');
+  const [filterEnd,    setFilterEnd]    = useState('');
+  const [showFilters,  setShowFilters]  = useState(false);
 
-  const fetchData = useCallback(async () => {
+  /* fetch */
+  const fetchIncidents = useCallback(async () => {
+    setLoading(true);
     try {
-      const [incidentsRes, statsRes, analyticsRes, resourcesRes] = await Promise.all([
-        fetch(`${API_BASE}/incidents`),
-        fetch(`${API_BASE}/incidents/stats`),
-        fetch(`${API_BASE}/incidents/analytics/dashboard`),
-        fetch(`${API_BASE}/resources`)
-      ]);
-
-      if (incidentsRes.ok && statsRes.ok && analyticsRes.ok && resourcesRes.ok) {
-        const incidentsData = await incidentsRes.json();
-        const statsData = await statsRes.json();
-        const analyticsData = await analyticsRes.json();
-        const resourcesData = await resourcesRes.json();
-        setIncidents(incidentsData);
-        setStats(statsData);
-        setAnalytics(analyticsData);
-        setResources(resourcesData);
-      }
-    } catch (error) {
-      console.error("Failed to fetch data:", error);
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/incidents', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) setIncidents(await res.json());
+    } catch (e) {
+      console.error(e);
     } finally {
       setLoading(false);
     }
   }, []);
 
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+  useEffect(() => { fetchIncidents(); }, [fetchIncidents]);
 
-  const fetchFilteredIncidents = useCallback(async () => {
-    try {
-      const params = new URLSearchParams();
-      if (activeTab) params.append('status', activeTab);
-      if (filterPriority) params.append('priority', filterPriority);
-      if (filterType) params.append('ticketType', filterType);
-      if (filterResource) params.append('resourceId', filterResource);
-      if (filterAssignedTo) params.append('assignedTo', filterAssignedTo);
-      if (filterReportedBy) params.append('reportedBy', filterReportedBy);
-      if (filterStartDate) params.append('startDate', new Date(filterStartDate).toISOString());
-      if (filterEndDate) params.append('endDate', new Date(filterEndDate).toISOString());
-      if (search) params.append('searchText', search);
-
-      const response = await fetch(`${API_BASE}/incidents/filter?${params}`);
-      if (response.ok) {
-        const filteredData = await response.json();
-        setIncidents(filteredData);
-      }
-    } catch (error) {
-      console.error("Failed to fetch filtered incidents:", error);
-    }
-  }, [activeTab, filterPriority, filterType, filterResource, filterAssignedTo, filterReportedBy, filterStartDate, filterEndDate, search]);
-
-  const updateStatus = async (id, status) => {
-    try {
-      const url = new URL(`${API_BASE}/incidents/${id}/status`);
-      url.searchParams.append('status', status);
-
-      const res = await fetch(url, { method: 'PATCH' });
-      if (res.ok) {
-        fetchData(); // Refresh all data
-      }
-    } catch (error) {
-      console.error(`Failed to update status to ${status}:`, error);
-    }
+  /* status update */
+  const updateStatus = async (e, id, status) => {
+    e.stopPropagation();
+    const token = localStorage.getItem('token');
+    await fetch(`/api/incidents/${id}/status?status=${status}&performedBy=ADMIN`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    fetchIncidents();
   };
 
-  const assignTicket = async (id, assignedTo) => {
-    try {
-      const url = new URL(`${API_BASE}/incidents/${id}/assign`);
-      url.searchParams.append('assignedTo', assignedTo);
+  /* active filter count */
+  const activeFilters = [filterType, filterPriority, filterStart, filterEnd].filter(Boolean).length;
 
-      const res = await fetch(url, { method: 'PATCH' });
-      if (res.ok) {
-        fetchData(); // Refresh all data
-      }
-    } catch (error) {
-      console.error(`Failed to assign ticket:`, error);
-    }
+  /* clear all */
+  const clearFilters = () => {
+    setFilterType(''); setFilterPriority(''); setFilterStart(''); setFilterEnd('');
   };
 
-  const filtered = incidents.filter(incident => {
-    if (activeTab && incident.status !== activeTab) return false;
+  /* derived list */
+  const filtered = incidents.filter(inc => {
+    if (activeTab !== 'ALL' && inc.status !== activeTab) return false;
+    if (search && !`${inc.title} ${inc.description}`.toLowerCase().includes(search.toLowerCase())) return false;
+    if (filterType && inc.ticketType !== filterType) return false;
+    if (filterPriority && inc.priority !== filterPriority) return false;
+    if (filterStart) {
+      const d = new Date(inc.createdAt);
+      if (d < new Date(filterStart)) return false;
+    }
+    if (filterEnd) {
+      const d = new Date(inc.createdAt);
+      if (d > new Date(filterEnd + 'T23:59:59')) return false;
+    }
     return true;
   });
 
-  const exportData = async (format) => {
-    try {
-      const params = new URLSearchParams();
-      if (filterPriority) params.append('priority', filterPriority);
-      if (filterType) params.append('ticketType', filterType);
-      if (filterResource) params.append('resourceId', filterResource);
-      if (filterAssignedTo) params.append('assignedTo', filterAssignedTo);
-      if (filterReportedBy) params.append('reportedBy', filterReportedBy);
-      if (filterStartDate) params.append('startDate', new Date(filterStartDate).toISOString());
-      if (filterEndDate) params.append('endDate', new Date(filterEndDate).toISOString());
-      if (search) params.append('searchText', search);
+  const counts = key =>
+    key === 'ALL' ? incidents.length : incidents.filter(i => i.status === key).length;
 
-      const response = await fetch(`${API_BASE}/incidents/export/${format}?${params}`);
-      if (response.ok) {
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `incident_tickets.${format}`;
-        document.body.appendChild(a);
-        a.click();
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
-      }
-    } catch (error) {
-      console.error(`Failed to export ${format}:`, error);
-    }
-  };
-
-  const formatDate = (isoString) => {
-    if (!isoString) return '';
-    return new Date(isoString).toLocaleDateString();
-  };
-
-  const formatTime = (isoString) => {
-    if (!isoString) return '';
-    return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-gray-500">Loading incidents...</div>
-      </div>
-    );
-  }
+  const fmtDate = iso => iso
+    ? new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+    : '—';
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div style={S.page}>
+      {/* ── Page header ───────────────────────────── */}
+      <div style={S.topBar}>
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Incident Management</h1>
-          <p className="text-gray-500 mt-1 text-sm">Track and manage maintenance requests and incidents</p>
+          <h1 style={S.h1}>Incident Dashboard</h1>
+          <p style={S.subtitle}>Track and manage all reported issues &amp; maintenance tickets</p>
         </div>
-        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-          <div className="flex gap-2">
-            <button
-              onClick={() => exportData('csv')}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-green-600 text-white text-sm font-semibold rounded-xl hover:bg-green-700 active:bg-green-800 transition-colors shadow-sm"
-            >
-              <Download className="w-4 h-4" />
-              CSV
-            </button>
-            <button
-              onClick={() => exportData('pdf')}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-red-600 text-white text-sm font-semibold rounded-xl hover:bg-red-700 active:bg-red-800 transition-colors shadow-sm"
-            >
-              <Download className="w-4 h-4" />
-              PDF
-            </button>
-            <button
-              onClick={() => navigate('/maintenance-calendar')}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-700 active:bg-blue-800 transition-colors shadow-sm"
-            >
-              <Calendar className="w-4 h-4" />
-              Calendar
-            </button>
-          </div>
-          <button
-            onClick={() => navigate('/report-incident')}
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 active:bg-indigo-800 transition-colors shadow-sm w-full sm:w-auto justify-center"
-          >
-            <Plus className="w-4 h-4" />
-            Report Incident
+        <div style={S.headerBtns}>
+          <button style={S.secondaryBtn} onClick={() => navigate('/maintenance-calendar')}>
+            <Calendar size={15} /> Maintenance Calendar
+          </button>
+          <button style={S.primaryBtn} onClick={() => navigate('/report-incident')}>
+            <Plus size={15} /> Report Issue
           </button>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
-        {[
-          { key: 'open', label: 'Open', bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-100' },
-          { key: 'inProgress', label: 'In Progress', bg: 'bg-purple-50', text: 'text-purple-600', border: 'border-purple-100' },
-          { key: 'resolved', label: 'Resolved', bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-100' },
-          { key: 'total', label: 'Total', bg: 'bg-gray-50', text: 'text-gray-600', border: 'border-gray-100', value: stats.total || 0 },
-          { key: 'resolvedThisMonth', label: 'Resolved This Month', bg: 'bg-green-50', text: 'text-green-600', border: 'border-green-100', value: analytics.resolvedThisMonth || 0 },
-          { key: 'avgResolutionTime', label: 'Avg Resolution Time', bg: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-100', value: `${analytics.avgResolutionTimeHours || 0}h` }
-        ].map(({ key, label, bg, text, border, value }) => (
-          <div key={key} className={`${bg} ${border} border rounded-2xl p-4`}>
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2">{label}</p>
-            <p className={`text-2xl font-bold ${text}`}>{value || stats[key] || 0}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Analytics Summary */}
-      <div className="bg-gradient-to-r from-indigo-50 to-purple-50 rounded-2xl border border-indigo-100 p-6">
-        <h3 className="font-semibold text-gray-900 mb-4">Performance Overview</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="text-center">
-            <p className="text-2xl font-bold text-indigo-600">{analytics.resolutionRate || 0}%</p>
-            <p className="text-sm text-gray-600">Resolution Rate</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-purple-600">{stats.open || 0}</p>
-            <p className="text-sm text-gray-600">Active Tickets</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-green-600">{analytics.resolvedThisMonth || 0}</p>
-            <p className="text-sm text-gray-600">Resolved This Month</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <Filter className="w-5 h-5 text-gray-400" />
-          <h3 className="font-semibold text-gray-900">Advanced Filters</h3>
+      {/* ── Search + Filter toggle row ─────────────── */}
+      <div style={S.searchRow}>
+        <div style={S.searchBox}>
+          <Search size={15} style={S.searchIcon} />
+          <input
+            style={S.searchInput}
+            placeholder="Search by title or description…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+          {search && (
+            <button style={S.clearBtn} onClick={() => setSearch('')}><X size={13} /></button>
+          )}
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Search</label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search incidents..."
-                className={`${inputClass} pl-10`}
-              />
+        <button
+          style={{ ...S.filterToggle, ...(showFilters ? S.filterToggleActive : {}) }}
+          onClick={() => setShowFilters(v => !v)}
+        >
+          <Filter size={14} />
+          Filters
+          {activeFilters > 0 && (
+            <span style={S.filterBadge}>{activeFilters}</span>
+          )}
+        </button>
+      </div>
+
+      {/* ── Filter panel ─────────────────────────── */}
+      {showFilters && (
+        <div style={S.filterPanel}>
+          <div style={S.filterGrid}>
+            {/* Type */}
+            <div style={S.filterField}>
+              <label style={S.label}>Type</label>
+              <select style={S.select} value={filterType} onChange={e => setFilterType(e.target.value)}>
+                <option value="">All Types</option>
+                <option value="INCIDENT">Incident</option>
+                <option value="MAINTENANCE">Maintenance</option>
+                <option value="REPAIR">Repair</option>
+              </select>
+            </div>
+
+            {/* Priority */}
+            <div style={S.filterField}>
+              <label style={S.label}>Priority</label>
+              <select style={S.select} value={filterPriority} onChange={e => setFilterPriority(e.target.value)}>
+                <option value="">All Priorities</option>
+                <option value="CRITICAL">Critical</option>
+                <option value="HIGH">High</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="LOW">Low</option>
+              </select>
+            </div>
+
+            {/* Date From */}
+            <div style={S.filterField}>
+              <label style={S.label}>From Date</label>
+              <input type="date" style={S.select} value={filterStart} onChange={e => setFilterStart(e.target.value)} />
+            </div>
+
+            {/* Date To */}
+            <div style={S.filterField}>
+              <label style={S.label}>To Date</label>
+              <input type="date" style={S.select} value={filterEnd} onChange={e => setFilterEnd(e.target.value)} />
             </div>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Priority</label>
-            <select
-              value={filterPriority}
-              onChange={(e) => setFilterPriority(e.target.value)}
-              className={inputClass}
-            >
-              <option value="">All Priorities</option>
-              <option value="CRITICAL">Critical</option>
-              <option value="HIGH">High</option>
-              <option value="MEDIUM">Medium</option>
-              <option value="LOW">Low</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Type</label>
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              className={inputClass}
-            >
-              <option value="">All Types</option>
-              <option value="INCIDENT">Incident</option>
-              <option value="MAINTENANCE">Maintenance</option>
-              <option value="REPAIR">Repair</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Resource</label>
-            <select
-              value={filterResource}
-              onChange={(e) => setFilterResource(e.target.value)}
-              className={inputClass}
-            >
-              <option value="">All Resources</option>
-              {resources.map(resource => (
-                <option key={resource.id} value={resource.id}>{resource.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Assigned To</label>
-            <input
-              type="text"
-              value={filterAssignedTo}
-              onChange={(e) => setFilterAssignedTo(e.target.value)}
-              placeholder="Assigned user..."
-              className={inputClass}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Reported By</label>
-            <input
-              type="text"
-              value={filterReportedBy}
-              onChange={(e) => setFilterReportedBy(e.target.value)}
-              placeholder="Reporter..."
-              className={inputClass}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Start Date</label>
-            <input
-              type="date"
-              value={filterStartDate}
-              onChange={(e) => setFilterStartDate(e.target.value)}
-              className={inputClass}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">End Date</label>
-            <input
-              type="date"
-              value={filterEndDate}
-              onChange={(e) => setFilterEndDate(e.target.value)}
-              className={inputClass}
-            />
-          </div>
-
-          <div className="flex items-end">
-            <button
-              onClick={fetchFilteredIncidents}
-              className="w-full px-4 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 transition-colors"
-            >
-              Apply Filters
+          {activeFilters > 0 && (
+            <button style={S.clearFiltersBtn} onClick={clearFilters}>
+              <X size={13} /> Clear Filters
             </button>
-          </div>
-
-          <div className="flex items-end">
-            <button
-              onClick={() => {
-                setSearch('');
-                setFilterPriority('');
-                setFilterType('');
-                setFilterResource('');
-                setFilterAssignedTo('');
-                setFilterReportedBy('');
-                setFilterStartDate('');
-                setFilterEndDate('');
-                fetchData();
-              }}
-              className="w-full px-4 py-2.5 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
-            >
-              Clear Filters
-            </button>
-          </div>
+          )}
         </div>
-      </div>
+      )}
 
-      {/* Tabs */}
-      <div className="flex space-x-1 bg-gray-100 p-1 rounded-xl">
-        {['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'].map(status => (
+      {/* ── Status tabs ──────────────────────────── */}
+      <div style={S.tabRow}>
+        {STATUS_TABS.map(t => (
           <button
-            key={status}
-            onClick={() => setActiveTab(status)}
-            className={`flex-1 px-4 py-2.5 text-sm font-medium rounded-lg transition-all ${
-              activeTab === status ? TAB_STYLES.active : TAB_STYLES.inactive
-            }`}
+            key={t.key}
+            style={{ ...S.tab, ...(activeTab === t.key ? S.tabActive : {}) }}
+            onClick={() => setActiveTab(t.key)}
           >
-            {statusConfig[status].label} ({incidents.filter(i => i.status === status).length})
+            {t.label}
+            <span style={{ ...S.tabCount, ...(activeTab === t.key ? S.tabCountActive : {}) }}>
+              {counts(t.key)}
+            </span>
           </button>
         ))}
       </div>
 
-      {/* Incidents List */}
-      {filtered.length === 0 ? (
-        <div className="text-center py-20 bg-gray-50 rounded-3xl border-2 border-dashed border-gray-200">
-          <AlertTriangle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-          <p className="text-gray-500">No incidents found matching your criteria.</p>
+      {/* ── Result count ─────────────────────────── */}
+      {!loading && (
+        <p style={S.resultCount}>
+          {filtered.length} {filtered.length === 1 ? 'ticket' : 'tickets'} found
+        </p>
+      )}
+
+      {/* ── List ─────────────────────────────────── */}
+      {loading ? (
+        <div style={S.emptyState}>
+          <div className="spinner" style={{ margin: '0 auto 16px' }} />
+          <p>Loading…</p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div style={S.emptyState}>
+          <AlertTriangle size={44} style={{ opacity: .18, marginBottom: 14 }} />
+          <p>No incidents match your filters.</p>
+          {activeFilters > 0 && (
+            <button style={{ ...S.primaryBtn, marginTop: 14 }} onClick={clearFilters}>
+              Clear Filters
+            </button>
+          )}
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {filtered.map((incident) => {
-            const priorityStyle = priorityConfig[incident.priority];
-            const statusStyle = statusConfig[incident.status];
-            const typeStyle = typeConfig[incident.ticketType];
-            const TypeIcon = typeStyle.icon;
+        <div style={S.list}>
+          {filtered.map(inc => {
+            const pr   = PRIORITY_CFG[inc.priority] ?? PRIORITY_CFG.LOW;
+            const st   = STATUS_CFG[inc.status]     ?? STATUS_CFG.OPEN;
+            const Icon = TYPE_ICON[inc.ticketType]  ?? Wrench;
 
             return (
               <div
-                key={incident.id}
-                className="bg-white rounded-2xl border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => navigate(`/incidents/${incident.id}`)}
+                key={inc.id}
+                style={S.card}
+                onClick={() => navigate(`/incidents/${inc.id}`)}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(88,166,255,.35)'; e.currentTarget.style.background = 'rgba(255,255,255,.035)'; }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,.07)'; e.currentTarget.style.background = 'var(--clr-surface)'; }}
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-xl ${priorityStyle.color}`}>
-                      <priorityStyle.icon className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900 text-sm">{incident.title}</h3>
-                      <p className="text-xs text-gray-500">{incident.resourceName}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <TypeIcon className={`w-4 h-4 ${typeStyle.color}`} />
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${statusStyle.color}`}>
-                      {statusStyle.label}
-                    </span>
-                  </div>
+                {/* Priority dot */}
+                <div style={{ ...S.dot, background: pr.dot }} />
+
+                {/* Icon */}
+                <div style={{ ...S.typeIcon, background: pr.bg, color: pr.text }}>
+                  <Icon size={17} />
                 </div>
 
-                <p className="text-sm text-gray-600 mb-4 line-clamp-2">{incident.description}</p>
-
-                <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
-                  <span>Reported: {formatDate(incident.createdAt)}</span>
-                  {incident.resolvedAt && (
-                    <span>Resolved: {formatDate(incident.resolvedAt)}</span>
-                  )}
+                {/* Info */}
+                <div style={S.cardBody}>
+                  <p style={S.cardTitle}>{inc.title}</p>
+                  <p style={S.cardMeta}>
+                    {inc.resourceName || 'No resource'} · Reported {fmtDate(inc.createdAt)}
+                    {inc.reportedBy ? ` · ${inc.reportedBy}` : ''}
+                  </p>
                 </div>
 
-                {incident.assignedTo && (
-                  <div className="text-xs text-gray-600 mb-4">
-                    Assigned to: {incident.assignedTo}
-                  </div>
-                )}
+                {/* Right badges + actions */}
+                <div style={S.cardRight} onClick={e => e.stopPropagation()}>
+                  <span style={{ ...S.badge, background: pr.bg, color: pr.text }}>{pr.label}</span>
+                  <span style={{ ...S.badge, background: st.bg, color: st.text }}>{st.label}</span>
 
-                <div className="flex gap-2">
-                  {incident.status === 'OPEN' && (
-                    <>
-                      <button
-                        onClick={() => assignTicket(incident.id, 'TECH-001')}
-                        className="flex-1 px-3 py-2 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                      >
-                        Assign to Me
-                      </button>
-                      <button
-                        onClick={() => updateStatus(incident.id, 'IN_PROGRESS')}
-                        className="flex-1 px-3 py-2 text-xs bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
-                      >
-                        Start Work
-                      </button>
-                    </>
+                  {inc.status === 'OPEN' && (
+                    <button style={{ ...S.actionBtn, color: '#a78bfa', background: 'rgba(139,92,246,.2)' }}
+                      onClick={e => updateStatus(e, inc.id, 'IN_PROGRESS')}>Start</button>
+                  )}
+                  {inc.status === 'IN_PROGRESS' && (
+                    <button style={{ ...S.actionBtn, color: '#34d399', background: 'rgba(16,185,129,.2)' }}
+                      onClick={e => updateStatus(e, inc.id, 'RESOLVED')}>Resolve</button>
+                  )}
+                  {inc.status === 'RESOLVED' && (
+                    <button style={{ ...S.actionBtn, color: '#9ca3af', background: 'rgba(107,114,128,.2)' }}
+                      onClick={e => updateStatus(e, inc.id, 'CLOSED')}>Close</button>
                   )}
 
-                  {incident.status === 'IN_PROGRESS' && (
-                    <button
-                      onClick={() => updateStatus(incident.id, 'RESOLVED')}
-                      className="flex-1 px-3 py-2 text-xs bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
-                    >
-                      Mark Resolved
-                    </button>
-                  )}
-
-                  {incident.status === 'RESOLVED' && (
-                    <button
-                      onClick={() => updateStatus(incident.id, 'CLOSED')}
-                      className="flex-1 px-3 py-2 text-xs bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
-                    >
-                      Close Ticket
-                    </button>
-                  )}
+                  <ChevronRight size={15} style={{ color: 'var(--clr-text-muted)', cursor: 'pointer' }}
+                    onClick={() => navigate(`/incidents/${inc.id}`)} />
                 </div>
               </div>
             );
@@ -508,3 +300,307 @@ export function IncidentDashboardPage() {
     </div>
   );
 }
+
+/* ── Styles ──────────────────────────────────────────────── */
+const S = {
+  page: {
+    minHeight: '100vh',
+    padding: '28px 28px 60px',
+    width: '100%',
+    boxSizing: 'border-box',
+  },
+  topBar: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 28,
+    gap: 16,
+    flexWrap: 'wrap',
+  },
+  h1: {
+    fontSize: 26,
+    fontWeight: 800,
+    letterSpacing: '-0.5px',
+    color: 'var(--clr-text)',
+    marginBottom: 5,
+  },
+  subtitle: {
+    fontSize: 13,
+    color: 'var(--clr-text-muted)',
+  },
+  primaryBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 7,
+    padding: '10px 20px',
+    background: 'var(--clr-primary)',
+    color: '#fff',
+    border: 'none',
+    borderRadius: 10,
+    fontWeight: 700,
+    fontSize: 13,
+    cursor: 'pointer',
+    flexShrink: 0,
+  },
+  headerBtns: {
+    display: 'flex',
+    gap: 10,
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    flexShrink: 0,
+  },
+  secondaryBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 7,
+    padding: '10px 20px',
+    background: 'var(--clr-surface)',
+    color: 'var(--clr-text)',
+    border: '1px solid var(--clr-border)',
+    borderRadius: 10,
+    fontWeight: 600,
+    fontSize: 13,
+    cursor: 'pointer',
+    flexShrink: 0,
+  },
+  /* search */
+  searchRow: {
+    display: 'flex',
+    gap: 10,
+    marginBottom: 14,
+    alignItems: 'center',
+  },
+  searchBox: {
+    flex: 1,
+    position: 'relative',
+    display: 'flex',
+    alignItems: 'center',
+  },
+  searchIcon: {
+    position: 'absolute',
+    left: 13,
+    color: 'var(--clr-text-muted)',
+    pointerEvents: 'none',
+  },
+  searchInput: {
+    width: '100%',
+    padding: '10px 36px 10px 38px',
+    background: 'var(--clr-surface)',
+    border: '1px solid var(--clr-border)',
+    borderRadius: 10,
+    color: 'var(--clr-text)',
+    fontSize: 13,
+    outline: 'none',
+    boxSizing: 'border-box',
+  },
+  clearBtn: {
+    position: 'absolute',
+    right: 10,
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    color: 'var(--clr-text-muted)',
+    display: 'flex',
+    alignItems: 'center',
+  },
+  filterToggle: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '10px 16px',
+    background: 'var(--clr-surface)',
+    border: '1px solid var(--clr-border)',
+    borderRadius: 10,
+    color: 'var(--clr-text-muted)',
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: 'pointer',
+    flexShrink: 0,
+    position: 'relative',
+  },
+  filterToggleActive: {
+    borderColor: 'var(--clr-primary)',
+    color: 'var(--clr-primary)',
+  },
+  filterBadge: {
+    background: 'var(--clr-primary)',
+    color: '#fff',
+    borderRadius: 20,
+    padding: '1px 7px',
+    fontSize: 10,
+    fontWeight: 800,
+  },
+  /* filter panel */
+  filterPanel: {
+    background: 'var(--clr-surface)',
+    border: '1px solid var(--clr-border)',
+    borderRadius: 12,
+    padding: '20px 20px 16px',
+    marginBottom: 16,
+  },
+  filterGrid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+    gap: 14,
+  },
+  filterField: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 6,
+  },
+  label: {
+    fontSize: 11,
+    fontWeight: 700,
+    color: 'var(--clr-text-muted)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+  },
+  select: {
+    padding: '9px 12px',
+    background: 'rgba(255,255,255,.04)',
+    border: '1px solid var(--clr-border)',
+    borderRadius: 8,
+    color: 'var(--clr-text)',
+    fontSize: 13,
+    outline: 'none',
+    width: '100%',
+    boxSizing: 'border-box',
+    colorScheme: 'dark',
+  },
+  clearFiltersBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 5,
+    marginTop: 14,
+    padding: '7px 14px',
+    background: 'rgba(239,68,68,.12)',
+    color: '#f87171',
+    border: '1px solid rgba(239,68,68,.2)',
+    borderRadius: 8,
+    fontSize: 12,
+    fontWeight: 600,
+    cursor: 'pointer',
+  },
+  /* tabs */
+  tabRow: {
+    display: 'flex',
+    gap: 6,
+    marginBottom: 10,
+    flexWrap: 'wrap',
+  },
+  tab: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 7,
+    padding: '7px 14px',
+    background: 'transparent',
+    border: '1px solid var(--clr-border)',
+    borderRadius: 8,
+    color: 'var(--clr-text-muted)',
+    fontWeight: 500,
+    fontSize: 13,
+    cursor: 'pointer',
+    transition: 'all .15s',
+  },
+  tabActive: {
+    background: 'var(--clr-primary)',
+    borderColor: 'var(--clr-primary)',
+    color: '#fff',
+    fontWeight: 700,
+  },
+  tabCount: {
+    padding: '1px 7px',
+    borderRadius: 20,
+    fontSize: 10,
+    fontWeight: 800,
+    background: 'rgba(255,255,255,.1)',
+  },
+  tabCountActive: {
+    background: 'rgba(255,255,255,.28)',
+  },
+  resultCount: {
+    fontSize: 12,
+    color: 'var(--clr-text-muted)',
+    marginBottom: 14,
+  },
+  /* list */
+  list: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+  },
+  card: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 14,
+    padding: '15px 18px',
+    background: 'var(--clr-surface)',
+    border: '1px solid rgba(255,255,255,.07)',
+    borderRadius: 12,
+    cursor: 'pointer',
+    transition: 'border-color .2s, background .2s',
+    flexWrap: 'wrap',
+  },
+  dot: {
+    width: 8,
+    height: 8,
+    borderRadius: '50%',
+    flexShrink: 0,
+  },
+  typeIcon: {
+    width: 38,
+    height: 38,
+    borderRadius: 9,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  cardBody: {
+    flex: 1,
+    minWidth: 0,
+  },
+  cardTitle: {
+    fontSize: 14,
+    fontWeight: 600,
+    color: 'var(--clr-text)',
+    marginBottom: 4,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  cardMeta: {
+    fontSize: 12,
+    color: 'var(--clr-text-muted)',
+  },
+  cardRight: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 7,
+    flexShrink: 0,
+    flexWrap: 'wrap',
+  },
+  badge: {
+    padding: '3px 9px',
+    borderRadius: 20,
+    fontSize: 11,
+    fontWeight: 700,
+    whiteSpace: 'nowrap',
+  },
+  actionBtn: {
+    padding: '5px 12px',
+    borderRadius: 7,
+    border: 'none',
+    fontSize: 12,
+    fontWeight: 700,
+    cursor: 'pointer',
+    transition: 'opacity .15s',
+    whiteSpace: 'nowrap',
+  },
+  emptyState: {
+    textAlign: 'center',
+    padding: '90px 24px',
+    color: 'var(--clr-text-muted)',
+    fontSize: 14,
+  },
+};

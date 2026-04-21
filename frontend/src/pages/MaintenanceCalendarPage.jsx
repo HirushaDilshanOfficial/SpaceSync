@@ -1,241 +1,559 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Calendar, ChevronLeft, ChevronRight, Wrench, AlertTriangle, Clock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, AlertTriangle, Wrench, Zap, CheckCircle, Clock } from 'lucide-react';
 
-const API_BASE = 'http://localhost:8080/api';
-
-const priorityConfig = {
-  CRITICAL: { color: 'bg-red-500', textColor: 'text-red-700' },
-  HIGH: { color: 'bg-orange-500', textColor: 'text-orange-700' },
-  MEDIUM: { color: 'bg-yellow-500', textColor: 'text-yellow-700' },
-  LOW: { color: 'bg-green-500', textColor: 'text-green-700' },
+const PRIORITY_DOT = {
+  CRITICAL: '#ef4444',
+  HIGH:     '#f97316',
+  MEDIUM:   '#eab308',
+  LOW:      '#22c55e',
 };
+
+const PRIORITY_BG = {
+  CRITICAL: 'rgba(239,68,68,.18)',
+  HIGH:     'rgba(249,115,22,.18)',
+  MEDIUM:   'rgba(234,179,8,.18)',
+  LOW:      'rgba(34,197,94,.18)',
+};
+
+const STATUS_CFG = {
+  OPEN:        { text: '#60a5fa', label: 'Open'        },
+  IN_PROGRESS: { text: '#a78bfa', label: 'In Progress' },
+  RESOLVED:    { text: '#34d399', label: 'Resolved'    },
+  CLOSED:      { text: '#9ca3af', label: 'Closed'      },
+};
+
+const TYPE_ICON = { INCIDENT: Zap, MAINTENANCE: Wrench, REPAIR: Wrench };
+
+const MONTH_NAMES = [
+  'January','February','March','April','May','June',
+  'July','August','September','October','November','December'
+];
+const DAY_LABELS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
 export function MaintenanceCalendarPage() {
   const navigate = useNavigate();
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [maintenanceEvents, setMaintenanceEvents] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [current,  setCurrent]  = useState(new Date());
+  const [events,   setEvents]   = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [selected, setSelected] = useState(null); // {day, events[]}
 
-  useEffect(() => {
-    fetchMaintenanceEvents();
-  }, [currentDate]);
-
-  const fetchMaintenanceEvents = async () => {
+  const fetchEvents = useCallback(async () => {
+    setLoading(true);
     try {
-      const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-      const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0, 23, 59, 59);
-
-      const response = await fetch(
-        `${API_BASE}/incidents/calendar?startDate=${startOfMonth.toISOString()}&endDate=${endOfMonth.toISOString()}`
-      );
-
-      if (response.ok) {
-        const events = await response.json();
-        setMaintenanceEvents(events);
-      }
-    } catch (error) {
-      console.error('Failed to fetch maintenance events:', error);
+      const token = localStorage.getItem('token');
+      const res = await fetch('/api/incidents', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) setEvents(await res.json());
+    } catch (e) {
+      console.error(e);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const navigateMonth = (direction) => {
-    setCurrentDate(prev => {
-      const newDate = new Date(prev);
-      newDate.setMonth(prev.getMonth() + direction);
-      return newDate;
-    });
-  };
+  useEffect(() => { fetchEvents(); }, [fetchEvents]);
 
-  const getDaysInMonth = (date) => {
-    const year = date.getFullYear();
-    const month = date.getMonth();
-    const firstDay = new Date(year, month, 1);
-    const lastDay = new Date(year, month + 1, 0);
-    const daysInMonth = lastDay.getDate();
-    const startingDayOfWeek = firstDay.getDay();
+  /* ── calendar grid ── */
+  const year  = current.getFullYear();
+  const month = current.getMonth();
+  const firstDow = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const grid = [...Array(firstDow).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
 
-    const days = [];
-
-    // Add empty cells for days before the first day of the month
-    for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push(null);
-    }
-
-    // Add days of the month
-    for (let day = 1; day <= daysInMonth; day++) {
-      days.push(day);
-    }
-
-    return days;
-  };
-
-  const getEventsForDay = (day) => {
+  const getEventsForDay = day => {
     if (!day) return [];
-
-    const dayDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-    return maintenanceEvents.filter(event => {
-      if (!event.scheduledStart) return false;
-      const eventDate = new Date(event.scheduledStart);
-      return eventDate.toDateString() === dayDate.toDateString();
+    const dayDate = new Date(year, month, day).toDateString();
+    return events.filter(e => {
+      const d = e.scheduledStart ? new Date(e.scheduledStart) : new Date(e.createdAt);
+      return d.toDateString() === dayDate;
     });
   };
 
-  const formatTime = (dateString) => {
-    if (!dateString) return '';
-    return new Date(dateString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
+  const today = new Date().toDateString();
+  const isToday = day => day && new Date(year, month, day).toDateString() === today;
 
-  const days = getDaysInMonth(currentDate);
-  const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
+  const navMonth = dir => setCurrent(prev => {
+    const d = new Date(prev);
+    d.setDate(1);
+    d.setMonth(prev.getMonth() + dir);
+    return d;
+  });
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-gray-500">Loading calendar...</div>
-      </div>
-    );
-  }
+  /* upcoming: today and future */
+  const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+  const upcoming = events
+    .filter(e => {
+      const d = e.scheduledStart ? new Date(e.scheduledStart) : new Date(e.createdAt);
+      return d >= todayStart;
+    })
+    .sort((a, b) => {
+      const dA = a.scheduledStart ? new Date(a.scheduledStart) : new Date(a.createdAt);
+      const dB = b.scheduledStart ? new Date(b.scheduledStart) : new Date(b.createdAt);
+      return dA - dB;
+    })
+    .slice(0, 8);
+
+  const fmtDate = iso => iso
+    ? new Date(iso).toLocaleDateString('en-GB', { day:'numeric', month:'short' })
+    : '—';
+
+  const fmtTime = iso => iso
+    ? new Date(iso).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })
+    : '';
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div style={S.page}>
+
+      {/* ── Header ─────────────────────────────────── */}
+      <div style={S.topBar}>
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Maintenance Calendar</h1>
-          <p className="text-gray-500 mt-1 text-sm">Scheduled maintenance and repair activities</p>
+          <h1 style={S.h1}>Maintenance Calendar</h1>
+          <p style={S.sub}>Scheduled activities &amp; reported incidents</p>
         </div>
-        <button
-          onClick={() => navigate('/incidents')}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-xl hover:bg-indigo-700 active:bg-indigo-800 transition-colors shadow-sm"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          Back to Dashboard
+        <button style={S.backBtn} onClick={() => navigate('/incidents')}>
+          <ChevronLeft size={15} /> Back to Dashboard
         </button>
       </div>
 
-      {/* Calendar Header */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <button
-            onClick={() => navigateMonth(-1)}
-            className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
-          >
-            <ChevronLeft className="w-5 h-5 text-gray-600" />
-          </button>
+      {/* ── Two-col layout ─────────────────────────── */}
+      <div style={S.cols}>
 
-          <div className="flex items-center gap-2">
-            <Calendar className="w-5 h-5 text-gray-400" />
-            <h2 className="text-xl font-semibold text-gray-900">
-              {monthNames[currentDate.getMonth()]} {currentDate.getFullYear()}
-            </h2>
+        {/* ── Left: calendar ─────────────────────── */}
+        <div style={S.calBox}>
+          {/* Month nav */}
+          <div style={S.monthRow}>
+            <button style={S.navBtn} onClick={() => navMonth(-1)}><ChevronLeft size={18} /></button>
+            <span style={S.monthLabel}>{MONTH_NAMES[month]} {year}</span>
+            <button style={S.navBtn} onClick={() => navMonth(1)}><ChevronRight size={18} /></button>
           </div>
 
-          <button
-            onClick={() => navigateMonth(1)}
-            className="p-2 hover:bg-gray-100 rounded-xl transition-colors"
-          >
-            <ChevronRight className="w-5 h-5 text-gray-600" />
-          </button>
-        </div>
-
-        {/* Calendar Grid */}
-        <div className="grid grid-cols-7 gap-1">
-          {/* Day headers */}
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-            <div key={day} className="p-3 text-center text-sm font-semibold text-gray-500 border-b border-gray-200">
-              {day}
-            </div>
-          ))}
-
-          {/* Calendar days */}
-          {days.map((day, index) => {
-            const eventsForDay = getEventsForDay(day);
-            const isToday = day && new Date().toDateString() === new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toDateString();
-
-            return (
-              <div
-                key={index}
-                className={`min-h-[120px] p-2 border border-gray-200 rounded-lg ${
-                  isToday ? 'bg-blue-50 border-blue-300' : 'bg-white'
-                } ${day ? 'hover:bg-gray-50' : ''} transition-colors`}
-              >
-                {day && (
-                  <>
-                    <div className={`text-sm font-medium mb-2 ${isToday ? 'text-blue-600' : 'text-gray-900'}`}>
-                      {day}
-                    </div>
-                    <div className="space-y-1">
-                      {eventsForDay.slice(0, 3).map(event => (
-                        <div
-                          key={event.id}
-                          onClick={() => navigate(`/incidents/${event.id}`)}
-                          className={`text-xs p-1 rounded cursor-pointer hover:opacity-80 transition-opacity ${
-                            priorityConfig[event.priority]?.color || 'bg-gray-500'
-                          } text-white truncate`}
-                          title={`${event.title} - ${formatTime(event.scheduledStart)} to ${formatTime(event.scheduledEnd)}`}
-                        >
-                          <div className="flex items-center gap-1">
-                            <Wrench className="w-3 h-3" />
-                            <span className="truncate">{event.title}</span>
-                          </div>
-                        </div>
-                      ))}
-                      {eventsForDay.length > 3 && (
-                        <div className="text-xs text-gray-500 text-center">
-                          +{eventsForDay.length - 3} more
-                        </div>
-                      )}
-                    </div>
-                  </>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Upcoming Maintenance */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-6">
-        <h3 className="font-semibold text-gray-900 mb-4">Upcoming Maintenance</h3>
-        <div className="space-y-3">
-          {maintenanceEvents
-            .filter(event => new Date(event.scheduledStart) >= new Date())
-            .sort((a, b) => new Date(a.scheduledStart) - new Date(b.scheduledStart))
-            .slice(0, 5)
-            .map(event => (
-              <div
-                key={event.id}
-                onClick={() => navigate(`/incidents/${event.id}`)}
-                className="flex items-center justify-between p-3 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-3 h-3 rounded-full ${priorityConfig[event.priority]?.color || 'bg-gray-500'}`} />
-                  <div>
-                    <p className="font-medium text-gray-900">{event.title}</p>
-                    <p className="text-sm text-gray-600">{event.resourceName}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900">
-                    {new Date(event.scheduledStart).toLocaleDateString()}
-                  </p>
-                  <p className="text-sm text-gray-600">
-                    {formatTime(event.scheduledStart)} - {formatTime(event.scheduledEnd)}
-                  </p>
-                </div>
-              </div>
+          {/* Day-of-week headers */}
+          <div style={S.dayHeaders}>
+            {DAY_LABELS.map(d => (
+              <div key={d} style={S.dayHeader}>{d}</div>
             ))}
-          {maintenanceEvents.filter(event => new Date(event.scheduledStart) >= new Date()).length === 0 && (
-            <p className="text-gray-500 text-center py-4">No upcoming maintenance scheduled</p>
+          </div>
+
+          {/* Grid */}
+          <div style={S.grid}>
+            {grid.map((day, i) => {
+              const dayEvts = getEventsForDay(day);
+              const tod = isToday(day);
+              return (
+                <div
+                  key={i}
+                  style={{
+                    ...S.cell,
+                    ...(tod ? S.cellToday : {}),
+                    ...(day ? S.cellActive : S.cellEmpty),
+                    ...(selected?.day === day && month === new Date().getMonth() ? S.cellSelected : {}),
+                  }}
+                  onClick={() => day && setSelected(dayEvts.length > 0 ? { day, events: dayEvts } : null)}
+                >
+                  {day && (
+                    <>
+                      <span style={{ ...S.dayNum, ...(tod ? S.dayNumToday : {}) }}>{day}</span>
+                      <div style={S.dotRow}>
+                        {dayEvts.slice(0, 3).map(e => (
+                          <span
+                            key={e.id}
+                            style={{ ...S.dot, background: PRIORITY_DOT[e.priority] || '#6b7280' }}
+                            title={e.title}
+                          />
+                        ))}
+                        {dayEvts.length > 3 && (
+                          <span style={S.moreCount}>+{dayEvts.length - 3}</span>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Selected day popup */}
+          {selected && (
+            <div style={S.popup}>
+              <div style={S.popupHeader}>
+                <span style={S.popupTitle}>
+                  {MONTH_NAMES[month]} {selected.day}
+                </span>
+                <button style={S.popupClose} onClick={() => setSelected(null)}>✕</button>
+              </div>
+              <div style={S.popupList}>
+                {selected.events.map(e => {
+                  const Icon = TYPE_ICON[e.ticketType] || Wrench;
+                  const st   = STATUS_CFG[e.status] || STATUS_CFG.OPEN;
+                  return (
+                    <div
+                      key={e.id}
+                      style={S.popupItem}
+                      onClick={() => navigate(`/incidents/${e.id}`)}
+                    >
+                      <div style={{ ...S.popupIcon, background: PRIORITY_BG[e.priority], color: PRIORITY_DOT[e.priority] }}>
+                        <Icon size={14} />
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={S.popupItemTitle}>{e.title}</p>
+                        <p style={S.popupItemMeta}>{e.resourceName || 'No resource'}</p>
+                      </div>
+                      <span style={{ ...S.statusDot, color: st.text }}>{st.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           )}
         </div>
+
+        {/* ── Right: upcoming ─────────────────────── */}
+        <div style={S.sideBox}>
+          <p style={S.sideTitle}>Upcoming &amp; Today</p>
+
+          {loading ? (
+            <p style={{ color: 'var(--clr-text-muted)', fontSize: 13, padding: '20px 0' }}>Loading…</p>
+          ) : upcoming.length === 0 ? (
+            <div style={S.emptyUpcoming}>
+              <CheckCircle size={32} style={{ opacity: .2, marginBottom: 8 }} />
+              <p>No upcoming activities</p>
+            </div>
+          ) : (
+            <div style={S.upcomingList}>
+              {upcoming.map(e => {
+                const Icon    = TYPE_ICON[e.ticketType] || Wrench;
+                const st      = STATUS_CFG[e.status]    || STATUS_CFG.OPEN;
+                const dot     = PRIORITY_DOT[e.priority] || '#6b7280';
+                const bg      = PRIORITY_BG[e.priority]  || 'rgba(107,114,128,.15)';
+                const dateStr = e.scheduledStart ? fmtDate(e.scheduledStart) : fmtDate(e.createdAt);
+                const timeStr = e.scheduledStart
+                  ? `${fmtTime(e.scheduledStart)}${e.scheduledEnd ? ' – ' + fmtTime(e.scheduledEnd) : ''}`
+                  : `Reported ${fmtTime(e.createdAt)}`;
+
+                return (
+                  <div
+                    key={e.id}
+                    style={S.upcomingCard}
+                    onClick={() => navigate(`/incidents/${e.id}`)}
+                    onMouseEnter={el => el.currentTarget.style.borderColor = 'rgba(88,166,255,.35)'}
+                    onMouseLeave={el => el.currentTarget.style.borderColor = 'rgba(255,255,255,.06)'}
+                  >
+                    <div style={{ ...S.upIcon, background: bg, color: dot }}>
+                      <Icon size={15} />
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={S.upTitle}>{e.title}</p>
+                      <p style={S.upMeta}>{e.resourceName || 'No resource'}</p>
+                    </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <p style={{ ...S.upDate, color: dot }}>{dateStr}</p>
+                      <p style={S.upTime}>{timeStr}</p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
       </div>
     </div>
   );
 }
+
+/* ── Styles ──────────────────────────────────────────────── */
+const S = {
+  page: {
+    minHeight: '100vh',
+    padding: '28px 28px 60px',
+    width: '100%',
+    boxSizing: 'border-box',
+  },
+  topBar: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 28,
+    gap: 16,
+    flexWrap: 'wrap',
+  },
+  h1: {
+    fontSize: 24,
+    fontWeight: 800,
+    letterSpacing: '-0.5px',
+    color: 'var(--clr-text)',
+    marginBottom: 5,
+  },
+  sub: {
+    fontSize: 13,
+    color: 'var(--clr-text-muted)',
+  },
+  backBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '9px 18px',
+    background: 'var(--clr-surface)',
+    border: '1px solid var(--clr-border)',
+    borderRadius: 10,
+    color: 'var(--clr-text)',
+    fontWeight: 600,
+    fontSize: 13,
+    cursor: 'pointer',
+    flexShrink: 0,
+  },
+
+  /* two col */
+  cols: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 340px',
+    gap: 20,
+    alignItems: 'start',
+  },
+
+  /* calendar box */
+  calBox: {
+    background: 'var(--clr-surface)',
+    border: '1px solid var(--clr-border)',
+    borderRadius: 16,
+    padding: '20px 20px 24px',
+  },
+  monthRow: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  navBtn: {
+    width: 34,
+    height: 34,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    background: 'rgba(255,255,255,.05)',
+    border: '1px solid var(--clr-border)',
+    borderRadius: 8,
+    cursor: 'pointer',
+    color: 'var(--clr-text)',
+  },
+  monthLabel: {
+    fontSize: 16,
+    fontWeight: 700,
+    color: 'var(--clr-text)',
+  },
+  dayHeaders: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(7, 1fr)',
+    gap: 4,
+    marginBottom: 6,
+  },
+  dayHeader: {
+    textAlign: 'center',
+    fontSize: 11,
+    fontWeight: 700,
+    color: 'var(--clr-text-muted)',
+    textTransform: 'uppercase',
+    padding: '4px 0',
+    letterSpacing: '0.5px',
+  },
+  grid: {
+    display: 'grid',
+    gridTemplateColumns: 'repeat(7, 1fr)',
+    gap: 4,
+  },
+  cell: {
+    minHeight: 72,
+    borderRadius: 10,
+    padding: '8px 8px 6px',
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 4,
+    position: 'relative',
+    transition: 'background .15s, border-color .15s',
+    border: '1px solid transparent',
+    boxSizing: 'border-box',
+  },
+  cellActive: {
+    background: 'rgba(255,255,255,.03)',
+    cursor: 'pointer',
+    border: '1px solid rgba(255,255,255,.05)',
+  },
+  cellEmpty: {
+    background: 'transparent',
+  },
+  cellToday: {
+    background: 'rgba(88,166,255,.1)',
+    border: '1px solid rgba(88,166,255,.35)',
+  },
+  cellSelected: {
+    background: 'rgba(139,92,246,.12)',
+    border: '1px solid rgba(139,92,246,.4)',
+  },
+  dayNum: {
+    fontSize: 12,
+    fontWeight: 600,
+    color: 'var(--clr-text-muted)',
+    lineHeight: 1,
+  },
+  dayNumToday: {
+    color: '#58a6ff',
+    fontWeight: 800,
+  },
+  dotRow: {
+    display: 'flex',
+    gap: 3,
+    flexWrap: 'wrap',
+    marginTop: 2,
+  },
+  dot: {
+    width: 7,
+    height: 7,
+    borderRadius: '50%',
+    flexShrink: 0,
+  },
+  moreCount: {
+    fontSize: 9,
+    color: 'var(--clr-text-muted)',
+    fontWeight: 700,
+  },
+
+  /* day popup */
+  popup: {
+    marginTop: 16,
+    background: 'rgba(255,255,255,.04)',
+    border: '1px solid var(--clr-border)',
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
+  popupHeader: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '10px 14px',
+    borderBottom: '1px solid var(--clr-border)',
+  },
+  popupTitle: {
+    fontSize: 13,
+    fontWeight: 700,
+    color: 'var(--clr-text)',
+  },
+  popupClose: {
+    background: 'none',
+    border: 'none',
+    color: 'var(--clr-text-muted)',
+    cursor: 'pointer',
+    fontSize: 14,
+  },
+  popupList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 0,
+  },
+  popupItem: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    padding: '10px 14px',
+    cursor: 'pointer',
+    borderBottom: '1px solid rgba(255,255,255,.04)',
+    transition: 'background .15s',
+  },
+  popupIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: 7,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  popupItemTitle: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: 'var(--clr-text)',
+    marginBottom: 2,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  popupItemMeta: {
+    fontSize: 11,
+    color: 'var(--clr-text-muted)',
+  },
+  statusDot: {
+    fontSize: 11,
+    fontWeight: 700,
+    flexShrink: 0,
+  },
+
+  /* sidebar */
+  sideBox: {
+    background: 'var(--clr-surface)',
+    border: '1px solid var(--clr-border)',
+    borderRadius: 16,
+    padding: '18px 18px 20px',
+  },
+  sideTitle: {
+    fontSize: 13,
+    fontWeight: 800,
+    color: 'var(--clr-text-muted)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    marginBottom: 14,
+  },
+  upcomingList: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+  },
+  upcomingCard: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 10,
+    padding: '11px 12px',
+    border: '1px solid rgba(255,255,255,.06)',
+    borderRadius: 10,
+    cursor: 'pointer',
+    transition: 'border-color .2s',
+    background: 'rgba(255,255,255,.02)',
+  },
+  upIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  upTitle: {
+    fontSize: 13,
+    fontWeight: 600,
+    color: 'var(--clr-text)',
+    marginBottom: 2,
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+  },
+  upMeta: {
+    fontSize: 11,
+    color: 'var(--clr-text-muted)',
+  },
+  upDate: {
+    fontSize: 12,
+    fontWeight: 700,
+    marginBottom: 2,
+  },
+  upTime: {
+    fontSize: 11,
+    color: 'var(--clr-text-muted)',
+  },
+  emptyUpcoming: {
+    textAlign: 'center',
+    padding: '32px 0',
+    color: 'var(--clr-text-muted)',
+    fontSize: 13,
+  },
+};

@@ -1,7 +1,7 @@
-package backend.dto;
+package com.spacesync.dto;
 
-import backend.enums.ResourceStatus;
-import backend.enums.ResourceType;
+import com.spacesync.entity.ResourceStatus;
+import com.spacesync.entity.ResourceType;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 

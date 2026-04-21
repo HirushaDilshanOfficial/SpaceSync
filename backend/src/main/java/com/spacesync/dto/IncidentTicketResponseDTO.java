@@ -1,8 +1,8 @@
-package backend.dto;
+package com.spacesync.dto;
 
-import backend.entity.TicketPriority;
-import backend.entity.TicketStatus;
-import backend.entity.TicketType;
+import com.spacesync.entity.TicketPriority;
+import com.spacesync.entity.TicketStatus;
+import com.spacesync.entity.TicketType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;

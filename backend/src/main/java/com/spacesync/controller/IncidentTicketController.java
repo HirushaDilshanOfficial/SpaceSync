@@ -1,12 +1,12 @@
-package backend.controller;
+package com.spacesync.controller;
 
-import backend.dto.IncidentTicketRequestDTO;
-import backend.dto.IncidentTicketResponseDTO;
-import backend.dto.MaintenanceLogResponseDTO;
-import backend.entity.TicketStatus;
-import backend.entity.TicketPriority;
-import backend.entity.TicketType;
-import backend.service.IncidentTicketService;
+import com.spacesync.dto.IncidentTicketRequestDTO;
+import com.spacesync.dto.IncidentTicketResponseDTO;
+import com.spacesync.dto.MaintenanceLogResponseDTO;
+import com.spacesync.entity.TicketStatus;
+import com.spacesync.entity.TicketPriority;
+import com.spacesync.entity.TicketType;
+import com.spacesync.service.IncidentTicketService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -22,8 +22,9 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/incidents")
+@RequestMapping("/incidents")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*")
 public class IncidentTicketController {
 
     private final IncidentTicketService incidentTicketService;

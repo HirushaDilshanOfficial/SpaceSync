@@ -2,9 +2,9 @@ package com.spacesync.entity;
 
 public enum BookingStatus {
     PENDING,
-    CONFIRMED,
     APPROVED,
-    CANCELLED,
+    CONFIRMED,
+    CHECKED_IN,
     REJECTED,
-    CHECKED_IN
+    CANCELLED
 }

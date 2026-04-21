@@ -1,4 +1,4 @@
-package backend.entity;
+package com.spacesync.entity;
 
 public enum TicketType {
     MAINTENANCE,

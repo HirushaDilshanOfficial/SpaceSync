@@ -22,6 +22,7 @@ export default function AdminDashboard() {
     totalBookings: 0,
     pendingBookings: 0,
     activeUsers: 0,
+    reportedIssues: 0,
     systemHealth: 'Optimal'
   });
   const [loading, setLoading] = useState(true);
@@ -31,18 +32,24 @@ export default function AdminDashboard() {
     const fetchAdminStats = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await fetch('http://localhost:8081/api/bookings', {
-          headers: { 'Authorization': `Bearer ${token}` }
+        const [bookingsRes, incidentsRes] = await Promise.all([
+          fetch('/api/bookings', { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch('/api/incidents', { headers: { 'Authorization': `Bearer ${token}` } })
+        ]);
+        
+        let bookingsData = [];
+        let incidentsData = [];
+
+        if (bookingsRes.ok) bookingsData = await bookingsRes.json();
+        if (incidentsRes.ok) incidentsData = await incidentsRes.json();
+
+        setStats({
+          totalBookings: bookingsData.length,
+          pendingBookings: bookingsData.filter(b => b.status === 'PENDING').length,
+          activeUsers: new Set(bookingsData.map(b => b.userId)).size,
+          reportedIssues: incidentsData.length,
+          systemHealth: 'Optimal'
         });
-        if (response.ok) {
-          const data = await response.json();
-          setStats({
-            totalBookings: data.length,
-            pendingBookings: data.filter(b => b.status === 'PENDING').length,
-            activeUsers: new Set(data.map(b => b.userId)).size,
-            systemHealth: 'Optimal'
-          });
-        }
       } catch (err) {
         console.error('Admin stats error:', err);
       } finally {
@@ -57,7 +64,7 @@ export default function AdminDashboard() {
     { label: 'Pending Requests',    value: stats.pendingBookings, icon: Clock,   color: '#f59e0b', link: '/admin/bookings'    },
     { label: 'Total Reservations',  value: stats.totalBookings,   icon: Calendar, color: '#3b82f6', link: '/admin/bookings'    },
     { label: 'Active Scholars',     value: stats.activeUsers,     icon: Users,    color: '#10b981', link: '/admin/users'       },
-    { label: 'System Security',     value: stats.systemHealth,    icon: Shield,   color: '#8b5cf6', link: '#'                 },
+    { label: 'Reported Issues',     value: stats.reportedIssues,  icon: AlertCircle, color: '#ef4444', link: '/incidents'       },
     { label: 'Manage Facilities',   value: 'Resources',           icon: Layers,   color: '#e8871a', link: '/admin/facilities'  },
   ];
 
@@ -132,6 +139,10 @@ export default function AdminDashboard() {
                 <button className="action-btn" onClick={() => navigate('/admin/facilities')}>
                   <Layers size={18} />
                   <span>Manage Facilities & Resources</span>
+                </button>
+                <button className="action-btn" onClick={() => navigate('/incidents')}>
+                  <AlertCircle size={18} />
+                  <span>Review Incident Tickets</span>
                 </button>
                 <button className="action-btn" onClick={() => navigate('/notifications')}>
                   <Shield size={18} />

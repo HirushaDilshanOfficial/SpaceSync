@@ -1,9 +1,9 @@
-package backend.repository;
+package com.spacesync.repository;
 
-import backend.entity.IncidentTicket;
-import backend.entity.TicketPriority;
-import backend.entity.TicketStatus;
-import backend.entity.TicketType;
+import com.spacesync.entity.IncidentTicket;
+import com.spacesync.entity.TicketPriority;
+import com.spacesync.entity.TicketStatus;
+import com.spacesync.entity.TicketType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -49,7 +49,7 @@ public interface IncidentTicketRepository extends JpaRepository<IncidentTicket, 
                                         @Param("endDate") LocalDateTime endDate,
                                         @Param("searchText") String searchText);
 
-    @Query("SELECT t FROM IncidentTicket t WHERE t.ticketType = backend.entity.TicketType.MAINTENANCE " +
+    @Query("SELECT t FROM IncidentTicket t WHERE t.ticketType = com.spacesync.entity.TicketType.MAINTENANCE " +
            "AND t.scheduledStart IS NOT NULL AND t.scheduledEnd IS NOT NULL " +
            "AND ((t.scheduledStart <= :endDate AND t.scheduledEnd >= :startDate))")
     List<IncidentTicket> findMaintenanceForCalendar(@Param("startDate") LocalDateTime startDate,

@@ -1,8 +1,8 @@
-package backend.controller;
+package com.spacesync.controller;
 
-import backend.dto.BookingResponseDTO;
-import backend.entity.BookingStatus;
-import backend.service.BookingService;
+import com.spacesync.dto.BookingResponseDTO;
+import com.spacesync.entity.BookingStatus;
+import com.spacesync.service.BookingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,8 +12,9 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/admin")
+@RequestMapping("/admin")
 @RequiredArgsConstructor
+@CrossOrigin(origins = "*")
 public class AdminController {
 
     private final BookingService bookingService;

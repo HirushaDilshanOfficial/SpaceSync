@@ -1,292 +1,464 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, AlertTriangle, CheckCircle, Clock, Wrench, Zap, User, Calendar, MessageSquare } from 'lucide-react';
+import {
+  ArrowLeft, AlertTriangle, CheckCircle, Clock,
+  Wrench, Zap, User, MapPin, Tag, Calendar
+} from 'lucide-react';
 
-const priorityConfig = {
-  CRITICAL: { color: 'text-red-700 bg-red-50 border-red-200', dot: 'bg-red-400', icon: AlertTriangle, label: 'Critical' },
-  HIGH: { color: 'text-orange-700 bg-orange-50 border-orange-200', dot: 'bg-orange-400', icon: AlertTriangle, label: 'High' },
-  MEDIUM: { color: 'text-yellow-700 bg-yellow-50 border-yellow-200', dot: 'bg-yellow-400', icon: Clock, label: 'Medium' },
-  LOW: { color: 'text-green-700 bg-green-50 border-green-200', dot: 'bg-green-400', icon: CheckCircle, label: 'Low' },
+const PRIORITY_CFG = {
+  CRITICAL: { bg: 'rgba(239,68,68,.18)',  text: '#f87171', dot: '#ef4444', label: 'Critical' },
+  HIGH:     { bg: 'rgba(249,115,22,.18)', text: '#fb923c', dot: '#f97316', label: 'High'     },
+  MEDIUM:   { bg: 'rgba(234,179,8,.18)',  text: '#facc15', dot: '#eab308', label: 'Medium'   },
+  LOW:      { bg: 'rgba(34,197,94,.18)',  text: '#4ade80', dot: '#22c55e', label: 'Low'      },
 };
 
-const statusConfig = {
-  OPEN: { color: 'text-blue-700 bg-blue-50 border-blue-200', dot: 'bg-blue-400', label: 'Open' },
-  IN_PROGRESS: { color: 'text-purple-700 bg-purple-50 border-purple-200', dot: 'bg-purple-400', label: 'In Progress' },
-  RESOLVED: { color: 'text-emerald-700 bg-emerald-50 border-emerald-200', dot: 'bg-emerald-400', label: 'Resolved' },
-  CLOSED: { color: 'text-gray-700 bg-gray-50 border-gray-200', dot: 'bg-gray-400', label: 'Closed' },
+const STATUS_CFG = {
+  OPEN:        { bg: 'rgba(59,130,246,.18)',  text: '#60a5fa', label: 'Open'        },
+  IN_PROGRESS: { bg: 'rgba(139,92,246,.18)', text: '#a78bfa', label: 'In Progress' },
+  RESOLVED:    { bg: 'rgba(16,185,129,.18)', text: '#34d399', label: 'Resolved'    },
+  CLOSED:      { bg: 'rgba(107,114,128,.18)',text: '#9ca3af', label: 'Closed'      },
 };
 
-const typeConfig = {
-  INCIDENT: { icon: Zap, color: 'text-red-500', label: 'Incident' },
-  MAINTENANCE: { icon: Wrench, color: 'text-blue-500', label: 'Maintenance' },
-  REPAIR: { icon: Wrench, color: 'text-orange-500', label: 'Repair' },
+const TYPE_CFG = {
+  INCIDENT:    { Icon: Zap,    label: 'Incident'    },
+  MAINTENANCE: { Icon: Wrench, label: 'Maintenance' },
+  REPAIR:      { Icon: Wrench, label: 'Repair'      },
 };
-
-const API_BASE = 'http://localhost:8080/api';
 
 export function IncidentDetailsPage() {
-  const navigate = useNavigate();
-  const { id } = useParams();
+  const navigate  = useNavigate();
+  const { id }    = useParams();
   const [incident, setIncident] = useState(null);
-  const [logs, setLogs] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [logs,     setLogs]     = useState([]);
+  const [loading,  setLoading]  = useState(true);
 
-  useEffect(() => {
-    fetchData();
-  }, [id]);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
-      const [incidentRes, logsRes] = await Promise.all([
-        fetch(`${API_BASE}/incidents/${id}`),
-        fetch(`${API_BASE}/incidents/${id}/logs`)
+      const token   = localStorage.getItem('token');
+      const headers = { Authorization: `Bearer ${token}` };
+      const [incRes, logRes] = await Promise.all([
+        fetch(`/api/incidents/${id}`,      { headers }),
+        fetch(`/api/incidents/${id}/logs`, { headers }),
       ]);
-
-      if (incidentRes.ok && logsRes.ok) {
-        const incidentData = await incidentRes.json();
-        const logsData = await logsRes.json();
-        setIncident(incidentData);
-        setLogs(logsData);
-      }
-    } catch (error) {
-      console.error("Failed to fetch data:", error);
+      if (incRes.ok) setIncident(await incRes.json());
+      if (logRes.ok) setLogs(await logRes.json());
+    } catch (e) {
+      console.error(e);
     } finally {
       setLoading(false);
     }
+  }, [id]);
+
+  useEffect(() => { fetchData(); }, [fetchData]);
+
+  const updateStatus = async status => {
+    const token = localStorage.getItem('token');
+    await fetch(`/api/incidents/${id}/status?status=${status}&performedBy=ADMIN`, {
+      method: 'PATCH',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    fetchData();
   };
 
-  const updateStatus = async (status) => {
-    try {
-      const url = new URL(`${API_BASE}/incidents/${id}/status`);
-      url.searchParams.append('status', status);
+  const fmtDate = iso => iso
+    ? new Date(iso).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
+    : '—';
 
-      const res = await fetch(url, { method: 'PATCH' });
-      if (res.ok) {
-        fetchData(); // Refresh data
-      }
-    } catch (error) {
-      console.error(`Failed to update status:`, error);
-    }
-  };
+  const fmtTime = iso => iso
+    ? new Date(iso).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })
+    : '';
 
-  const assignTicket = async (assignedTo) => {
-    try {
-      const url = new URL(`${API_BASE}/incidents/${id}/assign`);
-      url.searchParams.append('assignedTo', assignedTo);
+  /* ── Loading ── */
+  if (loading) return (
+    <div style={{ ...S.centered, minHeight: '60vh' }}>
+      <Clock size={32} style={{ opacity: .2, marginBottom: 12 }} />
+      <p style={{ color: 'var(--clr-text-muted)', fontSize: 14 }}>Loading details…</p>
+    </div>
+  );
 
-      const res = await fetch(url, { method: 'PATCH' });
-      if (res.ok) {
-        fetchData(); // Refresh data
-      }
-    } catch (error) {
-      console.error(`Failed to assign ticket:`, error);
-    }
-  };
+  /* ── Not found ── */
+  if (!incident) return (
+    <div style={{ ...S.centered, minHeight: '60vh' }}>
+      <AlertTriangle size={40} style={{ opacity: .2, marginBottom: 12 }} />
+      <p style={{ color: 'var(--clr-text-muted)', fontSize: 14, marginBottom: 16 }}>Incident not found.</p>
+      <button style={S.backBtn} onClick={() => navigate('/incidents')}>
+        <ArrowLeft size={14} /> Back to Dashboard
+      </button>
+    </div>
+  );
 
-  const formatDate = (isoString) => {
-    if (!isoString) return '';
-    return new Date(isoString).toLocaleDateString();
-  };
-
-  const formatTime = (isoString) => {
-    if (!isoString) return '';
-    return new Date(isoString).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-gray-500">Loading incident details...</div>
-      </div>
-    );
-  }
-
-  if (!incident) {
-    return (
-      <div className="text-center py-20">
-        <AlertTriangle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-        <p className="text-gray-500">Incident not found</p>
-        <button
-          onClick={() => navigate('/incidents')}
-          className="mt-4 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-        >
-          Back to Incidents
-        </button>
-      </div>
-    );
-  }
-
-  const priorityStyle = priorityConfig[incident.priority];
-  const statusStyle = statusConfig[incident.status];
-  const typeStyle = typeConfig[incident.ticketType];
-  const TypeIcon = typeStyle.icon;
-  const PriorityIcon = priorityStyle.icon;
+  const pr  = PRIORITY_CFG[incident.priority] ?? PRIORITY_CFG.LOW;
+  const st  = STATUS_CFG[incident.status]     ?? STATUS_CFG.OPEN;
+  const tp  = TYPE_CFG[incident.ticketType]   ?? TYPE_CFG.INCIDENT;
+  const { Icon: TypeIcon } = tp;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center gap-4">
-        <button
-          onClick={() => navigate('/incidents')}
-          className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
+    <div style={S.page}>
+
+      {/* ── Top bar ───────────────────────────────── */}
+      <div style={S.topBar}>
+        <button style={S.backBtn} onClick={() => navigate('/incidents')}>
+          <ArrowLeft size={14} /> Incidents
         </button>
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Incident #{incident.id}</h1>
-          <p className="text-gray-600 mt-1">{incident.title}</p>
+        <div style={S.topBadges}>
+          <span style={{ ...S.badge, background: pr.bg, color: pr.text }}>{pr.label}</span>
+          <span style={{ ...S.badge, background: st.bg, color: st.text }}>{st.label}</span>
         </div>
       </div>
 
-      {/* Incident Details */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Left Column */}
-          <div className="space-y-4">
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-3">Details</h3>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <TypeIcon className={`w-4 h-4 ${typeStyle.color}`} />
-                  <span className="text-sm text-gray-600">Type: {typeStyle.label}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className={`w-3 h-3 rounded-full ${priorityStyle.dot}`}></div>
-                  <span className="text-sm text-gray-600">Priority: {priorityStyle.label}</span>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className={`w-3 h-3 rounded-full ${statusStyle.dot}`}></div>
-                  <span className="text-sm text-gray-600">Status: {statusStyle.label}</span>
-                </div>
-              </div>
-            </div>
+      {/* ── Title block ───────────────────────────── */}
+      <div style={S.titleBlock}>
+        <div style={{ ...S.typeChip, background: pr.bg, color: pr.text }}>
+          <TypeIcon size={16} />
+          <span>{tp.label}</span>
+        </div>
+        <h1 style={S.h1}>{incident.title}</h1>
+        <div style={S.metaRow}>
+          <span style={S.metaItem}><MapPin size={13} /> {incident.resourceName || 'No resource'}</span>
+          <span style={S.metaItem}><Calendar size={13} /> Reported {fmtDate(incident.createdAt)}</span>
+          {incident.reportedBy && (
+            <span style={S.metaItem}><User size={13} /> {incident.reportedBy}</span>
+          )}
+        </div>
+      </div>
 
-            <div>
-              <h4 className="font-medium text-gray-900 mb-2">Description</h4>
-              <p className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">{incident.description}</p>
-            </div>
+      {/* ── Two column ───────────────────────────── */}
+      <div style={S.cols}>
 
-            {incident.notes && (
-              <div>
-                <h4 className="font-medium text-gray-900 mb-2">Notes</h4>
-                <p className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">{incident.notes}</p>
+        {/* Left: main info */}
+        <div style={S.colLeft}>
+
+          {/* Description */}
+          <div style={S.card}>
+            <p style={S.cardLabel}>Description</p>
+            <p style={S.descText}>{incident.description || 'No description provided.'}</p>
+          </div>
+
+          {/* Notes */}
+          {incident.notes && (
+            <div style={S.card}>
+              <p style={S.cardLabel}>Notes</p>
+              <p style={S.descText}>{incident.notes}</p>
+            </div>
+          )}
+
+          {/* Activity Log */}
+          <div style={S.card}>
+            <p style={S.cardLabel}>Activity Log</p>
+            {logs.length === 0 ? (
+              <p style={{ color: 'var(--clr-text-muted)', fontSize: 13, padding: '12px 0' }}>No activity yet.</p>
+            ) : (
+              <div style={S.logList}>
+                {logs.map((log, i) => (
+                  <div key={log.id ?? i} style={S.logItem}>
+                    <div style={S.logDotCol}>
+                      <div style={S.logDot} />
+                      {i < logs.length - 1 && <div style={S.logLine} />}
+                    </div>
+                    <div style={{ flex: 1, paddingBottom: 16 }}>
+                      <div style={S.logHeader}>
+                        <span style={S.logActor}>{log.performedByName || log.performedBy || 'System'}</span>
+                        <span style={S.logAction}>{(log.action || '').toLowerCase().replace(/_/g, ' ')}</span>
+                        <span style={S.logTime}>{fmtDate(log.timestamp)} · {fmtTime(log.timestamp)}</span>
+                      </div>
+                      {log.details && <p style={S.logDetails}>{log.details}</p>}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
-
-          {/* Right Column */}
-          <div className="space-y-4">
-            <div>
-              <h3 className="font-semibold text-gray-900 mb-3">Assignment & Timeline</h3>
-              <div className="space-y-3">
-                <div className="flex items-center gap-3">
-                  <User className="w-4 h-4 text-gray-400" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">Reported by: {incident.reportedByName}</p>
-                    <p className="text-xs text-gray-500">{formatDate(incident.createdAt)}</p>
-                  </div>
-                </div>
-
-                {incident.assignedTo && (
-                  <div className="flex items-center gap-3">
-                    <Wrench className="w-4 h-4 text-gray-400" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">Assigned to: {incident.assignedTo}</p>
-                    </div>
-                  </div>
-                )}
-
-                {incident.resolvedAt && (
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="w-4 h-4 text-green-500" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">Resolved</p>
-                      <p className="text-xs text-gray-500">{formatDate(incident.resolvedAt)}</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <h4 className="font-medium text-gray-900 mb-2">Resource</h4>
-              <p className="text-sm text-gray-600 bg-gray-50 rounded-lg p-3">{incident.resourceName}</p>
-            </div>
-          </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="mt-6 pt-6 border-t border-gray-100">
-          <div className="flex flex-wrap gap-3">
-            {incident.status === 'OPEN' && (
-              <>
+        {/* Right: sidebar */}
+        <div style={S.colRight}>
+
+          {/* Status actions */}
+          <div style={S.card}>
+            <p style={S.cardLabel}>Actions</p>
+            <div style={S.actionBtns}>
+              {incident.status === 'OPEN' && (
                 <button
-                  onClick={() => assignTicket('TECH-001')}
-                  className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Assign to Me
-                </button>
-                <button
+                  style={{ ...S.actionBtn, background: 'rgba(139,92,246,.2)', color: '#a78bfa' }}
                   onClick={() => updateStatus('IN_PROGRESS')}
-                  className="px-4 py-2 bg-purple-600 text-white text-sm rounded-lg hover:bg-purple-700 transition-colors"
-                >
-                  Start Work
-                </button>
-              </>
-            )}
-
-            {incident.status === 'IN_PROGRESS' && (
-              <button
-                onClick={() => updateStatus('RESOLVED')}
-                className="px-4 py-2 bg-emerald-600 text-white text-sm rounded-lg hover:bg-emerald-700 transition-colors"
-              >
-                Mark Resolved
-              </button>
-            )}
-
-            {(incident.status === 'RESOLVED' || incident.status === 'CLOSED') && (
-              <button
-                onClick={() => updateStatus('CLOSED')}
-                className="px-4 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                Close Ticket
-              </button>
-            )}
+                >Start Work</button>
+              )}
+              {incident.status === 'IN_PROGRESS' && (
+                <button
+                  style={{ ...S.actionBtn, background: 'rgba(16,185,129,.2)', color: '#34d399' }}
+                  onClick={() => updateStatus('RESOLVED')}
+                >Mark Resolved</button>
+              )}
+              {incident.status === 'RESOLVED' && (
+                <button
+                  style={{ ...S.actionBtn, background: 'rgba(107,114,128,.2)', color: '#9ca3af' }}
+                  onClick={() => updateStatus('CLOSED')}
+                >Close Ticket</button>
+              )}
+              {incident.status === 'CLOSED' && (
+                <p style={{ color: 'var(--clr-text-muted)', fontSize: 13 }}>Ticket is closed.</p>
+              )}
+            </div>
           </div>
-        </div>
-      </div>
 
-      {/* Maintenance Logs */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-6">
-        <div className="flex items-center gap-2 mb-4">
-          <MessageSquare className="w-5 h-5 text-gray-400" />
-          <h3 className="font-semibold text-gray-900">Activity Log</h3>
-        </div>
-
-        {logs.length === 0 ? (
-          <p className="text-gray-500 text-center py-8">No activity logs yet</p>
-        ) : (
-          <div className="space-y-4">
-            {logs.map((log) => (
-              <div key={log.id} className="flex gap-4 p-4 bg-gray-50 rounded-lg">
-                <div className="flex-shrink-0">
-                  <div className="w-8 h-8 bg-indigo-100 rounded-full flex items-center justify-center">
-                    <User className="w-4 h-4 text-indigo-600" />
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="font-medium text-gray-900">{log.performedByName}</span>
-                    <span className="text-sm text-gray-500">{log.action.toLowerCase().replace('_', ' ')}</span>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-2">{log.details}</p>
-                  <p className="text-xs text-gray-400">{formatDate(log.timestamp)} at {formatTime(log.timestamp)}</p>
-                </div>
-              </div>
-            ))}
+          {/* Info grid */}
+          <div style={S.card}>
+            <p style={S.cardLabel}>Details</p>
+            <div style={S.infoGrid}>
+              <InfoRow icon={<Tag size={13}/>}      label="Type"       value={tp.label} />
+              <InfoRow icon={<AlertTriangle size={13}/>} label="Priority" value={pr.label} valueColor={pr.text} />
+              <InfoRow icon={<Clock size={13}/>}    label="Status"     value={st.label} valueColor={st.text} />
+              <InfoRow icon={<MapPin size={13}/>}   label="Resource"   value={incident.resourceName || '—'} />
+              <InfoRow icon={<User size={13}/>}     label="Reported by" value={incident.reportedBy || '—'} />
+              {incident.assignedTo && (
+                <InfoRow icon={<Wrench size={13}/>} label="Assigned to" value={incident.assignedTo} />
+              )}
+              <InfoRow icon={<Calendar size={13}/>} label="Reported"   value={fmtDate(incident.createdAt)} />
+              {incident.resolvedAt && (
+                <InfoRow icon={<CheckCircle size={13}/>} label="Resolved" value={fmtDate(incident.resolvedAt)} valueColor="#34d399" />
+              )}
+            </div>
           </div>
-        )}
+
+        </div>
       </div>
     </div>
   );
 }
+
+/* ── Small helper component ─────────────────────────────── */
+function InfoRow({ icon, label, value, valueColor }) {
+  return (
+    <div style={S.infoRow}>
+      <span style={S.infoIcon}>{icon}</span>
+      <span style={S.infoLabel}>{label}</span>
+      <span style={{ ...S.infoValue, ...(valueColor ? { color: valueColor, fontWeight: 700 } : {}) }}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
+/* ── Styles ──────────────────────────────────────────────── */
+const S = {
+  page: {
+    minHeight: '100vh',
+    padding: '28px 28px 60px',
+    width: '100%',
+    boxSizing: 'border-box',
+  },
+  centered: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    justifyContent: 'center',
+    color: 'var(--clr-text-muted)',
+    fontSize: 14,
+  },
+  topBar: {
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  backBtn: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '8px 16px',
+    background: 'var(--clr-surface)',
+    border: '1px solid var(--clr-border)',
+    borderRadius: 9,
+    color: 'var(--clr-text)',
+    fontSize: 13,
+    fontWeight: 600,
+    cursor: 'pointer',
+  },
+  topBadges: {
+    display: 'flex',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  badge: {
+    padding: '4px 12px',
+    borderRadius: 20,
+    fontSize: 12,
+    fontWeight: 700,
+  },
+
+  /* Title */
+  titleBlock: {
+    marginBottom: 24,
+  },
+  typeChip: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 6,
+    padding: '4px 12px',
+    borderRadius: 8,
+    fontSize: 12,
+    fontWeight: 700,
+    marginBottom: 10,
+  },
+  h1: {
+    fontSize: 24,
+    fontWeight: 800,
+    letterSpacing: '-0.4px',
+    color: 'var(--clr-text)',
+    marginBottom: 10,
+    lineHeight: 1.25,
+  },
+  metaRow: {
+    display: 'flex',
+    gap: 18,
+    flexWrap: 'wrap',
+    alignItems: 'center',
+  },
+  metaItem: {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 5,
+    fontSize: 13,
+    color: 'var(--clr-text-muted)',
+  },
+
+  /* Two col */
+  cols: {
+    display: 'grid',
+    gridTemplateColumns: '1fr 300px',
+    gap: 18,
+    alignItems: 'start',
+  },
+  colLeft:  { display: 'flex', flexDirection: 'column', gap: 16 },
+  colRight: { display: 'flex', flexDirection: 'column', gap: 16 },
+
+  /* Card */
+  card: {
+    background: 'var(--clr-surface)',
+    border: '1px solid var(--clr-border)',
+    borderRadius: 14,
+    padding: '18px 20px',
+  },
+  cardLabel: {
+    fontSize: 11,
+    fontWeight: 800,
+    color: 'var(--clr-text-muted)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.6px',
+    marginBottom: 12,
+  },
+
+  /* Description */
+  descText: {
+    fontSize: 14,
+    color: 'var(--clr-text)',
+    lineHeight: 1.7,
+  },
+
+  /* Actions */
+  actionBtns: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 8,
+  },
+  actionBtn: {
+    padding: '10px 16px',
+    borderRadius: 9,
+    border: 'none',
+    fontSize: 13,
+    fontWeight: 700,
+    cursor: 'pointer',
+    textAlign: 'center',
+    transition: 'opacity .15s',
+  },
+
+  /* Info grid */
+  infoGrid: {
+    display: 'flex',
+    flexDirection: 'column',
+    gap: 10,
+  },
+  infoRow: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    fontSize: 13,
+  },
+  infoIcon: {
+    color: 'var(--clr-text-muted)',
+    flexShrink: 0,
+    display: 'flex',
+    alignItems: 'center',
+  },
+  infoLabel: {
+    color: 'var(--clr-text-muted)',
+    width: 90,
+    flexShrink: 0,
+    fontSize: 12,
+  },
+  infoValue: {
+    color: 'var(--clr-text)',
+    fontWeight: 500,
+    flex: 1,
+  },
+
+  /* Activity log */
+  logList: {
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  logItem: {
+    display: 'flex',
+    gap: 12,
+  },
+  logDotCol: {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'center',
+    flexShrink: 0,
+    width: 16,
+  },
+  logDot: {
+    width: 10,
+    height: 10,
+    borderRadius: '50%',
+    background: 'var(--clr-primary)',
+    flexShrink: 0,
+    marginTop: 3,
+  },
+  logLine: {
+    flex: 1,
+    width: 1,
+    background: 'var(--clr-border)',
+    minHeight: 16,
+    marginTop: 4,
+  },
+  logHeader: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+    marginBottom: 4,
+  },
+  logActor: {
+    fontSize: 13,
+    fontWeight: 700,
+    color: 'var(--clr-text)',
+  },
+  logAction: {
+    fontSize: 12,
+    color: 'var(--clr-text-muted)',
+  },
+  logTime: {
+    fontSize: 11,
+    color: 'var(--clr-text-muted)',
+    marginLeft: 'auto',
+  },
+  logDetails: {
+    fontSize: 13,
+    color: 'var(--clr-text-muted)',
+    lineHeight: 1.5,
+  },
+};

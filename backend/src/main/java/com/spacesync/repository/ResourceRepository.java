@@ -1,8 +1,8 @@
-package backend.repository;
+package com.spacesync.repository;
 
-import backend.entity.Resource;
-import backend.enums.ResourceStatus;
-import backend.enums.ResourceType;
+import com.spacesync.entity.Resource;
+import com.spacesync.entity.ResourceStatus;
+import com.spacesync.entity.ResourceType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

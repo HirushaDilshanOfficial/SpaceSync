@@ -1,6 +1,6 @@
-package backend.repository;
+package com.spacesync.repository;
 
-import backend.entity.MaintenanceLog;
+import com.spacesync.entity.MaintenanceLog;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

@@ -1,7 +1,7 @@
-package backend.dto;
+package com.spacesync.dto;
 
-import backend.entity.TicketPriority;
-import backend.entity.TicketType;
+import com.spacesync.entity.TicketPriority;
+import com.spacesync.entity.TicketType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;

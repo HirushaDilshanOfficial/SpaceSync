@@ -1,7 +1,7 @@
-package backend.entity;
+package com.spacesync.entity;
 
-import backend.enums.ResourceStatus;
-import backend.enums.ResourceType;
+import com.spacesync.entity.ResourceStatus;
+import com.spacesync.entity.ResourceType;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;

@@ -1,16 +1,17 @@
-package backend.service;
+package com.spacesync.service;
 
-import backend.dto.IncidentTicketRequestDTO;
-import backend.dto.IncidentTicketResponseDTO;
-import backend.dto.MaintenanceLogResponseDTO;
-import backend.entity.IncidentTicket;
-import backend.entity.MaintenanceLog;
-import backend.entity.TicketPriority;
-import backend.entity.TicketStatus;
-import backend.entity.TicketType;
-import backend.exception.ResourceNotFoundException;
-import backend.repository.IncidentTicketRepository;
-import backend.repository.MaintenanceLogRepository;
+import com.spacesync.dto.IncidentTicketRequestDTO;
+import com.spacesync.dto.IncidentTicketResponseDTO;
+import com.spacesync.dto.MaintenanceLogResponseDTO;
+import com.spacesync.entity.IncidentTicket;
+import com.spacesync.entity.MaintenanceLog;
+import com.spacesync.entity.TicketPriority;
+import com.spacesync.entity.TicketStatus;
+import com.spacesync.entity.TicketType;
+import com.spacesync.exception.ResourceNotFoundException;
+import com.spacesync.notification.NotificationService;
+import com.spacesync.repository.IncidentTicketRepository;
+import com.spacesync.repository.MaintenanceLogRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,7 +30,7 @@ public class IncidentTicketService {
 
     private final IncidentTicketRepository incidentTicketRepository;
     private final MaintenanceLogRepository maintenanceLogRepository;
-    private final backend.repository.ResourceRepository resourceRepository;
+    private final com.spacesync.repository.ResourceRepository resourceRepository;
     private final NotificationService notificationService;
 
     @Transactional
@@ -246,7 +247,7 @@ public class IncidentTicketService {
 
     private IncidentTicketResponseDTO mapToResponseDTO(IncidentTicket ticket) {
         String resourceName = resourceRepository.findById(ticket.getResourceId())
-                .map(backend.entity.Resource::getName)
+                .map(com.spacesync.entity.Resource::getName)
                 .orElse("Unknown Resource");
 
         return IncidentTicketResponseDTO.builder()
@@ -301,7 +302,7 @@ public class IncidentTicketService {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
         for (IncidentTicket ticket : tickets) {
             String resourceName = resourceRepository.findById(ticket.getResourceId())
-                    .map(backend.entity.Resource::getName)
+                    .map(com.spacesync.entity.Resource::getName)
                     .orElse("Unknown Resource");
 
             writer.writeNext(new String[]{
@@ -368,7 +369,7 @@ public class IncidentTicketService {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
         for (IncidentTicket ticket : tickets) {
             String resourceName = resourceRepository.findById(ticket.getResourceId())
-                    .map(backend.entity.Resource::getName)
+                    .map(com.spacesync.entity.Resource::getName)
                     .orElse("Unknown");
 
             table.addCell(ticket.getId().toString());

@@ -1,4 +1,4 @@
-package backend.dto;
+package com.spacesync.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

@@ -1,26 +1,66 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, Loader2, Info, AlertTriangle, X } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Loader2, Info, AlertTriangle, X, XCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-
-const RESOURCES = ['Conference Room A', 'Conference Room B', 'Training Lab', 'Projector XYZ', 'Board Room'];
 
 export function NewBookingPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [resources, setResources] = useState([]);
+  const [allBookings, setAllBookings] = useState([]);
   const [formData, setFormData] = useState({
     resourceId: '',
     date: '',
     startTime: '',
     endTime: '',
-    attendees: '',
+    attendees: '1',
     purpose: ''
   });
   const [error, setError] = useState('');
   const [showError, setShowError] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/v1/resources')
+      .then(res => res.json())
+      .then(data => setResources(data))
+      .catch(err => console.error("Failed to fetch resources:", err));
+
+    const token = localStorage.getItem('token');
+    fetch('/api/bookings', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+      .then(res => res.json())
+      .then(data => setAllBookings(data))
+      .catch(err => console.error("Failed to fetch bookings:", err));
+  }, []);
+
+  const parseT = (timeStr) => {
+    if (!timeStr) return 0;
+    const [h, m] = timeStr.split(':').map(Number);
+    return h * 60 + m;
+  };
+
+  const hasConflict = () => {
+    if (!formData.resourceId || !formData.date || !formData.startTime || !formData.endTime) return false;
+    const start = parseT(formData.startTime);
+    const end = parseT(formData.endTime);
+    
+    return allBookings.some(b => {
+      if (b.status !== 'APPROVED' && b.status !== 'CONFIRMED') return false;
+      if (String(b.resourceId) !== String(formData.resourceId)) return false;
+      if (b.startTime.split('T')[0] !== formData.date) return false;
+      const bStart = parseT(b.startTime.split('T')[1].substring(0, 5));
+      const bEnd = parseT(b.endTime.split('T')[1].substring(0, 5));
+      return start < bEnd && end > bStart;
+    });
+  };
+
+  const conflict = hasConflict();
 
   const handleChange = (e) => {
     const { id, value } = e.target;
@@ -34,7 +74,6 @@ export function NewBookingPage() {
     setShowError(false);
     
     try {
-      // Format dates for backend: LocalDateTime (ISO string)
       const startDateTime = `${formData.date}T${formData.startTime}:00`;
       const endDateTime = `${formData.date}T${formData.endTime}:00`;
 
@@ -42,11 +81,13 @@ export function NewBookingPage() {
         userId: user?.id || 'USER-001',
         resourceId: formData.resourceId,
         startTime: startDateTime,
-        endTime: endDateTime
+        endTime: endDateTime,
+        attendees: parseInt(formData.attendees, 10),
+        purpose: formData.purpose
       };
 
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8081/api/bookings', {
+      const response = await fetch('/api/bookings', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -164,7 +205,7 @@ export function NewBookingPage() {
               onChange={handleChange}
             >
               <option value="" disabled>Select a workspace to book</option>
-              {RESOURCES.map(r => <option key={r} value={r}>{r}</option>)}
+              {resources.map(r => <option key={r.id} value={r.name}>{r.name}</option>)}
             </select>
           </div>
 
@@ -238,13 +279,21 @@ export function NewBookingPage() {
             <span>Once submitted, an admin will review your request. You'll see the status under <strong>My Bookings</strong>.</span>
           </div>
 
+          {/* Conflict Warning */}
+          {conflict && (
+            <div className="conflict-warning">
+              <XCircle size={16} />
+              <span>This time slot overlaps with an already approved booking.</span>
+            </div>
+          )}
+
           <div className="form-actions">
             <button type="button" onClick={() => navigate(-1)} className="btn btn-ghost">
               Cancel
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || conflict}
               className="btn btn-primary"
             >
               {loading ? <><Loader2 size={16} className="animate-spin" /> Submitting...</> : 'Submit Request'}
@@ -302,6 +351,19 @@ export function NewBookingPage() {
         }
         .info-box strong { color: var(--clr-text); }
         
+        .conflict-warning {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          background: rgba(248, 81, 73, 0.08);
+          border: 1px solid rgba(248, 81, 73, 0.15);
+          padding: 16px;
+          border-radius: 12px;
+          color: var(--clr-danger);
+          font-size: 13px;
+          line-height: 1.5;
+        }
+
         .form-actions {
           display: flex;
           justify-content: flex-end;

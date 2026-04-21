@@ -14,7 +14,8 @@ import {
   Users,
   Search,
   BookOpen,
-  ArrowRight
+  ArrowRight,
+  AlertTriangle
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
@@ -32,7 +33,7 @@ export default function Dashboard() {
       try {
         if (!user?.id) return;
         const token = localStorage.getItem('token');
-        const response = await fetch(`http://localhost:8081/api/bookings/my?userId=${user.id}`, {
+        const response = await fetch(`/api/bookings/my?userId=${user.id}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -113,7 +114,11 @@ export default function Dashboard() {
               </motion.p>
             </div>
           </div>
-          <motion.div variants={itemVariants} className="header-actions">
+          <motion.div variants={itemVariants} className="header-actions" style={{ display: 'flex', gap: '12px' }}>
+            <button className="btn btn-ghost border-indigo-100 text-indigo-600" onClick={() => navigate('/report-incident')}>
+              <AlertTriangle size={18} />
+              <span>Report Issue</span>
+            </button>
             <button className="btn btn-primary" onClick={() => navigate('/new-booking')}>
               <Plus size={18} />
               <span>New Booking</span>
@@ -169,12 +174,20 @@ export default function Dashboard() {
                       <MapPin size={14} />
                       <span>Main Campus, Level 2</span>
                     </div>
-                    <button 
-                      className="btn btn-sm btn-blur"
-                      onClick={() => navigate('/my-bookings')}
-                    >
-                      Check Details
-                    </button>
+                    <div className="flex gap-2">
+                      <button 
+                        className="btn btn-sm btn-blur"
+                        onClick={() => navigate('/my-bookings')}
+                      >
+                        Check Details
+                      </button>
+                      <button 
+                        className="btn btn-sm btn-ghost text-amber-500 hover:bg-amber-500/10"
+                        onClick={() => navigate('/report-incident', { state: { resourceId: upcomingBooking.resourceId } })}
+                      >
+                        <AlertTriangle size={14} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               ) : (

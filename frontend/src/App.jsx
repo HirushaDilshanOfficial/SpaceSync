@@ -15,6 +15,10 @@ import { AdminUsersPage } from './pages/AdminUsersPage';
 import AdminDashboard from './pages/AdminDashboard';
 import FacilitiesUserPage from './components/facilities/FacilitiesUserPage';
 import FacilitiesPage from './components/facilities/FacilitiesPage';
+import { ReportIncidentPage } from './pages/ReportIncidentPage';
+import { IncidentDashboardPage } from './pages/IncidentDashboardPage';
+import { IncidentDetailsPage } from './pages/IncidentDetailsPage';
+import { MaintenanceCalendarPage } from './pages/MaintenanceCalendarPage';
 import './index.css';
 
 
@@ -51,6 +55,7 @@ const ProtectedLayout = () => {
                 <Link to="/admin/bookings" className="nav-link">Manage Bookings</Link>
                 <Link to="/admin/users" className="nav-link">User Management</Link>
                 <Link to="/admin/facilities" className="nav-link">Facilities</Link>
+                <Link to="/incidents" className="nav-link">Incidents</Link>
               </>
             )}
           </nav>
@@ -164,6 +169,10 @@ function App() {
                 <Route path="/notifications" element={<Notifications />} />
                 <Route path="/new-booking" element={<NewBookingPage />} />
                 <Route path="/my-bookings" element={<MyBookingsPage />} />
+                <Route path="/report-incident" element={<ReportIncidentPage />} />
+                <Route path="/incidents" element={<IncidentDashboardPage />} />
+                <Route path="/incidents/:id" element={<IncidentDetailsPage />} />
+                <Route path="/maintenance-calendar" element={<MaintenanceCalendarPage />} />
               </Route>
             </Route>
 
