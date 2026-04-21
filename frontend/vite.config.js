@@ -18,6 +18,7 @@ export default defineConfig({
       '/login/oauth2': {
         target: 'http://localhost:8081',
         changeOrigin: true,
+        rewrite: (path) => `/api${path}`,
       },
 
     },

@@ -31,7 +31,7 @@ import java.util.Map;
  * @author Member 4 – Module E (Authentication & Authorization)
  */
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
@@ -52,14 +52,16 @@ public class AuthController {
         String email = authentication.getName();
 
         return userRepository.findByEmail(email)
-                .map(user -> ResponseEntity.ok(Map.of(
-                        "id",         user.getId(),
-                        "name",       user.getName(),
-                        "email",      user.getEmail(),
-                        "role",       user.getRole().name(),
-                        "pictureUrl", user.getPictureUrl() != null ? user.getPictureUrl() : "",
-                        "createdAt",  user.getCreatedAt().toString()
-                )))
+                .map(user -> {
+                    java.util.Map<String, Object> responseMap = new java.util.HashMap<>();
+                    responseMap.put("id", user.getId());
+                    responseMap.put("name", user.getName() != null ? user.getName() : "");
+                    responseMap.put("email", user.getEmail());
+                    responseMap.put("role", user.getRole() != null ? user.getRole().name() : "USER");
+                    responseMap.put("pictureUrl", user.getPictureUrl() != null ? user.getPictureUrl() : "");
+                    responseMap.put("createdAt", user.getCreatedAt() != null ? user.getCreatedAt().toString() : "");
+                    return ResponseEntity.ok(responseMap);
+                })
                 .orElse(ResponseEntity.notFound().build());
     }
 

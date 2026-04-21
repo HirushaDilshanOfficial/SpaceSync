@@ -28,4 +28,3 @@ Smart Campus Operations Hub – React + Vite
 - **HTML5-QRCode**: QR Scanner library.
 - **Axios**: HTTP Client.
 - **Framer Motion**: Animation library.
-

@@ -184,10 +184,16 @@ export default function LandingPage() {
             </p>
             <div className="lp-hero-cta">
               {user ? (
-                <Link to="/dashboard" className="lp-btn-primary lp-btn-lg">
-                  Go to Dashboard
-                  <Icon path={ICONS.arrow} size={18} />
-                </Link>
+                <>
+                  <Link to="/dashboard" className="lp-btn-primary lp-btn-lg">
+                    Go to Dashboard
+                    <Icon path={ICONS.arrow} size={18} />
+                  </Link>
+                  <Link to="/resources" className="lp-btn-ghost lp-btn-lg">
+                    <Icon path={ICONS.globe} size={18} />
+                    Explore Campus Resources
+                  </Link>
+                </>
               ) : (
                 <>
                   <Link to="/signup" className="lp-btn-primary lp-btn-lg">
@@ -196,6 +202,10 @@ export default function LandingPage() {
                   </Link>
                   <Link to="/login" className="lp-btn-ghost lp-btn-lg">
                     Login
+                  </Link>
+                  <Link to="/resources" className="lp-btn-ghost lp-btn-lg">
+                    <Icon path={ICONS.globe} size={18} />
+                    Explore Resources
                   </Link>
                 </>
               )}

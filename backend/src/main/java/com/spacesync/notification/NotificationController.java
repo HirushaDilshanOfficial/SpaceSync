@@ -30,7 +30,7 @@ import java.util.Map;
  * @author Member 4 – Module D (Notifications)
  */
 @RestController
-@RequestMapping("/api/notifications")
+@RequestMapping("/notifications")
 @RequiredArgsConstructor
 public class NotificationController {
 

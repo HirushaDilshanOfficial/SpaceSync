@@ -21,6 +21,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -66,17 +67,19 @@ public class SecurityConfig {
             // ── Authorization rules ──────────────────────────────────────────
             .authorizeHttpRequests(auth -> auth
                 // Public: Auth endpoints + H2 console (dev)
-                .requestMatchers("/login/**", "/oauth2/**", "/h2-console/**", "/api/auth/dev-login").permitAll()
-                .requestMatchers("/api/auth/signin", "/api/auth/signup").permitAll()
+                .requestMatchers("/login/**", "/oauth2/**", "/h2-console/**", "/auth/dev-login").permitAll()
+                .requestMatchers("/auth/signin", "/auth/signup").permitAll()
                 // Public: Swagger / actuator (optional)
                 .requestMatchers("/actuator/health").permitAll()
+                // Public: Read-only access to resources (for public Explore Resources page)
+                .requestMatchers(HttpMethod.GET, "/v1/resources", "/v1/resources/**").permitAll()
 
                 // ADMIN only
-                .requestMatchers(HttpMethod.POST,   "/api/auth/assign-role").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.GET,    "/api/auth/roles").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.GET,    "/api/users").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/api/users/**").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.POST,   "/api/notifications/send").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST,   "/auth/assign-role").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET,    "/auth/roles").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.GET,    "/users").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/users/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST,   "/notifications/send").hasRole("ADMIN")
 
                 // Any authenticated user for everything else
                 .anyRequest().authenticated()
@@ -93,6 +96,9 @@ public class SecurityConfig {
             .addFilterBefore(jwtAuthenticationFilter,
                              UsernamePasswordAuthenticationFilter.class)
 
+            // ── Error handling: Return 401 instead of redirecting to login ──
+            .exceptionHandling(ex -> ex.authenticationEntryPoint(new org.springframework.security.web.authentication.HttpStatusEntryPoint(org.springframework.http.HttpStatus.UNAUTHORIZED)))
+
             // ── Disable frame options for H2 console (dev only) ─────────────
             .headers(headers -> headers.frameOptions(frame -> frame.sameOrigin()));
 
@@ -102,7 +108,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of(allowedOrigins));
+        config.setAllowedOrigins(Arrays.asList(allowedOrigins.split(",")));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);

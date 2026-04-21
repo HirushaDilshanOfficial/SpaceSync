@@ -4,6 +4,8 @@ import { AppLayout } from './components/layout/AppLayout';
 import { MyBookingsPage } from './pages/MyBookingsPage';
 import { NewBookingPage } from './pages/NewBookingPage';
 import { AdminBookingsPage } from './pages/AdminBookingsPage';
+import FacilitiesPage from './components/facilities/FacilitiesPage';
+import FacilitiesUserPage from './components/facilities/FacilitiesUserPage';
 import './App.css';
 
 function App() {
@@ -15,6 +17,8 @@ function App() {
           <Route path="dashboard" element={<MyBookingsPage />} />
           <Route path="new-booking" element={<NewBookingPage />} />
           <Route path="admin" element={<AdminBookingsPage />} />
+          <Route path="facilities" element={<FacilitiesPage />} />
+          <Route path="facilities/user" element={<FacilitiesUserPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

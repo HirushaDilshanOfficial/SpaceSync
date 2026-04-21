@@ -9,7 +9,8 @@ import {
   Activity, 
   ArrowUpRight,
   TrendingUp,
-  AlertCircle
+  AlertCircle,
+  Layers
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -53,10 +54,11 @@ export default function AdminDashboard() {
   }, []);
 
   const adminCards = [
-    { label: 'Pending Requests', value: stats.pendingBookings, icon: Clock, color: '#f59e0b', link: '/admin/bookings' },
-    { label: 'Total Reservations', value: stats.totalBookings, icon: Calendar, color: '#3b82f6', link: '/admin/bookings' },
-    { label: 'Active Scholars', value: stats.activeUsers, icon: Users, color: '#10b981', link: '/admin/users' },
-    { label: 'System Security', value: stats.systemHealth, icon: Shield, color: '#8b5cf6', link: '#' },
+    { label: 'Pending Requests',    value: stats.pendingBookings, icon: Clock,   color: '#f59e0b', link: '/admin/bookings'    },
+    { label: 'Total Reservations',  value: stats.totalBookings,   icon: Calendar, color: '#3b82f6', link: '/admin/bookings'    },
+    { label: 'Active Scholars',     value: stats.activeUsers,     icon: Users,    color: '#10b981', link: '/admin/users'       },
+    { label: 'System Security',     value: stats.systemHealth,    icon: Shield,   color: '#8b5cf6', link: '#'                 },
+    { label: 'Manage Facilities',   value: 'Resources',           icon: Layers,   color: '#e8871a', link: '/admin/facilities'  },
   ];
 
   return (
@@ -126,6 +128,10 @@ export default function AdminDashboard() {
                 <button className="action-btn" onClick={() => navigate('/admin/bookings')}>
                   <AlertCircle size={18} />
                   <span>Review Pending Bookings</span>
+                </button>
+                <button className="action-btn" onClick={() => navigate('/admin/facilities')}>
+                  <Layers size={18} />
+                  <span>Manage Facilities & Resources</span>
                 </button>
                 <button className="action-btn" onClick={() => navigate('/notifications')}>
                   <Shield size={18} />

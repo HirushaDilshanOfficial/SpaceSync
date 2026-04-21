@@ -13,6 +13,8 @@ import { MyBookingsPage } from './pages/MyBookingsPage';
 import { AdminBookingsPage } from './pages/AdminBookingsPage';
 import { AdminUsersPage } from './pages/AdminUsersPage';
 import AdminDashboard from './pages/AdminDashboard';
+import FacilitiesUserPage from './components/facilities/FacilitiesUserPage';
+import FacilitiesPage from './components/facilities/FacilitiesPage';
 import './index.css';
 
 
@@ -48,6 +50,7 @@ const ProtectedLayout = () => {
                 <Link to="/admin" className="nav-link admin-link">Admin Dashboard</Link>
                 <Link to="/admin/bookings" className="nav-link">Manage Bookings</Link>
                 <Link to="/admin/users" className="nav-link">User Management</Link>
+                <Link to="/admin/facilities" className="nav-link">Facilities</Link>
               </>
             )}
           </nav>
@@ -142,6 +145,7 @@ function App() {
             <Route path="/" element={<LandingPage />} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/resources" element={<FacilitiesUserPage />} />
             
             {/* Fallback for OAuth redirect */}
             <Route path="/oauth2/callback" element={
@@ -169,6 +173,7 @@ function App() {
                 <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/admin/bookings" element={<AdminBookingsPage />} />
                 <Route path="/admin/users" element={<AdminUsersPage />} />
+                <Route path="/admin/facilities" element={<FacilitiesPage />} />
               </Route>
             </Route>
             
