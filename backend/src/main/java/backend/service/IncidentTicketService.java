@@ -19,8 +19,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,6 +36,10 @@ public class IncidentTicketService {
 
     @Transactional
     public IncidentTicketResponseDTO createIncidentTicket(IncidentTicketRequestDTO request) {
+        validateMaintenanceSchedule(request.getTicketType(), request.getScheduledStart(), request.getScheduledEnd());
+        validateNoMaintenanceConflict(request.getResourceId(), request.getScheduledStart(), request.getScheduledEnd(), null,
+            request.getTicketType());
+
         IncidentTicket ticket = IncidentTicket.builder()
                 .title(request.getTitle())
                 .description(request.getDescription())
@@ -115,10 +121,15 @@ public class IncidentTicketService {
                 .orElseThrow(() -> new ResourceNotFoundException("Incident ticket not found with id: " + id));
 
         TicketStatus oldStatus = ticket.getStatus();
+        validateStatusTransition(oldStatus, status);
         ticket.setStatus(status);
 
         if (status == TicketStatus.RESOLVED || status == TicketStatus.CLOSED) {
             ticket.setResolvedAt(LocalDateTime.now());
+        }
+
+        if (status == TicketStatus.OPEN || status == TicketStatus.IN_PROGRESS) {
+            ticket.setResolvedAt(null);
         }
 
         IncidentTicket updatedTicket = incidentTicketRepository.save(ticket);
@@ -140,6 +151,10 @@ public class IncidentTicketService {
         IncidentTicket ticket = incidentTicketRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Incident ticket not found with id: " + id));
 
+        if (ticket.getStatus() == TicketStatus.CLOSED) {
+            throw new IllegalStateException("Cannot assign a closed ticket");
+        }
+
         String oldAssignee = ticket.getAssignedTo();
         ticket.setAssignedTo(assignedTo);
         ticket.setStatus(TicketStatus.IN_PROGRESS);
@@ -154,6 +169,43 @@ public class IncidentTicketService {
         notificationService.notifyAssignment(updatedTicket);
 
         return mapToResponseDTO(updatedTicket);
+    }
+
+    @Transactional
+    public IncidentTicketResponseDTO reopenTicket(Long id, String performedBy, String reason) {
+        IncidentTicket ticket = incidentTicketRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Incident ticket not found with id: " + id));
+
+        if (ticket.getStatus() != TicketStatus.RESOLVED && ticket.getStatus() != TicketStatus.CLOSED) {
+            throw new IllegalStateException("Only resolved or closed tickets can be reopened");
+        }
+
+        TicketStatus oldStatus = ticket.getStatus();
+        ticket.setStatus(TicketStatus.IN_PROGRESS);
+        ticket.setResolvedAt(null);
+
+        IncidentTicket updatedTicket = incidentTicketRepository.save(ticket);
+
+        String details = "Reopened from " + oldStatus + (reason != null && !reason.isBlank() ? " - Reason: " + reason : "");
+        logAction(id, "REOPENED", performedBy, details);
+
+        return mapToResponseDTO(updatedTicket);
+    }
+
+    @Transactional
+    public MaintenanceLogResponseDTO addTicketComment(Long ticketId, String performedBy, String details) {
+        if (!incidentTicketRepository.existsById(ticketId)) {
+            throw new ResourceNotFoundException("Incident ticket not found with id: " + ticketId);
+        }
+
+        MaintenanceLog savedLog = maintenanceLogRepository.save(MaintenanceLog.builder()
+                .ticketId(ticketId)
+                .action("COMMENTED")
+                .performedBy(performedBy)
+                .details(details)
+                .build());
+
+        return mapLogToResponseDTO(savedLog);
     }
 
     @Transactional
@@ -280,6 +332,58 @@ public class IncidentTicketService {
                 .details(log.getDetails())
                 .timestamp(log.getTimestamp())
                 .build();
+    }
+
+    private void validateMaintenanceSchedule(TicketType ticketType, LocalDateTime scheduledStart, LocalDateTime scheduledEnd) {
+        if (ticketType != TicketType.MAINTENANCE) {
+            return;
+        }
+
+        if (scheduledStart == null || scheduledEnd == null) {
+            throw new IllegalArgumentException("Scheduled start and end are required for maintenance tickets");
+        }
+
+        if (!scheduledEnd.isAfter(scheduledStart)) {
+            throw new IllegalArgumentException("Scheduled end must be after scheduled start");
+        }
+    }
+
+    private void validateNoMaintenanceConflict(String resourceId,
+                                               LocalDateTime scheduledStart,
+                                               LocalDateTime scheduledEnd,
+                                               Long excludeTicketId,
+                                               TicketType ticketType) {
+        if (ticketType != TicketType.MAINTENANCE || scheduledStart == null || scheduledEnd == null) {
+            return;
+        }
+
+        boolean overlapExists = incidentTicketRepository.existsOverlappingMaintenanceSchedule(
+                resourceId,
+                scheduledStart,
+                scheduledEnd,
+                excludeTicketId
+        );
+
+        if (overlapExists) {
+            throw new IllegalStateException("Maintenance window conflicts with an existing scheduled ticket for this resource");
+        }
+    }
+
+    private void validateStatusTransition(TicketStatus oldStatus, TicketStatus newStatus) {
+        if (oldStatus == newStatus) {
+            return;
+        }
+
+        Set<TicketStatus> allowedTransitions = switch (oldStatus) {
+            case OPEN -> EnumSet.of(TicketStatus.IN_PROGRESS, TicketStatus.CLOSED);
+            case IN_PROGRESS -> EnumSet.of(TicketStatus.RESOLVED, TicketStatus.OPEN);
+            case RESOLVED -> EnumSet.of(TicketStatus.CLOSED);
+            case CLOSED -> EnumSet.noneOf(TicketStatus.class);
+        };
+
+        if (!allowedTransitions.contains(newStatus)) {
+            throw new IllegalStateException("Invalid status transition from " + oldStatus + " to " + newStatus);
+        }
     }
 
     public byte[] exportToCSV(TicketStatus status, TicketPriority priority, TicketType ticketType,

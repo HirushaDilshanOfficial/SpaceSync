@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, AlertTriangle, CheckCircle, Clock, Wrench, Zap, User, Calendar, MessageSquare } from 'lucide-react';
+import { getCurrentUserId } from '../utils/currentUser';
 
 const priorityConfig = {
   CRITICAL: { color: 'text-red-700 bg-red-50 border-red-200', dot: 'bg-red-400', icon: AlertTriangle, label: 'Critical' },
@@ -27,9 +28,12 @@ const API_BASE = 'http://localhost:8080/api';
 export function IncidentDetailsPage() {
   const navigate = useNavigate();
   const { id } = useParams();
+  const currentUserId = getCurrentUserId();
   const [incident, setIncident] = useState(null);
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [commentText, setCommentText] = useState('');
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -80,6 +84,49 @@ export function IncidentDetailsPage() {
       }
     } catch (error) {
       console.error(`Failed to assign ticket:`, error);
+    }
+  };
+
+  const reopenTicket = async () => {
+    try {
+      const url = new URL(`${API_BASE}/incidents/${id}/reopen`);
+      url.searchParams.append('performedBy', currentUserId);
+
+      const res = await fetch(url, { method: 'PATCH' });
+      if (res.ok) {
+        fetchData();
+      }
+    } catch (error) {
+      console.error('Failed to reopen ticket:', error);
+    }
+  };
+
+  const submitComment = async () => {
+    if (!commentText.trim()) {
+      return;
+    }
+
+    setCommentSubmitting(true);
+    try {
+      const res = await fetch(`${API_BASE}/incidents/${id}/comments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          performedBy: currentUserId,
+          details: commentText.trim()
+        })
+      });
+
+      if (res.ok) {
+        setCommentText('');
+        fetchData();
+      }
+    } catch (error) {
+      console.error('Failed to submit comment:', error);
+    } finally {
+      setCommentSubmitting(false);
     }
   };
 
@@ -221,7 +268,7 @@ export function IncidentDetailsPage() {
             {incident.status === 'OPEN' && (
               <>
                 <button
-                  onClick={() => assignTicket('TECH-001')}
+                  onClick={() => assignTicket(currentUserId)}
                   className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   Assign to Me
@@ -245,14 +292,44 @@ export function IncidentDetailsPage() {
             )}
 
             {(incident.status === 'RESOLVED' || incident.status === 'CLOSED') && (
-              <button
-                onClick={() => updateStatus('CLOSED')}
-                className="px-4 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors"
-              >
-                Close Ticket
-              </button>
+              <>
+                {incident.status === 'RESOLVED' && (
+                  <button
+                    onClick={() => updateStatus('CLOSED')}
+                    className="px-4 py-2 bg-gray-600 text-white text-sm rounded-lg hover:bg-gray-700 transition-colors"
+                  >
+                    Close Ticket
+                  </button>
+                )}
+                <button
+                  onClick={reopenTicket}
+                  className="px-4 py-2 bg-amber-600 text-white text-sm rounded-lg hover:bg-amber-700 transition-colors"
+                >
+                  Reopen Ticket
+                </button>
+              </>
             )}
           </div>
+        </div>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-gray-200 p-6">
+        <h3 className="font-semibold text-gray-900 mb-3">Add Work Note</h3>
+        <div className="space-y-3">
+          <textarea
+            value={commentText}
+            onChange={(e) => setCommentText(e.target.value)}
+            rows={3}
+            placeholder="Add an update for this ticket..."
+            className="w-full px-3 py-2 text-sm text-gray-900 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 resize-none"
+          />
+          <button
+            onClick={submitComment}
+            disabled={commentSubmitting || !commentText.trim()}
+            className="px-4 py-2 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {commentSubmitting ? 'Posting...' : 'Post Note'}
+          </button>
         </div>
       </div>
 

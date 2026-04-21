@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, CheckCircle, Clock, Search, SlidersHorizontal, Plus, Wrench, Zap, XCircle, Download, Calendar, Filter } from 'lucide-react';
+import { getCurrentUserId } from '../utils/currentUser';
 
 const priorityConfig = {
   CRITICAL: { color: 'text-red-700 bg-red-50 border-red-200', dot: 'bg-red-400', icon: AlertTriangle },
@@ -33,6 +34,7 @@ const API_BASE = 'http://localhost:8080/api';
 
 export function IncidentDashboardPage() {
   const navigate = useNavigate();
+  const currentUserId = getCurrentUserId();
   const [incidents, setIncidents] = useState([]);
   const [stats, setStats] = useState({ open: 0, inProgress: 0, resolved: 0 });
   const [analytics, setAnalytics] = useState({});
@@ -468,13 +470,19 @@ export function IncidentDashboardPage() {
                   {incident.status === 'OPEN' && (
                     <>
                       <button
-                        onClick={() => assignTicket(incident.id, 'TECH-001')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          assignTicket(incident.id, currentUserId);
+                        }}
                         className="flex-1 px-3 py-2 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                       >
                         Assign to Me
                       </button>
                       <button
-                        onClick={() => updateStatus(incident.id, 'IN_PROGRESS')}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          updateStatus(incident.id, 'IN_PROGRESS');
+                        }}
                         className="flex-1 px-3 py-2 text-xs bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
                       >
                         Start Work
@@ -484,7 +492,10 @@ export function IncidentDashboardPage() {
 
                   {incident.status === 'IN_PROGRESS' && (
                     <button
-                      onClick={() => updateStatus(incident.id, 'RESOLVED')}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        updateStatus(incident.id, 'RESOLVED');
+                      }}
                       className="flex-1 px-3 py-2 text-xs bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
                     >
                       Mark Resolved
@@ -493,7 +504,10 @@ export function IncidentDashboardPage() {
 
                   {incident.status === 'RESOLVED' && (
                     <button
-                      onClick={() => updateStatus(incident.id, 'CLOSED')}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        updateStatus(incident.id, 'CLOSED');
+                      }}
                       className="flex-1 px-3 py-2 text-xs bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
                     >
                       Close Ticket

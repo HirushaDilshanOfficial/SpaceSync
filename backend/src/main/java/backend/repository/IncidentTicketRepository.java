@@ -54,4 +54,15 @@ public interface IncidentTicketRepository extends JpaRepository<IncidentTicket, 
            "AND ((t.scheduledStart <= :endDate AND t.scheduledEnd >= :startDate))")
     List<IncidentTicket> findMaintenanceForCalendar(@Param("startDate") LocalDateTime startDate,
                                                    @Param("endDate") LocalDateTime endDate);
+
+    @Query("SELECT COUNT(t) > 0 FROM IncidentTicket t WHERE t.ticketType = backend.entity.TicketType.MAINTENANCE " +
+           "AND t.resourceId = :resourceId " +
+           "AND t.status <> backend.entity.TicketStatus.CLOSED " +
+           "AND t.scheduledStart < :scheduledEnd " +
+           "AND t.scheduledEnd > :scheduledStart " +
+           "AND (:excludeTicketId IS NULL OR t.id <> :excludeTicketId)")
+    boolean existsOverlappingMaintenanceSchedule(@Param("resourceId") String resourceId,
+                                                 @Param("scheduledStart") LocalDateTime scheduledStart,
+                                                 @Param("scheduledEnd") LocalDateTime scheduledEnd,
+                                                 @Param("excludeTicketId") Long excludeTicketId);
 }

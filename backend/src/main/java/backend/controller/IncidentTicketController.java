@@ -2,6 +2,7 @@ package backend.controller;
 
 import backend.dto.IncidentTicketRequestDTO;
 import backend.dto.IncidentTicketResponseDTO;
+import backend.dto.IncidentCommentRequestDTO;
 import backend.dto.MaintenanceLogResponseDTO;
 import backend.entity.TicketStatus;
 import backend.entity.TicketPriority;
@@ -84,8 +85,8 @@ public class IncidentTicketController {
     public ResponseEntity<IncidentTicketResponseDTO> updateTicketStatus(
             @PathVariable Long id,
             @RequestParam TicketStatus status,
-            @RequestParam(required = false) String assignedTo) {
-        return ResponseEntity.ok(incidentTicketService.updateTicketStatus(id, status, assignedTo));
+            @RequestParam(required = false) String performedBy) {
+        return ResponseEntity.ok(incidentTicketService.updateTicketStatus(id, status, performedBy));
     }
 
     @PatchMapping("/{id}/assign")
@@ -93,6 +94,24 @@ public class IncidentTicketController {
             @PathVariable Long id,
             @RequestParam String assignedTo) {
         return ResponseEntity.ok(incidentTicketService.assignTicket(id, assignedTo));
+    }
+
+    @PatchMapping("/{id}/reopen")
+    public ResponseEntity<IncidentTicketResponseDTO> reopenTicket(
+            @PathVariable Long id,
+            @RequestParam String performedBy,
+            @RequestParam(required = false) String reason) {
+        return ResponseEntity.ok(incidentTicketService.reopenTicket(id, performedBy, reason));
+    }
+
+    @PostMapping("/{id}/comments")
+    public ResponseEntity<MaintenanceLogResponseDTO> addTicketComment(
+            @PathVariable Long id,
+            @Valid @RequestBody IncidentCommentRequestDTO request) {
+        return new ResponseEntity<>(
+                incidentTicketService.addTicketComment(id, request.getPerformedBy(), request.getDetails()),
+                HttpStatus.CREATED
+        );
     }
 
     @DeleteMapping("/{id}")

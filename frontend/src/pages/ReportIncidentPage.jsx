@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, Loader2, XCircle, AlertTriangle, Wrench, Zap } from 'lucide-react';
+import { getCurrentUserId } from '../utils/currentUser';
 
 const FieldLabel = ({ children, required }) => (
   <label className="block text-sm font-medium text-gray-700 mb-1.5">
@@ -51,7 +52,7 @@ export function ReportIncidentPage() {
         resourceId: formData.resourceId,
         priority: formData.priority,
         ticketType: formData.ticketType,
-        reportedBy: 'USER-001', // Hardcoded for now
+        reportedBy: getCurrentUserId(),
         scheduledStart: formData.scheduledStart ? new Date(formData.scheduledStart).toISOString() : null,
         scheduledEnd: formData.scheduledEnd ? new Date(formData.scheduledEnd).toISOString() : null,
         notes: formData.notes
