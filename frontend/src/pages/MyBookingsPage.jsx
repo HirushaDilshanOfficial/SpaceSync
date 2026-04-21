@@ -7,6 +7,7 @@ const statusConfig = {
   PENDING:    { color: 'var(--clr-warning)', bg: 'rgba(210,153,34,0.1)',   dot: 'var(--clr-warning)',   icon: AlertCircle },
   APPROVED:   { color: 'var(--clr-success)', bg: 'rgba(63,185,80,0.1)', dot: 'var(--clr-success)', icon: CheckCircle },
   CHECKED_IN: { color: 'var(--clr-primary)', bg: 'rgba(88,166,255,0.1)', dot: 'var(--clr-primary)', icon: CheckCircle },
+  CHECKED_OUT: { color: 'var(--clr-text-muted)', bg: 'rgba(139,148,158,0.1)', dot: 'var(--clr-text-muted)', icon: CheckCircle },
   REJECTED:   { color: 'var(--clr-danger)', bg: 'rgba(248,81,73,0.1)',         dot: 'var(--clr-danger)',     icon: X },
   CANCELLED:  { color: 'var(--clr-text-muted)', bg: 'rgba(139,148,158,0.1)',    dot: 'var(--clr-text-muted)',    icon: X },
 };
@@ -184,9 +185,9 @@ export function MyBookingsPage() {
                     <p className="purpose-text">{booking.purpose}</p>
                   </div>
 
-                  {booking.status === 'REJECTED' && booking.rejectReason && (
+                  {(booking.status === 'REJECTED' || booking.status === 'CANCELLED') && booking.rejectReason && (
                     <div className="reject-reason-box">
-                      <p className="reject-label">Admin Feedback</p>
+                      <p className="reject-label">Feedback / Reason</p>
                       <p className="reject-text">{booking.rejectReason}</p>
                     </div>
                   )}
