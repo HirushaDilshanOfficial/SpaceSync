@@ -16,9 +16,9 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     List<Booking> findByResourceId(String resourceId);
     java.util.Optional<Booking> findByCheckInToken(String checkInToken);
 
-    @Query("SELECT COUNT(b) > 0 FROM Booking b WHERE b.resourceId = :resourceId AND b.status = com.spacesync.entity.BookingStatus.APPROVED " +
+    @Query("SELECT COUNT(b) > 0 FROM Booking b WHERE b.resourceId = :resourceId AND b.status IN (com.spacesync.entity.BookingStatus.PENDING, com.spacesync.entity.BookingStatus.APPROVED, com.spacesync.entity.BookingStatus.CONFIRMED, com.spacesync.entity.BookingStatus.CHECKED_IN) " +
            "AND (:startTime < b.endTime AND :endTime > b.startTime)")
-    boolean hasApprovedConflict(@Param("resourceId") String resourceId, 
-                                @Param("startTime") LocalDateTime startTime, 
-                                @Param("endTime") LocalDateTime endTime);
+    boolean hasConflict(@Param("resourceId") String resourceId, 
+                        @Param("startTime") LocalDateTime startTime, 
+                        @Param("endTime") LocalDateTime endTime);
 }
