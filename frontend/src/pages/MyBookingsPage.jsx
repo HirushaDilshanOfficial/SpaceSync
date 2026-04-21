@@ -21,6 +21,11 @@ export function MyBookingsPage() {
   const [qrImage, setQrImage] = useState(null);
   const [qrLoading, setQrLoading] = useState(false);
 
+  // Filters
+  const [filterStatus, setFilterStatus] = useState('ALL');
+  const [filterDate, setFilterDate] = useState('');
+  const [filterResource, setFilterResource] = useState('');
+
   const handleOpenQr = async (bookingId) => {
     setQrModal({ open: true, bookingId });
     setQrImage(null);
@@ -112,6 +117,21 @@ export function MyBookingsPage() {
     </div>
   );
 
+  const filteredBookings = bookings.filter(booking => {
+    if (filterStatus !== 'ALL' && booking.status !== filterStatus) return false;
+    if (filterDate) {
+      const bDate = new Date(booking.startTime).toISOString().split('T')[0];
+      if (bDate !== filterDate) return false;
+    }
+    if (filterResource) {
+      // Assuming resourceId holds the resource name or identifier displayed
+      if (!booking.resourceId.toLowerCase().includes(filterResource.toLowerCase())) {
+        return false;
+      }
+    }
+    return true;
+  });
+
   return (
     <div className="my-bookings-container">
       <header className="page-header">
@@ -143,7 +163,65 @@ export function MyBookingsPage() {
         ))}
       </div>
 
-      {bookings.length === 0 ? (
+      <div className="filters-bar glass-card" style={{ padding: '16px', marginBottom: '24px', display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <div className="filter-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--clr-text-muted)' }}>Status</label>
+          <select 
+            value={filterStatus} 
+            onChange={(e) => setFilterStatus(e.target.value)}
+            style={{ padding: '8px', borderRadius: '8px', border: '1px solid var(--clr-border)', background: 'var(--clr-bg)', color: 'var(--clr-text)', outline: 'none' }}
+          >
+            <option value="ALL">All Statuses</option>
+            <option value="PENDING">Pending</option>
+            <option value="APPROVED">Approved</option>
+            <option value="CHECKED_IN">Checked In</option>
+            <option value="CHECKED_OUT">Checked Out</option>
+            <option value="REJECTED">Rejected</option>
+            <option value="CANCELLED">Cancelled</option>
+          </select>
+        </div>
+
+        <div className="filter-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--clr-text-muted)' }}>Date</label>
+          <input 
+            type="date" 
+            value={filterDate}
+            onChange={(e) => setFilterDate(e.target.value)}
+            style={{ padding: '8px', borderRadius: '8px', border: '1px solid var(--clr-border)', background: 'var(--clr-bg)', color: 'var(--clr-text)', outline: 'none' }}
+          />
+        </div>
+
+        <div className="filter-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '200px' }}>
+          <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--clr-text-muted)' }}>Resource</label>
+          <div style={{ position: 'relative' }}>
+            <Search size={16} style={{ position: 'absolute', left: '10px', top: '10px', color: 'var(--clr-text-muted)' }} />
+            <input 
+              type="text" 
+              placeholder="Search resource..." 
+              value={filterResource}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (/^[a-zA-Z0-9\s]*$/.test(value)) {
+                  setFilterResource(value);
+                }
+              }}
+              style={{ width: '100%', padding: '8px 8px 8px 32px', borderRadius: '8px', border: '1px solid var(--clr-border)', background: 'var(--clr-bg)', color: 'var(--clr-text)', outline: 'none' }}
+            />
+          </div>
+        </div>
+        
+        {(filterStatus !== 'ALL' || filterDate !== '' || filterResource !== '') && (
+          <button 
+            onClick={() => { setFilterStatus('ALL'); setFilterDate(''); setFilterResource(''); }}
+            className="btn btn-ghost btn-sm"
+            style={{ color: 'var(--clr-danger)' }}
+          >
+            Clear Filters
+          </button>
+        )}
+      </div>
+
+      {filteredBookings.length === 0 ? (
         <div className="empty-state glass-card">
           <Calendar size={48} className="empty-icon" />
           <h3>No bookings yet</h3>
@@ -152,7 +230,7 @@ export function MyBookingsPage() {
         </div>
       ) : (
         <div className="bookings-grid">
-          {bookings.map((booking) => {
+          {filteredBookings.map((booking) => {
             const status = statusConfig[booking.status] || statusConfig.PENDING;
             const startDate = new Date(booking.startTime);
             const endDate = new Date(booking.endTime);
