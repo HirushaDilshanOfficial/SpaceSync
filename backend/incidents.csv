@@ -1,0 +1,5 @@
+"ID","Title","Description","Resource ID","Resource Name","Priority","Status","Type","Assigned To","Reported By","Created At","Resolved At","Scheduled Start","Scheduled End","Notes"
+"1","Projector not working","The projector in Conference Room A is not displaying properly. Screen shows no signal.","PROJ-XYZ","Projector XYZ","HIGH","OPEN","REPAIR","","USER-001","2026-04-06 01:08:13","","","","Reported during morning meeting"
+"2","Air conditioning maintenance","Conference Room A air conditioning needs scheduled maintenance check.","CONF-RM-A","Conference Room A","MEDIUM","IN_PROGRESS","MAINTENANCE","TECH-001","USER-002","2026-04-06 01:08:13","","","","Scheduled for next week"
+"3","WiFi connectivity issues","Intermittent WiFi connection in Conference Room A affecting presentations.","CONF-RM-A","Conference Room A","CRITICAL","RESOLVED","INCIDENT","TECH-002","USER-001","2026-04-06 01:08:13","2026-04-05 01:08:13","","","Router replaced, issue resolved"
+"4","Amasha","Hello","CONF-RM-A","Conference Room A","HIGH","CLOSED","MAINTENANCE","TECH-001","USER-001","2026-04-06 01:22:03","2026-04-06 01:22:31","","","aaaa"

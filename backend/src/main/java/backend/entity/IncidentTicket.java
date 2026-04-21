@@ -1,4 +1,4 @@
-package com.spacesync.entity;
+package backend.entity;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -11,52 +11,54 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "bookings")
+@Table(name = "incident_tickets")
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Booking {
+public class IncidentTicket {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false)
-    private String userId;
+    private String title;
+
+    @Column(nullable = false, length = 1000)
+    private String description;
 
     @Column(nullable = false)
     private String resourceId;
 
-    @Column(nullable = false)
-    private LocalDateTime startTime;
-
-    @Column(nullable = false)
-    private LocalDateTime endTime;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private TicketPriority priority;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    private BookingStatus status;
+    private TicketStatus status;
 
-    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private TicketType ticketType;
+
+    private String assignedTo;
+
     @Column(nullable = false)
-    private Integer attendees = 1;
-
-    @Builder.Default
-    @Column(nullable = false)
-    private String purpose = "General";
-
-    private String rejectReason;
-
-    @Column(unique = true)
-    private String checkInToken;
-
-    private LocalDateTime checkedInAt;
+    private String reportedBy;
 
     @CreationTimestamp
     @Column(updatable = false)
     private LocalDateTime createdAt;
 
+    private LocalDateTime resolvedAt;
+
     @UpdateTimestamp
     private LocalDateTime updatedAt;
+
+    private LocalDateTime scheduledStart;
+    private LocalDateTime scheduledEnd;
+
+    private String notes;
 }

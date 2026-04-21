@@ -6,6 +6,10 @@ import { NewBookingPage } from './pages/NewBookingPage';
 import { AdminBookingsPage } from './pages/AdminBookingsPage';
 import FacilitiesPage from './components/facilities/FacilitiesPage';
 import FacilitiesUserPage from './components/facilities/FacilitiesUserPage';
+import { ReportIncidentPage } from './pages/ReportIncidentPage';
+import { IncidentDashboardPage } from './pages/IncidentDashboardPage';
+import { IncidentDetailsPage } from './pages/IncidentDetailsPage';
+import { MaintenanceCalendarPage } from './pages/MaintenanceCalendarPage';
 import './App.css';
 
 function App() {
@@ -19,6 +23,10 @@ function App() {
           <Route path="admin" element={<AdminBookingsPage />} />
           <Route path="facilities" element={<FacilitiesPage />} />
           <Route path="facilities/user" element={<FacilitiesUserPage />} />
+          <Route path="report-incident" element={<ReportIncidentPage />} />
+          <Route path="incidents" element={<IncidentDashboardPage />} />
+          <Route path="incidents/:id" element={<IncidentDetailsPage />} />
+          <Route path="maintenance-calendar" element={<MaintenanceCalendarPage />} />
         </Route>
       </Routes>
     </BrowserRouter>
