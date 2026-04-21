@@ -17,6 +17,32 @@ export function MyBookingsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [qrModal, setQrModal] = useState({ open: false, bookingId: null });
+  const [qrImage, setQrImage] = useState(null);
+  const [qrLoading, setQrLoading] = useState(false);
+
+  const handleOpenQr = async (bookingId) => {
+    setQrModal({ open: true, bookingId });
+    setQrImage(null);
+    setQrLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/bookings/${bookingId}/qr`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.ok) {
+        const blob = await response.blob();
+        setQrImage(URL.createObjectURL(blob));
+      } else {
+        console.error('Failed to load QR');
+      }
+    } catch (error) {
+      console.error('Error fetching QR:', error);
+    } finally {
+      setQrLoading(false);
+    }
+  };
   const navigate = useNavigate();
 
   const fetchBookings = async () => {
@@ -169,7 +195,7 @@ export function MyBookingsPage() {
                 <div className="card-actions">
                   {(booking.status === 'APPROVED' || booking.status === 'CHECKED_IN') && (
                     <button
-                      onClick={() => setQrModal({ open: true, bookingId: booking.id })}
+                      onClick={() => handleOpenQr(booking.id)}
                       className="btn btn-ghost btn-sm btn-qr"
                     >
                       <QrCode size={14} /> Check-in QR
@@ -206,11 +232,16 @@ export function MyBookingsPage() {
             </div>
             
             <div className="qr-container">
-              <img 
-                src={`http://localhost:8081/api/bookings/${qrModal.bookingId}/qr`} 
-                alt="Check-in QR" 
-                onError={(e) => { e.target.src = 'https://via.placeholder.com/240?text=QR+Code'; }}
-              />
+              {qrLoading ? (
+                <div className="spinner"></div>
+              ) : qrImage ? (
+                <img 
+                  src={qrImage} 
+                  alt="Check-in QR" 
+                />
+              ) : (
+                <div style={{ color: 'var(--clr-text-muted)', textAlign: 'center', fontSize: '14px' }}>QR Code not available</div>
+              )}
             </div>
 
             <div className="qr-info">
