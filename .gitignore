@@ -1,0 +1,20 @@
+# Root .gitignore for SpaceSync
+
+# Node modules
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build outputs
+frontend/build/
+backend/target/
