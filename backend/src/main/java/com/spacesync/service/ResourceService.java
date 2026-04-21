@@ -1,9 +1,9 @@
-package backend.service;
+package com.spacesync.service;
 
-import backend.dto.ResourceRequestDTO;
-import backend.dto.ResourceResponseDTO;
-import backend.enums.ResourceStatus;
-import backend.enums.ResourceType;
+import com.spacesync.dto.ResourceRequestDTO;
+import com.spacesync.dto.ResourceResponseDTO;
+import com.spacesync.entity.ResourceStatus;
+import com.spacesync.entity.ResourceType;
 
 import java.util.List;
 

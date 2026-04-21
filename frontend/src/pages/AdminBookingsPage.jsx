@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, CheckCircle, XCircle, Search, ShieldX, SlidersHorizontal, QrCode, ScanLine, Loader2, X, Filter, Trash2, AlertTriangle } from 'lucide-react';
+import { Calendar, Clock, CheckCircle, XCircle, Search, ShieldX, SlidersHorizontal, QrCode, ScanLine, Loader2, X, Filter, Trash2, AlertTriangle, Users } from 'lucide-react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
@@ -29,7 +29,7 @@ export function AdminBookingsPage() {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8081/api/bookings', {
+      const response = await fetch('/api/bookings', {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -65,7 +65,7 @@ export function AdminBookingsPage() {
   const handleStatusChange = async (id, status) => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8081/api/bookings/${id}/status?status=${status}`, {
+      const response = await fetch(`/api/bookings/${id}/status?status=${status}`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -81,7 +81,7 @@ export function AdminBookingsPage() {
     setScannerModal(prev => ({ ...prev, processing: true, feedback: 'Validating token...' }));
     const authToken = localStorage.getItem('token');
     try {
-      const response = await fetch(`http://localhost:8081/api/bookings/check-in?token=${qrToken}`, {
+      const response = await fetch(`/api/bookings/check-in?token=${qrToken}`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${authToken}`
@@ -248,6 +248,10 @@ export function AdminBookingsPage() {
                     <div className="detail-row">
                       <Clock size={14} /> <span>{startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                     </div>
+                    <div className="detail-row">
+                      <Users size={14} /> <span>{booking.attendees} attendees</span>
+                    </div>
+                    <div className="purpose-text-small">{booking.purpose}</div>
                   </div>
                 </div>
 
@@ -390,6 +394,7 @@ export function AdminBookingsPage() {
 
         .time-details { display: flex; flex-direction: column; gap: 6px; }
         .detail-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--clr-text-muted); }
+        .purpose-text-small { font-size: 12px; color: var(--clr-text-muted); font-style: italic; margin-top: 4px; padding-left: 10px; border-left: 1px solid var(--clr-border); }
 
         .card-footer { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--clr-border); }
         .action-buttons { display: flex; gap: 10px; }

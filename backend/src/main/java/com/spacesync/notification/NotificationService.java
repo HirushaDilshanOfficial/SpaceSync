@@ -183,4 +183,63 @@ public class NotificationService {
                 ticketId,
                 "/tickets/" + ticketId);
     }
+
+    // ── Maintenance Notifications (from Module G) ────────────────────────────
+
+    public void sendTicketCreatedNotification(com.spacesync.entity.IncidentTicket ticket) {
+        log.info("Ticket created notification logged: {}", ticket.getTitle());
+        // In this implementation, we save a persistent notification for the reporter
+        sendNotification(ticket.getReportedBy(), // Assuming reportedBy is email for now
+                NotificationType.TICKET_STATUS_CHANGED,
+                "Ticket Created: " + ticket.getTitle(),
+                "Your maintenance ticket has been created successfully.",
+                ticket.getId().toString(),
+                "/tickets/" + ticket.getId());
+    }
+
+    public void sendTicketAssignedNotification(com.spacesync.entity.IncidentTicket ticket) {
+        if (ticket.getAssignedTo() != null) {
+            sendNotification(ticket.getAssignedTo(),
+                    NotificationType.TICKET_STATUS_CHANGED,
+                    "Ticket Assigned: " + ticket.getTitle(),
+                    "A maintenance ticket has been assigned to you.",
+                    ticket.getId().toString(),
+                    "/tickets/" + ticket.getId());
+        }
+    }
+
+    public void sendTicketResolvedNotification(com.spacesync.entity.IncidentTicket ticket) {
+        sendNotification(ticket.getReportedBy(),
+                NotificationType.TICKET_STATUS_CHANGED,
+                "Ticket Resolved: " + ticket.getTitle(),
+                "Your maintenance ticket has been resolved.",
+                ticket.getId().toString(),
+                "/tickets/" + ticket.getId());
+    }
+
+    public void sendCriticalTicketAlert(com.spacesync.entity.IncidentTicket ticket) {
+        log.warn("CRITICAL ALERT for Ticket ID {}: {}", ticket.getId(), ticket.getTitle());
+        // Send to an admin or a specific email (mocked here as persistent notification for reportedBy too)
+        sendNotification(ticket.getReportedBy(),
+                NotificationType.TICKET_STATUS_CHANGED,
+                "🚨 CRITICAL ALERT: " + ticket.getTitle(),
+                "A critical priority ticket has been logged for your resource.",
+                ticket.getId().toString(),
+                "/tickets/" + ticket.getId());
+    }
+
+    public void notifyBasedOnTicket(com.spacesync.entity.IncidentTicket ticket) {
+        if (ticket.getPriority() == com.spacesync.entity.TicketPriority.CRITICAL) {
+            sendCriticalTicketAlert(ticket);
+        }
+        sendTicketCreatedNotification(ticket);
+    }
+
+    public void notifyAssignment(com.spacesync.entity.IncidentTicket ticket) {
+        sendTicketAssignedNotification(ticket);
+    }
+
+    public void notifyResolution(com.spacesync.entity.IncidentTicket ticket) {
+        sendTicketResolvedNotification(ticket);
+    }
 }

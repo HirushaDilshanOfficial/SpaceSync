@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 @layer utilities {
   .animate-blob {
     animation: blob 7s infinite;
@@ -9,6 +11,7 @@
     animation-delay: 4s;
   }
 }
+
 
 @keyframes blob {
   0% { transform: translate(0px, 0px) scale(1); }

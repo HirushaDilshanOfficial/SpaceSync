@@ -1,4 +1,4 @@
-package backend.enums;
+package com.spacesync.entity;
 
 public enum ResourceType {
     LECTURE_HALL,

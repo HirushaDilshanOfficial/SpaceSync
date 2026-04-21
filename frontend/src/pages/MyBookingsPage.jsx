@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, Plus, CheckCircle, AlertCircle, QrCode, X, Search, Filter } from 'lucide-react';
+import { Calendar, Clock, Plus, CheckCircle, AlertCircle, QrCode, X, Search, Filter, Users, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -24,7 +24,7 @@ export function MyBookingsPage() {
       if (!user?.id) return;
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8081/api/bookings/my?userId=${user.id}`, {
+      const response = await fetch(`/api/bookings/my?userId=${user.id}`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -48,7 +48,7 @@ export function MyBookingsPage() {
     if (!window.confirm('Are you sure you want to cancel this booking?')) return;
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`http://localhost:8081/api/bookings/${id}/status?status=CANCELLED`, {
+      const response = await fetch(`/api/bookings/${id}/status?status=CANCELLED`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -92,9 +92,14 @@ export function MyBookingsPage() {
           <h1 className="page-title">My Bookings</h1>
           <p className="page-subtitle">Track and manage your workspace reservations.</p>
         </div>
-        <button onClick={() => navigate('/new-booking')} className="btn btn-primary">
-          <Plus size={18} /> New Booking
-        </button>
+        <div className="flex gap-3">
+          <button onClick={() => navigate('/report-incident')} className="btn btn-ghost border-indigo-100 text-indigo-600">
+            <AlertCircle size={18} /> Report Issue
+          </button>
+          <button onClick={() => navigate('/new-booking')} className="btn btn-primary">
+            <Plus size={18} /> New Booking
+          </button>
+        </div>
       </header>
 
       <div className="stats-grid">
@@ -146,6 +151,19 @@ export function MyBookingsPage() {
                   <div className="detail-item">
                     <Clock size={14} /> <span>{timeRange}</span>
                   </div>
+                  <div className="detail-item">
+                    <Users size={14} /> <span>{booking.attendees} attendees</span>
+                  </div>
+                  <div className="purpose-box">
+                    <p className="purpose-text">{booking.purpose}</p>
+                  </div>
+
+                  {booking.status === 'REJECTED' && booking.rejectReason && (
+                    <div className="reject-reason-box">
+                      <p className="reject-label">Admin Feedback</p>
+                      <p className="reject-text">{booking.rejectReason}</p>
+                    </div>
+                  )}
                 </div>
 
                 <div className="card-actions">
@@ -165,6 +183,12 @@ export function MyBookingsPage() {
                       Cancel
                     </button>
                   )}
+                  <button
+                    onClick={() => navigate('/report-incident', { state: { resourceId: booking.resourceId } })}
+                    className="btn btn-ghost btn-sm text-amber-600 hover:bg-amber-50"
+                  >
+                    <AlertTriangle size={14} /> Report Issue
+                  </button>
                 </div>
               </div>
             );
@@ -223,10 +247,12 @@ export function MyBookingsPage() {
         .booking-details { display: flex; flex-direction: column; gap: 8px; }
         .detail-item { display: flex; align-items: center; gap: 8px; color: var(--clr-text-muted); font-size: 14px; }
 
-        .card-actions { display: flex; gap: 12px; margin-top: 8px; }
-        .btn-qr { border-color: var(--clr-primary); color: var(--clr-primary); }
-        .btn-qr:hover { background: rgba(88,166,255,0.1); }
-        .w-full { width: 100%; justify-content: center; }
+        .purpose-box { margin-top: 8px; padding-left: 12px; border-left: 2px solid var(--clr-primary); opacity: 0.8; }
+        .purpose-text { font-size: 13px; line-height: 1.4; color: var(--clr-text-muted); font-style: italic; }
+        
+        .reject-reason-box { margin-top: 12px; padding: 12px; background: rgba(248,81,73,0.08); border: 1px solid rgba(248,81,73,0.2); border-radius: 12px; }
+        .reject-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--clr-danger); margin-bottom: 4px; }
+        .reject-text { font-size: 12px; color: var(--clr-text); line-height: 1.4; }
 
         .empty-state { text-align: center; padding: 80px 40px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
         .empty-icon { color: var(--clr-text-faint); margin-bottom: 8px; }

@@ -1,10 +1,10 @@
-package backend.controller;
+package com.spacesync.controller;
 
-import backend.dto.ResourceRequestDTO;
-import backend.dto.ResourceResponseDTO;
-import backend.enums.ResourceStatus;
-import backend.enums.ResourceType;
-import backend.service.ResourceService;
+import com.spacesync.dto.ResourceRequestDTO;
+import com.spacesync.dto.ResourceResponseDTO;
+import com.spacesync.entity.ResourceStatus;
+import com.spacesync.entity.ResourceType;
+import com.spacesync.service.ResourceService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
