@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { CalendarDays, LayoutDashboard, CalendarPlus, ShieldCheck, Menu, X, ChevronDown } from 'lucide-react';
+import { CalendarDays, LayoutDashboard, CalendarPlus, ShieldCheck, Menu, X, ChevronDown, AlertTriangle, Wrench } from 'lucide-react';
 
 const navItems = [
   { to: '/dashboard', label: 'My Bookings', icon: LayoutDashboard },
   { to: '/new-booking', label: 'Book Resource', icon: CalendarPlus },
+  { to: '/report-incident', label: 'Report Issue', icon: AlertTriangle },
+  { to: '/incidents', label: 'Incidents', icon: Wrench },
   { to: '/admin', label: 'Admin', icon: ShieldCheck },
 ];
 

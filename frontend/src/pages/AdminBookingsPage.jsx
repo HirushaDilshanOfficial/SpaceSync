@@ -1,217 +1,280 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Calendar, Clock, MapPin, Users, CheckCircle, XCircle, Search, AlertTriangle, ShieldX, SlidersHorizontal } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Calendar, Clock, CheckCircle, XCircle, Search, ShieldX, SlidersHorizontal, QrCode, ScanLine, Loader2, X, Filter, Trash2, AlertTriangle, Users } from 'lucide-react';
+import { Html5QrcodeScanner } from 'html5-qrcode';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useAuth } from '../context/AuthContext';
 
 const statusConfig = {
-  PENDING:   { color: 'text-amber-700 bg-amber-50 border-amber-200',   dot: 'bg-amber-400' },
-  APPROVED:  { color: 'text-emerald-700 bg-emerald-50 border-emerald-200', dot: 'bg-emerald-400' },
-  REJECTED:  { color: 'text-red-700 bg-red-50 border-red-200',         dot: 'bg-red-400' },
-  CANCELLED: { color: 'text-gray-500 bg-gray-50 border-gray-200',      dot: 'bg-gray-300' },
+  PENDING:    { color: 'var(--clr-warning)', bg: 'rgba(210,153,34,0.1)',   dot: 'var(--clr-warning)' },
+  APPROVED:   { color: 'var(--clr-success)', bg: 'rgba(63,185,80,0.1)', dot: 'var(--clr-success)' },
+  CONFIRMED:  { color: 'var(--clr-success)', bg: 'rgba(63,185,80,0.1)', dot: 'var(--clr-success)' },
+  CHECKED_IN: { color: 'var(--clr-primary)', bg: 'rgba(88,166,255,0.1)', dot: 'var(--clr-primary)' },
+  REJECTED:   { color: 'var(--clr-danger)', bg: 'rgba(248,81,73,0.1)',         dot: 'var(--clr-danger)' },
+  CANCELLED:  { color: 'var(--clr-text-muted)', bg: 'rgba(139,148,158,0.1)',    dot: 'var(--clr-text-muted)' },
 };
-
-const formatBackendTime = (isoString) => {
-  if (!isoString) return '';
-  const date = new Date(isoString);
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-};
-
-const formatBackendDate = (isoString) => {
-  if (!isoString) return '';
-  return isoString.split('T')[0];
-};
-
-const parseTime = (isoString) => {
-  if (!isoString) return 0;
-  const date = new Date(isoString);
-  return date.getHours() * 60 + date.getMinutes();
-};
-
-const toHHMM = (mins) => `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
-
-const hasConflict = (b, all) => {
-  if (b.status !== 'PENDING') return false;
-  const bS = parseTime(b.startTime), bE = parseTime(b.endTime);
-  const bDate = formatBackendDate(b.startTime);
-  
-  return all.some(o => {
-    if (o.id === b.id || o.status !== 'APPROVED' || o.resourceId !== b.resourceId || formatBackendDate(o.startTime) !== bDate) return false;
-    return bS < parseTime(o.endTime) && parseTime(o.startTime) < bE;
-  });
-};
-
-const inputClass = "h-10 px-3 text-sm text-gray-700 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400 transition-all placeholder:text-gray-400 w-full";
-
-const TAB_STYLES = {
-  active: 'bg-white text-gray-900 font-semibold shadow-sm border border-gray-200',
-  inactive: 'text-gray-500 hover:text-gray-700',
-};
-
-const API_BASE = 'http://localhost:8080/api';
 
 export function AdminBookingsPage() {
+  const { user } = useAuth();
   const [bookings, setBookings] = useState([]);
-  const [stats, setStats] = useState({ pending: 0, approved: 0, total: 0 });
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('PENDING');
   const [search, setSearch] = useState('');
   const [filterDate, setFilterDate] = useState('');
-  const [filterTime, setFilterTime] = useState('');
   const [rejectModal, setRejectModal] = useState({ open: false, booking: null, reason: '' });
-  const [approveConfirmModal, setApproveConfirmModal] = useState({ open: false, booking: null });
-  const [showConflictsOnly, setShowConflictsOnly] = useState(false);
-  const [viewMode, setViewMode] = useState('GRID'); // 'GRID' or 'CALENDAR'
-  const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDay, setSelectedDay] = useState(null); // { dateStr, bookings }
+  const [scannerModal, setScannerModal] = useState({ open: false, processing: false, feedback: null });
+  const [error, setError] = useState('');
+  const [showError, setShowError] = useState(false);
 
-  const fetchData = useCallback(async () => {
+  const fetchBookings = async () => {
     try {
-      const [bookingsRes, statsRes] = await Promise.all([
-        fetch(`${API_BASE}/bookings`),
-        fetch(`${API_BASE}/admin/stats`)
-      ]);
-      
-      if (bookingsRes.ok && statsRes.ok) {
-        const bookingsData = await bookingsRes.json();
-        const statsData = await statsRes.json();
-        setBookings(bookingsData);
-        setStats(statsData);
-      }
-    } catch (error) {
-      console.error("Failed to fetch data:", error);
+      setLoading(true);
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/bookings', {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (!response.ok) throw new Error('Failed to fetch bookings');
+      const data = await response.json();
+      setBookings(data);
+    } catch (err) {
+      console.error(err);
+      setError(err.message);
+      setShowError(true);
+      setTimeout(() => setShowError(false), 3000);
     } finally {
       setLoading(false);
     }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
-
-  const updateStatus = async (id, status, reason = '') => {
-    try {
-      const url = new URL(`${API_BASE}/admin/bookings/${id}/status`);
-      url.searchParams.append('status', status);
-      if (reason) url.searchParams.append('rejectReason', reason);
-
-      const res = await fetch(url, { method: 'PATCH' });
-      if (res.ok) {
-        fetchData(); // Refresh all data
-      }
-    } catch (error) {
-      console.error(`Failed to update status to ${status}:`, error);
-    }
   };
 
+  useEffect(() => {
+    fetchBookings();
+  }, []);
+
   const filtered = bookings.filter(b => {
-    const conflict = hasConflict(b, bookings);
-    if (showConflictsOnly) {
-      if (!conflict) return false;
-    } else {
-      if (b.status !== activeTab) return false;
-    }
+    const status = (b.status === 'CONFIRMED' || b.status === 'APPROVED') ? 'APPROVED' : b.status;
+    if (status !== activeTab && b.status !== activeTab) return false;
     
     const s = search.toLowerCase();
-    const bUser = b.userName || b.userId || '';
-    const bResource = b.resourceName || b.resourceId || '';
+    if (s && !b.resourceId.toLowerCase().includes(s) && !b.userId.toLowerCase().includes(s) && !`BKG-${b.id}`.toLowerCase().includes(s)) return false;
     
-    if (s && !bResource.toLowerCase().includes(s) && !bUser.toLowerCase().includes(s) && !String(b.id).toLowerCase().includes(s)) return false;
-    if (filterDate && formatBackendDate(b.startTime) !== filterDate) return false;
-    if (filterTime && toHHMM(parseTime(b.startTime)) !== filterTime) return false;
+    if (filterDate && b.startTime.split('T')[0] !== filterDate) return false;
     return true;
   });
 
-  const openApprove = (booking) => setApproveConfirmModal({ open: true, booking });
-  const cancel = (id) => updateStatus(id, 'PENDING'); // Moving back to pending
-
-  const confirmApprove = async () => {
-    await updateStatus(approveConfirmModal.booking.id, 'APPROVED');
-    setApproveConfirmModal({ open: false, booking: null });
+  const handleStatusChange = async (id, status) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/bookings/${id}/status?status=${status}`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.ok) fetchBookings();
+    } catch (err) {
+      console.error('Failed to update status:', err);
+    }
   };
-  const openReject = (booking, conflict) => setRejectModal({ open: true, booking, reason: conflict ? 'Rejected due to scheduling conflict with an approved booking.' : '' });
-  
-  const confirmReject = async () => {
-    if (!rejectModal.reason.trim()) return;
-    await updateStatus(rejectModal.booking.id, 'REJECTED', rejectModal.reason);
-    setRejectModal({ open: false, booking: null, reason: '' });
+
+  const handleCheckIn = async (qrToken) => {
+    setScannerModal(prev => ({ ...prev, processing: true, feedback: 'Validating token...' }));
+    const authToken = localStorage.getItem('token');
+    try {
+      const response = await fetch(`/api/bookings/check-in?token=${qrToken}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+      const data = await response.json();
+      
+      if (response.ok) {
+        setScannerModal(prev => ({ ...prev, feedback: `Success! Checked-in ${data.userId}`, processing: false }));
+        setTimeout(() => {
+          setScannerModal({ open: false, processing: false, feedback: null });
+          fetchBookings();
+        }, 2000);
+      } else {
+        throw new Error(data.message || 'Check-in failed');
+      }
+    } catch (err) {
+      setScannerModal(prev => ({ ...prev, feedback: `Error: ${err.message}`, processing: false }));
+    }
   };
 
-  const nextMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1));
-  const prevMonth = () => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
+  useEffect(() => {
+    if (scannerModal.open) {
+      const scanner = new Html5QrcodeScanner("reader", { fps: 10, qrbox: { width: 250, height: 250 } }, false);
+      scanner.render((decodedText) => {
+        scanner.clear();
+        handleCheckIn(decodedText);
+      }, (error) => {
+        // scanner noise
+      });
+      return () => { try { scanner.clear(); } catch(e){} };
+    }
+  }, [scannerModal.open]);
 
-  const daysInMonth = (year, month) => new Date(year, month + 1, 0).getDate();
-  const firstDay = (year, month) => new Date(year, month, 1).getDay();
+  const pendingCount = bookings.filter(b => b.status === 'PENDING').length;
+  const approvedCount = bookings.filter(b => b.status === 'APPROVED' || b.status === 'CONFIRMED').length;
+  const checkedInCount = bookings.filter(b => b.status === 'CHECKED_IN').length;
 
-  const CalendarView = () => {
-    const year = currentDate.getFullYear();
-    const month = currentDate.getMonth();
-    const totalDays = daysInMonth(year, month);
-    const startOffset = firstDay(year, month);
-    const monthName = currentDate.toLocaleString('default', { month: 'long' });
+  if (loading && bookings.length === 0) return (
+    <div className="admin-loading">
+      <div className="spinner"></div>
+      <p>Loading administration data...</p>
+      <style>{`
+        .admin-loading { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; gap: 16px; color: var(--clr-text-muted); }
+        .spinner { width: 32px; height: 32px; border: 3px solid var(--clr-border); border-top-color: var(--clr-primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+      `}</style>
+    </div>
+  );
 
-    const days = [];
-    // Padding for first week
-    for (let i = 0; i < startOffset; i++) days.push(null);
-    for (let d = 1; d <= totalDays; d++) days.push(d);
-
-    return (
-      <div className="bg-white border border-gray-100 rounded-3xl shadow-card overflow-hidden">
-        {/* Calendar Nav */}
-        <div className="p-6 border-b border-gray-50 flex items-center justify-between">
-          <h2 className="text-xl font-bold text-gray-900">{monthName} {year}</h2>
-          <div className="flex gap-2">
-            <button onClick={prevMonth} className="p-2 hover:bg-gray-50 rounded-xl border border-gray-200 text-gray-500 transition-colors">
-              <SlidersHorizontal className="w-4 h-4 rotate-90" />
+  return (
+    <div className="admin-bookings-container">
+      <AnimatePresence>
+        {showError && (
+          <motion.div 
+            className="custom-toast error"
+            initial={{ opacity: 0, y: -20, x: '-50%' }}
+            animate={{ opacity: 1, y: 20, x: '-50%' }}
+            exit={{ opacity: 0, y: -20, x: '-50%' }}
+          >
+            <div className="toast-content">
+              <AlertTriangle size={18} />
+              <span>{error}</span>
+            </div>
+            <button className="toast-close" onClick={() => setShowError(false)}>
+              <X size={14} />
             </button>
-            <button onClick={() => setCurrentDate(new Date())} className="px-3 py-2 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors">
-              Today
-            </button>
-            <button onClick={nextMonth} className="p-2 hover:bg-gray-50 rounded-xl border border-gray-200 text-gray-500 transition-colors">
-              <SlidersHorizontal className="w-4 h-4 -rotate-90" />
-            </button>
-          </div>
+            <div className="toast-progress"></div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <header className="admin-header">
+        <div className="header-text">
+          <h1>Booking Dashboard</h1>
+          <p>Review, approve, and manage workspace reservations.</p>
         </div>
+        <button onClick={() => setScannerModal({ open: true, processing: false, feedback: null })} className="btn btn-primary">
+          <ScanLine size={18} /> Scan QR Check-in
+        </button>
+      </header>
 
-        {/* Grid Header */}
-        <div className="grid grid-cols-7 bg-gray-50/50 border-b border-gray-50">
-          {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-            <div key={day} className="py-3 text-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">{day}</div>
+      <div className="admin-toolbar glass-card">
+        <div className="tabs">
+          {[
+            { id: 'PENDING', label: 'Pending', count: pendingCount, color: 'var(--clr-warning)' },
+            { id: 'APPROVED', label: 'Approved', count: approvedCount, color: 'var(--clr-success)' },
+            { id: 'CHECKED_IN', label: 'Checked In', count: checkedInCount, color: 'var(--clr-primary)' }
+          ].map(tab => (
+            <button 
+              key={tab.id} 
+              onClick={() => setActiveTab(tab.id)}
+              className={`tab-btn ${activeTab === tab.id ? 'active' : ''}`}
+            >
+              {tab.label}
+              <span className="count-badge" style={{ backgroundColor: tab.color + '20', color: tab.color }}>{tab.count}</span>
+            </button>
           ))}
         </div>
 
-        {/* Grid Body */}
-        <div className="grid grid-cols-7">
-          {days.map((day, idx) => {
-            if (day === null) return <div key={`empty-${idx}`} className="h-28 border-r border-b border-gray-50 last:border-r-0" />;
-            
-            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-            const dayBookings = bookings.filter(b => b.status === 'APPROVED' && formatBackendDate(b.startTime) === dateStr);
-            const isToday = new Date().toDateString() === new Date(year, month, day).toDateString();
+        <div className="filters">
+          <div className="search-box">
+            <Search size={16} />
+            <input 
+              type="text" 
+              placeholder="Search bookings..." 
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+            />
+          </div>
+          <div className="date-filter">
+            <Calendar size={16} />
+            <input 
+              type="date" 
+              value={filterDate}
+              onChange={e => setFilterDate(e.target.value)}
+            />
+          </div>
+          {(search || filterDate) && (
+            <button onClick={() => { setSearch(''); setFilterDate(''); }} className="clear-btn">
+              <X size={14} /> Clear
+            </button>
+          )}
+        </div>
+      </div>
 
+      {filtered.length === 0 ? (
+        <div className="empty-state glass-card">
+          <SlidersHorizontal size={48} className="empty-icon" />
+          <h3>No bookings found</h3>
+          <p>Try adjusting your filters or search terms.</p>
+        </div>
+      ) : (
+        <div className="admin-grid">
+          {filtered.map(booking => {
+            const status = statusConfig[booking.status] || statusConfig.PENDING;
+            const startDate = new Date(booking.startTime);
+            const endDate = new Date(booking.endTime);
+            
             return (
-              <div 
-                key={day} 
-                onClick={() => setSelectedDay({ dateStr, bookings: dayBookings })}
-                className={`h-28 p-2 border-r border-b border-gray-50 hover:bg-gray-50/50 transition-colors group cursor-pointer relative last:border-r-0 ${isToday ? 'bg-indigo-50/20' : ''}`}
-              >
-                <span className={`text-xs font-bold ${isToday ? 'text-indigo-600 bg-white shadow-sm ring-1 ring-indigo-100' : 'text-gray-400'} w-6 h-6 flex items-center justify-center rounded-lg mb-1`}>
-                  {day}
-                </span>
-                
-                <div className="space-y-1 overflow-y-auto max-h-[70px] pr-1 scrollbar-hide">
-                  {dayBookings.slice(0, 3).map(b => (
-                    <div 
-                      key={b.id} 
-                      className={`text-[9px] px-1.5 py-0.5 rounded-md truncate font-medium border ${
-                        b.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 
-                        b.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border-amber-100' : 
-                        'bg-gray-50 text-gray-500 border-gray-100'
-                      }`}
-                    >
-                      {formatBackendTime(b.startTime)} {b.resourceName}
+              <div key={booking.id} className="admin-card glass-card">
+                <div className="card-top">
+                  <span className="booking-id">ID: {booking.id.toString().slice(-6).toUpperCase()}</span>
+                  <span className="status-badge" style={{ color: status.color, backgroundColor: status.bg }}>
+                    <span className="status-dot" style={{ backgroundColor: status.dot }}></span>
+                    {booking.status}
+                  </span>
+                </div>
+
+                <div className="card-body">
+                  <h3 className="resource-title">{booking.resourceId}</h3>
+                  <div className="user-info">
+                    <div className="user-avatar">{booking.userName?.charAt(0).toUpperCase() || 'U'}</div>
+                    <div className="user-meta-small">
+                      <span className="user-name-small">{booking.userName || 'Unknown User'}</span>
+                      <span className="user-email-small">{booking.userEmail}</span>
                     </div>
-                  ))}
-                  {dayBookings.length > 3 && (
-                    <div className="text-[9px] text-gray-400 font-semibold px-1.5">
-                      + {dayBookings.length - 3} more
+                  </div>
+
+                  <div className="time-details">
+                    <div className="detail-row">
+                      <Calendar size={14} /> <span>{startDate.toLocaleDateString()}</span>
+                    </div>
+                    <div className="detail-row">
+                      <Clock size={14} /> <span>{startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                    <div className="detail-row">
+                      <Users size={14} /> <span>{booking.attendees} attendees</span>
+                    </div>
+                    <div className="purpose-text-small">{booking.purpose}</div>
+                  </div>
+                </div>
+
+                <div className="card-footer">
+                  {booking.status === 'PENDING' && (
+                    <div className="action-buttons">
+                      <button onClick={() => handleStatusChange(booking.id, 'APPROVED')} className="btn-action approve">
+                        <CheckCircle size={16} /> Approve
+                      </button>
+                      <button onClick={() => setRejectModal({ open: true, booking, reason: '' })} className="btn-action reject">
+                        <XCircle size={16} /> Reject
+                      </button>
+                    </div>
+                  )}
+                  {(booking.status === 'APPROVED' || booking.status === 'CONFIRMED') && (
+                    <button onClick={() => handleStatusChange(booking.id, 'CANCELLED')} className="btn btn-ghost btn-sm w-full">
+                      <ShieldX size={14} /> Cancel Approval
+                    </button>
+                  )}
+                  {booking.status === 'CHECKED_IN' && (
+                    <div className="check-in-info">
+                      <CheckCircle size={14} className="text-success" />
+                      <span>Checked-in: {new Date(booking.checkedInAt).toLocaleTimeString()}</span>
                     </div>
                   )}
                 </div>
@@ -219,355 +282,192 @@ export function AdminBookingsPage() {
             );
           })}
         </div>
-      </div>
-    );
-  };
+      )}
 
-  return (
-    <div className="space-y-7">
-
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">Booking Dashboard</h1>
-          <p className="text-gray-500 mt-1 text-sm">Review, approve, and manage workspace reservations.</p>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> {stats.pending} Pending
-          </span>
-          <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" /> {stats.approved} Approved
-          </span>
-          {bookings.filter(b => hasConflict(b, bookings)).length > 0 && (
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
-              <AlertTriangle className="w-3.5 h-3.5 text-rose-500" /> 
-              {bookings.filter(b => hasConflict(b, bookings)).length} Overlaps
-            </span>
-          )}
-        </div>
-      </div>
-
-      {/* Filter + Tabs bar */}
-      <div className="bg-white border border-gray-100 rounded-2xl shadow-card p-4">
-        <div className="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center">
-
-          {/* Tabs */}
-          <div className="flex bg-gray-100 p-1 rounded-xl shrink-0 gap-1">
-            {['PENDING', 'APPROVED'].map(tab => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-4 py-1.5 rounded-lg text-sm transition-all ${activeTab === tab ? TAB_STYLES.active : TAB_STYLES.inactive}`}
-              >
-                {tab[0] + tab.slice(1).toLowerCase()}
-                <span className={`ml-2 text-xs px-1.5 py-0.5 rounded-full font-medium ${activeTab === tab ? 'bg-indigo-50 text-indigo-600' : 'bg-gray-200 text-gray-500'}`}>
-                  {tab === 'PENDING' ? stats.pending : stats.approved}
-                </span>
-              </button>
-            ))}
-          </div>
-
-          {/* View Toggle */}
-          <div className="flex bg-gray-100 p-1 rounded-xl shrink-0 gap-1">
-            <button
-              onClick={() => setViewMode('GRID')}
-              className={`px-4 py-1.5 rounded-lg text-sm transition-all ${viewMode === 'GRID' ? TAB_STYLES.active : TAB_STYLES.inactive}`}
-            >
-              List
-            </button>
-            <button
-              onClick={() => setViewMode('CALENDAR')}
-              className={`px-4 py-1.5 rounded-lg text-sm transition-all ${viewMode === 'CALENDAR' ? TAB_STYLES.active : TAB_STYLES.inactive}`}
-            >
-              Calendar
-            </button>
-          </div>
-
-          {/* Filters */}
-          <div className="flex flex-col sm:flex-row gap-2 flex-1">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 pointer-events-none" />
-              <input
-                type="text"
-                placeholder="Search by user, resource, or ID…"
-                className={`${inputClass} pl-9`}
-                value={search}
-                onChange={e => setSearch(e.target.value)}
-              />
-            </div>
-
-            {/* Conflict Toggle */}
-            <button
-              onClick={() => setShowConflictsOnly(!showConflictsOnly)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all text-sm font-medium whitespace-nowrap ${
-                showConflictsOnly 
-                ? 'bg-rose-50 border-rose-200 text-rose-700 ring-2 ring-rose-500/10' 
-                : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
-              }`}
-            >
-              <AlertTriangle className={`w-4 h-4 ${showConflictsOnly ? 'text-rose-500' : 'text-gray-300'}`} />
-              Conflicts Only
-            </button>
-
-            <div className="relative sm:w-44">
-              <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 pointer-events-none" />
-              <input type="date" className={`${inputClass} pl-9`} value={filterDate} onChange={e => setFilterDate(e.target.value)} />
-            </div>
-            <div className="relative sm:w-36">
-              <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-300 pointer-events-none" />
-              <input type="time" className={`${inputClass} pl-9`} value={filterTime} onChange={e => setFilterTime(e.target.value)} />
-            </div>
-            {(search || filterDate || filterTime) && (
-              <button
-                onClick={() => { setSearch(''); setFilterDate(''); setFilterTime(''); }}
-                className="text-sm text-gray-400 hover:text-gray-700 px-3 py-2 rounded-xl hover:bg-gray-50 transition-colors whitespace-nowrap"
-              >
-                Clear all
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-    {loading ? (
-      <div className="flex items-center justify-center py-20">
-        <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-      </div>
-    ) : viewMode === 'CALENDAR' ? (
-      <CalendarView />
-    ) : filtered.length === 0 ? (
-      <div className="flex flex-col items-center justify-center py-20 bg-white border border-gray-100 border-dashed rounded-2xl gap-3 text-center">
-        <SlidersHorizontal className="w-10 h-10 text-gray-200" />
-        <p className="font-semibold text-gray-500">No {activeTab.toLowerCase()} bookings found</p>
-        <p className="text-sm text-gray-400">Try adjusting your search or filters.</p>
-      </div>
-    ) : (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {filtered.map(booking => {
-          const conflict = hasConflict(booking, bookings);
-          const { color, dot } = statusConfig[booking.status];
-          return (
-            <div
-              key={booking.id}
-              className={`bg-white border rounded-2xl shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200 flex flex-col ${conflict ? 'border-amber-200 ring-1 ring-amber-100' : 'border-gray-100'}`}
-            >
-              <div className="p-5 flex flex-col flex-1">
-                <div className="flex items-start justify-between mb-3">
-                  <span className="text-[10px] font-bold text-gray-400 tracking-widest uppercase bg-gray-50 border border-gray-100 px-2 py-1 rounded-md">{booking.id}</span>
-                  <span className={`inline-flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1 rounded-full border ${color}`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
-                    {booking.status}
-                  </span>
-                </div>
-
-                <h2 className="font-semibold text-gray-900 text-lg leading-snug mb-1">{booking.resourceName}</h2>
-
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[9px] font-bold shrink-0">
-                    {(booking.userName || 'U').substring(0, 2).toUpperCase()}
-                  </div>
-                  <span className="text-sm text-gray-400">{booking.userName}</span>
-                </div>
-
-                  {/* Conflict alert */}
-                  {conflict && (
-                    <div className="flex items-center gap-2 text-xs font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mb-3">
-                      <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                      Conflicts with an approved booking
-                    </div>
-                  )}
-
-                  {/* Details */}
-                  <div className="space-y-2 flex-1 mb-4">
-                    <div className="flex items-center gap-2.5 text-sm text-gray-500">
-                      <Calendar className="w-3.5 h-3.5 text-gray-300 shrink-0" /> {formatBackendDate(booking.startTime)}
-                    </div>
-                    <div className="flex items-center gap-2.5 text-sm text-gray-500">
-                      <Clock className="w-3.5 h-3.5 text-gray-300 shrink-0" />
-                      <span className={conflict ? 'text-amber-700 font-semibold' : ''}>{formatBackendTime(booking.startTime)} – {formatBackendTime(booking.endTime)}</span>
-                    </div>
-                    <div className="flex items-center gap-2.5 text-sm text-gray-500">
-                      <Users className="w-3.5 h-3.5 text-gray-300 shrink-0" /> {booking.attendees} attendees
-                    </div>
-                    <div className="flex items-start gap-2.5 text-sm text-gray-500">
-                      <MapPin className="w-3.5 h-3.5 text-gray-300 shrink-0 mt-0.5" />
-                      <span className="line-clamp-2">{booking.purpose}</span>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="pt-3 border-t border-gray-100 mt-auto">
-                    {booking.status === 'PENDING' && (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => openApprove(booking)}
-                          disabled={conflict}
-                          title={conflict ? 'Cannot approve — scheduling conflict detected' : 'Approve this booking'}
-                          className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed rounded-xl transition-colors"
-                        >
-                          <CheckCircle className="w-4 h-4" /> Approve
-                        </button>
-                        <button
-                          onClick={() => openReject(booking, conflict)}
-                          className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 text-sm font-semibold text-red-600 border border-red-200 hover:bg-red-50 rounded-xl transition-colors"
-                        >
-                          <XCircle className="w-4 h-4" /> Reject
-                        </button>
-                      </div>
-                    )}
-                    {booking.status === 'APPROVED' && (
-                      <button
-                        onClick={() => cancel(booking.id)}
-                        className="w-full flex items-center justify-center gap-2 py-2 px-3 text-sm font-medium text-gray-600 border border-gray-200 hover:bg-gray-50 rounded-xl transition-colors"
-                      >
-                        <ShieldX className="w-4 h-4" /> Cancel Approval
-                      </button>
-                    )}
-                  </div>
-
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    )}
-
-      {/* Rejection Modal (already exists) */}
+      {/* Reject Modal */}
       {rejectModal.open && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-gray-100">
-            <div className="p-6 text-center">
-              <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <XCircle className="w-6 h-6 text-red-500" />
-              </div>
-              <h3 className="font-bold text-gray-900 text-lg mb-1">Reject Booking?</h3>
-              <p className="text-sm text-gray-500 mb-6">
-                Are you sure you want to reject <span className="font-medium text-gray-700">{rejectModal.booking?.resourceName}</span> for <span className="font-medium text-gray-700">{rejectModal.booking?.userName}</span>?
-              </p>
-              <textarea
-                className="w-full h-24 px-3.5 py-2.5 text-sm text-gray-900 bg-gray-50 border border-gray-200 rounded-xl resize-none focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-400 transition-all mb-4"
-                placeholder="Reason for rejection (required)…"
+        <div className="modal-overlay" onClick={() => setRejectModal({ open: false, booking: null, reason: '' })}>
+          <div className="modal-content glass-card" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Reject Booking</h3>
+              <button onClick={() => setRejectModal({ open: false, booking: null, reason: '' })} className="close-btn"><X size={20} /></button>
+            </div>
+            <div className="modal-body">
+              <p>Reason for rejecting <strong>{rejectModal.booking?.resourceId}</strong>:</p>
+              <textarea 
                 value={rejectModal.reason}
                 onChange={e => setRejectModal(m => ({ ...m, reason: e.target.value }))}
-                autoFocus
+                placeholder="Enter rejection reason..."
+                className="form-control"
               />
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setRejectModal({ open: false, booking: null, reason: '' })}
-                  className="flex-1 py-2.5 text-sm font-medium text-gray-600 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={confirmReject}
-                  disabled={!rejectModal.reason.trim()}
-                  className="flex-1 py-2.5 text-sm font-bold text-white bg-red-500 hover:bg-red-600 disabled:opacity-50 rounded-xl shadow-sm transition-colors"
-                >
-                  Confirm Reject
-                </button>
-              </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Approve Confirmation Modal */}
-      {approveConfirmModal.open && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md border border-gray-100">
-            <div className="p-6 text-center">
-              <div className="w-12 h-12 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="w-6 h-6 text-emerald-500" />
-              </div>
-              <h3 className="font-bold text-gray-900 text-lg mb-1">Confirm Approval</h3>
-              <p className="text-sm text-gray-500 mb-6 px-2">
-                You are about to approve the <span className="font-medium text-gray-900">{approveConfirmModal.booking?.resourceName}</span> booking for <span className="font-medium text-gray-900">{approveConfirmModal.booking?.userName}</span>. This will notify the user.
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={() => setApproveConfirmModal({ open: false, booking: null })}
-                  className="flex-1 py-2.5 text-sm font-medium text-gray-600 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                >
-                  Go Back
-                </button>
-                <button
-                  onClick={confirmApprove}
-                  className="flex-1 py-2.5 text-sm font-bold text-white bg-emerald-500 hover:bg-emerald-600 rounded-xl shadow-sm transition-colors"
-                >
-                  Yes, Approve
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Day Detail Sidebar/Modal */}
-      {selectedDay && (
-        <div className="fixed inset-0 z-50 flex justify-end bg-gray-900/20 backdrop-blur-[2px]">
-          <div className="w-full max-w-md bg-white h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
-            <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-              <div>
-                <h3 className="font-bold text-gray-900 text-lg">Bookings for {new Date(selectedDay.dateStr).toLocaleDateString('default', { month: 'long', day: 'numeric', year: 'numeric' })}</h3>
-                <p className="text-xs text-gray-400 mt-0.5">{selectedDay.bookings.length} reservations scheduled</p>
-              </div>
+            <div className="modal-footer">
+              <button onClick={() => setRejectModal({ open: false, booking: null, reason: '' })} className="btn btn-ghost">Cancel</button>
               <button 
-                onClick={() => setSelectedDay(null)}
-                className="p-2 hover:bg-gray-100 rounded-full text-gray-400 transition-colors"
+                onClick={() => {
+                  handleStatusChange(rejectModal.booking.id, 'REJECTED');
+                  setRejectModal({ open: false, booking: null, reason: '' });
+                }} 
+                className="btn btn-danger"
+                disabled={!rejectModal.reason.trim()}
               >
-                <XCircle className="w-6 h-6" />
+                Confirm Reject
               </button>
             </div>
+          </div>
+        </div>
+      )}
 
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
-              {selectedDay.bookings.length === 0 ? (
-                <div className="text-center py-12">
-                  <Calendar className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-                  <p className="text-gray-400 text-sm">No bookings for this date.</p>
+      {/* Scanner Modal */}
+      {scannerModal.open && (
+        <div className="modal-overlay" onClick={() => setScannerModal({ open: false, processing: false, feedback: null })}>
+          <div className="modal-content scanner-modal glass-card" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="flex items-center gap-2">
+                <QrCode size={20} className="text-primary" />
+                <h3>Scan Check-in QR</h3>
+              </div>
+              <button onClick={() => setScannerModal({ open: false, processing: false, feedback: null })} className="close-btn"><X size={20} /></button>
+            </div>
+            
+            <div id="reader" className="scanner-view">
+              {scannerModal.processing && (
+                <div className="scanner-overlay">
+                  <Loader2 size={32} className="animate-spin" />
+                  <p>{scannerModal.feedback}</p>
                 </div>
-              ) : (
-                selectedDay.bookings.sort((a,b) => parseTime(a.startTime) - parseTime(b.startTime)).map(b => {
-                  const { color, dot } = statusConfig[b.status];
-                  return (
-                    <div key={b.id} className="p-4 rounded-2xl border border-gray-100 bg-gray-50/50 space-y-3">
-                      <div className="flex items-center justify-between">
-                        <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full border ${color}`}>
-                           <span className={`w-1 h-1 rounded-full ${dot}`} />
-                           {b.status}
-                        </span>
-                        <span className="text-[10px] font-bold text-gray-300 tracking-widest uppercase">#{b.id}</span>
-                      </div>
-                      <div>
-                        <h4 className="font-semibold text-gray-900 leading-none mb-1">{b.resourceName}</h4>
-                        <p className="text-xs text-gray-500 font-medium">{formatBackendTime(b.startTime)} – {formatBackendTime(b.endTime)}</p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                         <div className="flex items-center gap-1 text-[11px] text-gray-400">
-                           <Users className="w-3 h-3" /> {b.attendees}
-                         </div>
-                         <div className="flex items-center gap-1 text-[11px] text-gray-400">
-                           <Calendar className="w-3 h-3" /> {b.userName}
-                         </div>
-                      </div>
-                    </div>
-                  );
-                })
+              )}
+              {scannerModal.feedback && !scannerModal.processing && (
+                <div className={`scanner-overlay ${scannerModal.feedback.includes('Error') ? 'error' : 'success'}`}>
+                  {scannerModal.feedback.includes('Error') ? <XCircle size={32} /> : <CheckCircle size={32} />}
+                  <p>{scannerModal.feedback}</p>
+                </div>
               )}
             </div>
 
-            <div className="p-6 border-t border-gray-100">
-               <button 
-                onClick={() => setSelectedDay(null)}
-                className="w-full py-3 bg-gray-900 text-white font-bold rounded-2xl hover:bg-gray-800 transition-colors shadow-lg shadow-gray-200"
-               >
-                 Close Overview
-               </button>
+            <div className="scanner-footer">
+              <p>Position the student's QR code within the frame to validate.</p>
             </div>
           </div>
         </div>
       )}
 
+      <style>{`
+        .admin-bookings-container { max-width: 1400px; margin: 40px auto; padding: 0 24px; }
+        .admin-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; flex-wrap: wrap; gap: 20px; }
+        .header-text h1 { font-size: 32px; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.5px; }
+        .header-text p { color: var(--clr-text-muted); font-size: 15px; }
+
+        .admin-toolbar { padding: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; flex-wrap: wrap; gap: 20px; border-radius: 16px; }
+        
+        .tabs { display: flex; gap: 8px; background: rgba(0,0,0,0.2); padding: 4px; border-radius: 12px; }
+        .tab-btn { 
+          display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-radius: 8px; 
+          font-size: 13px; font-weight: 600; color: var(--clr-text-muted); transition: all 0.2s; border: none; background: none; cursor: pointer;
+        }
+        .tab-btn.active { background: var(--clr-bg-card); color: var(--clr-text); box-shadow: var(--shadow-sm); }
+        .count-badge { font-size: 10px; padding: 1px 6px; border-radius: 10px; font-weight: 700; }
+
+        .filters { display: flex; gap: 12px; align-items: center; }
+        .search-box, .date-filter { 
+          display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.2); 
+          padding: 8px 14px; border-radius: 10px; border: 1px solid var(--clr-border);
+        }
+        .search-box input, .date-filter input { background: none; border: none; color: var(--clr-text); font-size: 13px; outline: none; }
+        .clear-btn { background: none; border: none; color: var(--clr-text-muted); font-size: 13px; display: flex; align-items: center; gap: 4px; cursor: pointer; }
+        .clear-btn:hover { color: var(--clr-text); }
+
+        .admin-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 24px; }
+        .admin-card { padding: 24px; display: flex; flex-direction: column; gap: 16px; }
+        
+        .card-top { display: flex; justify-content: space-between; align-items: center; }
+        .booking-id { font-size: 10px; font-weight: 700; color: var(--clr-text-faint); }
+        .status-badge { display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 700; padding: 4px 10px; border-radius: 20px; }
+        .status-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+        .resource-title { font-size: 18px; font-weight: 700; color: var(--clr-text); }
+        .user-info { display: flex; align-items: center; gap: 10px; }
+        .user-avatar { width: 24px; height: 24px; border-radius: 6px; background: var(--clr-primary); color: #fff; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+        .user-meta-small { display: flex; flex-direction: column; gap: 1px; }
+        .user-name-small { font-size: 13px; font-weight: 600; color: var(--clr-text); }
+        .user-email-small { font-size: 10px; color: var(--clr-text-faint); }
+
+        .time-details { display: flex; flex-direction: column; gap: 6px; }
+        .detail-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--clr-text-muted); }
+        .purpose-text-small { font-size: 12px; color: var(--clr-text-muted); font-style: italic; margin-top: 4px; padding-left: 10px; border-left: 1px solid var(--clr-border); }
+
+        .card-footer { margin-top: auto; padding-top: 16px; border-top: 1px solid var(--clr-border); }
+        .action-buttons { display: flex; gap: 10px; }
+        .btn-action { 
+          flex: 1; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 10px; border-radius: 10px; 
+          font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s;
+        }
+        .btn-action.approve { background: var(--clr-success); color: #fff; }
+        .btn-action.reject { background: rgba(248,81,73,0.1); color: var(--clr-danger); border: 1px solid rgba(248,81,73,0.2); }
+        .btn-action:hover { transform: translateY(-2px); }
+        
+        .check-in-info { display: flex; align-items: center; gap: 8px; justify-content: center; font-size: 12px; font-weight: 600; color: var(--clr-success); }
+
+        .empty-state { text-align: center; padding: 80px 40px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
+        .empty-icon { color: var(--clr-text-faint); margin-bottom: 8px; }
+
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); z-index: 2000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .modal-content { width: 100%; max-width: 500px; padding: 32px; display: flex; flex-direction: column; gap: 24px; }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; }
+        .close-btn { background: none; border: none; color: var(--clr-text-muted); cursor: pointer; }
+        .modal-body { display: flex; flex-direction: column; gap: 12px; }
+        .modal-footer { display: flex; justify-content: flex-end; gap: 12px; }
+
+        .scanner-modal { max-width: 400px; }
+        .scanner-view { 
+          width: 100%; aspect-ratio: 1; background: #000; border-radius: 16px; position: relative; overflow: hidden; 
+          border: 2px dashed var(--clr-border);
+        }
+        .scanner-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.7); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; color: #fff; text-align: center; padding: 20px; }
+        .scanner-overlay.success { color: var(--clr-success); }
+        .scanner-overlay.error { color: var(--clr-danger); }
+        .scanner-footer { text-align: center; font-size: 12px; color: var(--clr-text-muted); }
+        
+        .animate-spin { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .w-full { width: 100%; }
+        .text-success { color: var(--clr-success); }
+
+        /* ── Custom Toast ── */
+        .custom-toast {
+          position: fixed;
+          top: 0;
+          left: 50%;
+          z-index: 9999;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          padding: 12px 20px;
+          background: rgba(248, 81, 73, 0.95);
+          backdrop-filter: blur(8px);
+          border: 1px solid rgba(248, 81, 73, 0.2);
+          border-radius: 12px;
+          color: #fff;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+          min-width: 320px;
+          max-width: 90vw;
+          justify-content: space-between;
+        }
+        .toast-content { display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 500; }
+        .toast-close { background: none; border: none; color: rgba(255,255,255,0.7); cursor: pointer; padding: 4px; display: flex; }
+        .toast-close:hover { color: #fff; }
+        .toast-progress {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          height: 3px;
+          background: rgba(255,255,255,0.3);
+          width: 100%;
+          animation: progress 3s linear forwards;
+          border-bottom-left-radius: 12px;
+        }
+        @keyframes progress { from { width: 100%; } to { width: 0%; } }
+      `}</style>
     </div>
   );
 }
