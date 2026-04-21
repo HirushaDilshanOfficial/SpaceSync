@@ -21,6 +21,8 @@ export function AdminBookingsPage() {
   const [search, setSearch] = useState('');
   const [filterDate, setFilterDate] = useState('');
   const [rejectModal, setRejectModal] = useState({ open: false, booking: null, reason: '' });
+  const [approveModal, setApproveModal] = useState({ open: false, booking: null });
+  const [cancelModal, setCancelModal] = useState({ open: false, booking: null, reason: '' });
   const [scannerModal, setScannerModal] = useState({ open: false, processing: false, feedback: null });
   const [error, setError] = useState('');
   const [showError, setShowError] = useState(false);
@@ -52,8 +54,11 @@ export function AdminBookingsPage() {
   }, []);
 
   const filtered = bookings.filter(b => {
-    const status = (b.status === 'CONFIRMED' || b.status === 'APPROVED') ? 'APPROVED' : b.status;
-    if (status !== activeTab && b.status !== activeTab) return false;
+    let statusGroup = b.status;
+    if (b.status === 'CONFIRMED' || b.status === 'APPROVED') statusGroup = 'APPROVED';
+    if (b.status === 'REJECTED' || b.status === 'CANCELLED') statusGroup = 'DECLINED';
+    
+    if (statusGroup !== activeTab) return false;
     
     const s = search.toLowerCase();
     if (s && !b.resourceId.toLowerCase().includes(s) && !b.userId.toLowerCase().includes(s) && !`BKG-${b.id}`.toLowerCase().includes(s)) return false;
@@ -62,10 +67,11 @@ export function AdminBookingsPage() {
     return true;
   });
 
-  const handleStatusChange = async (id, status) => {
+  const handleStatusChange = async (id, status, reason = '') => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/bookings/${id}/status?status=${status}`, {
+      const url = `/api/bookings/${id}/status?status=${status}` + (reason ? `&rejectReason=${encodeURIComponent(reason)}` : '');
+      const response = await fetch(url, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -119,6 +125,7 @@ export function AdminBookingsPage() {
   const pendingCount = bookings.filter(b => b.status === 'PENDING').length;
   const approvedCount = bookings.filter(b => b.status === 'APPROVED' || b.status === 'CONFIRMED').length;
   const checkedInCount = bookings.filter(b => b.status === 'CHECKED_IN').length;
+  const declinedCount = bookings.filter(b => b.status === 'REJECTED' || b.status === 'CANCELLED').length;
 
   if (loading && bookings.length === 0) return (
     <div className="admin-loading">
@@ -169,7 +176,8 @@ export function AdminBookingsPage() {
           {[
             { id: 'PENDING', label: 'Pending', count: pendingCount, color: 'var(--clr-warning)' },
             { id: 'APPROVED', label: 'Approved', count: approvedCount, color: 'var(--clr-success)' },
-            { id: 'CHECKED_IN', label: 'Checked In', count: checkedInCount, color: 'var(--clr-primary)' }
+            { id: 'CHECKED_IN', label: 'Checked In', count: checkedInCount, color: 'var(--clr-primary)' },
+            { id: 'DECLINED', label: 'Declined/Cancelled', count: declinedCount, color: 'var(--clr-danger)' }
           ].map(tab => (
             <button 
               key={tab.id} 
@@ -252,13 +260,18 @@ export function AdminBookingsPage() {
                       <Users size={14} /> <span>{booking.attendees} attendees</span>
                     </div>
                     <div className="purpose-text-small">{booking.purpose}</div>
+                    {(booking.status === 'REJECTED' || booking.status === 'CANCELLED') && booking.rejectReason && (
+                      <div className="reason-text-small mt-2" style={{ color: 'var(--clr-danger)', fontSize: '12px', background: 'rgba(248,81,73,0.1)', padding: '6px 10px', borderRadius: '6px', borderLeft: '2px solid var(--clr-danger)' }}>
+                        <strong>Reason:</strong> {booking.rejectReason}
+                      </div>
+                    )}
                   </div>
                 </div>
 
                 <div className="card-footer">
                   {booking.status === 'PENDING' && (
                     <div className="action-buttons">
-                      <button onClick={() => handleStatusChange(booking.id, 'APPROVED')} className="btn-action approve">
+                      <button onClick={() => setApproveModal({ open: true, booking })} className="btn-action approve">
                         <CheckCircle size={16} /> Approve
                       </button>
                       <button onClick={() => setRejectModal({ open: true, booking, reason: '' })} className="btn-action reject">
@@ -267,7 +280,7 @@ export function AdminBookingsPage() {
                     </div>
                   )}
                   {(booking.status === 'APPROVED' || booking.status === 'CONFIRMED') && (
-                    <button onClick={() => handleStatusChange(booking.id, 'CANCELLED')} className="btn btn-ghost btn-sm w-full">
+                    <button onClick={() => setCancelModal({ open: true, booking, reason: '' })} className="btn btn-ghost btn-sm w-full">
                       <ShieldX size={14} /> Cancel Approval
                     </button>
                   )}
@@ -281,6 +294,34 @@ export function AdminBookingsPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Approve Modal */}
+      {approveModal.open && (
+        <div className="modal-overlay" onClick={() => setApproveModal({ open: false, booking: null })}>
+          <div className="modal-content glass-card" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Confirm Approval</h3>
+              <button onClick={() => setApproveModal({ open: false, booking: null })} className="close-btn"><X size={20} /></button>
+            </div>
+            <div className="modal-body">
+              <p>Are you sure you want to approve the booking for <strong>{approveModal.booking?.resourceId}</strong>?</p>
+              <p style={{ fontSize: '13px', color: 'var(--clr-text-muted)' }}>An email confirmation will be sent to the user.</p>
+            </div>
+            <div className="modal-footer">
+              <button onClick={() => setApproveModal({ open: false, booking: null })} className="btn btn-ghost">Cancel</button>
+              <button 
+                onClick={() => {
+                  handleStatusChange(approveModal.booking.id, 'APPROVED');
+                  setApproveModal({ open: false, booking: null });
+                }} 
+                className="btn btn-success"
+              >
+                Confirm Approve
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -305,13 +346,48 @@ export function AdminBookingsPage() {
               <button onClick={() => setRejectModal({ open: false, booking: null, reason: '' })} className="btn btn-ghost">Cancel</button>
               <button 
                 onClick={() => {
-                  handleStatusChange(rejectModal.booking.id, 'REJECTED');
+                  handleStatusChange(rejectModal.booking.id, 'REJECTED', rejectModal.reason);
                   setRejectModal({ open: false, booking: null, reason: '' });
                 }} 
                 className="btn btn-danger"
                 disabled={!rejectModal.reason.trim()}
               >
                 Confirm Reject
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Modal */}
+      {cancelModal.open && (
+        <div className="modal-overlay" onClick={() => setCancelModal({ open: false, booking: null, reason: '' })}>
+          <div className="modal-content glass-card" onClick={e => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Cancel Approved Booking</h3>
+              <button onClick={() => setCancelModal({ open: false, booking: null, reason: '' })} className="close-btn"><X size={20} /></button>
+            </div>
+            <div className="modal-body">
+              <p>Reason for cancelling <strong>{cancelModal.booking?.resourceId}</strong>:</p>
+              <textarea 
+                value={cancelModal.reason}
+                onChange={e => setCancelModal(m => ({ ...m, reason: e.target.value }))}
+                placeholder="Enter cancellation reason..."
+                className="form-control"
+              />
+              <p style={{ fontSize: '13px', color: 'var(--clr-text-muted)' }}>The user will receive an email about this cancellation.</p>
+            </div>
+            <div className="modal-footer">
+              <button onClick={() => setCancelModal({ open: false, booking: null, reason: '' })} className="btn btn-ghost">Back</button>
+              <button 
+                onClick={() => {
+                  handleStatusChange(cancelModal.booking.id, 'CANCELLED', cancelModal.reason);
+                  setCancelModal({ open: false, booking: null, reason: '' });
+                }} 
+                className="btn btn-danger"
+                disabled={!cancelModal.reason.trim()}
+              >
+                Confirm Cancel
               </button>
             </div>
           </div>
@@ -405,6 +481,9 @@ export function AdminBookingsPage() {
         .btn-action.approve { background: var(--clr-success); color: #fff; }
         .btn-action.reject { background: rgba(248,81,73,0.1); color: var(--clr-danger); border: 1px solid rgba(248,81,73,0.2); }
         .btn-action:hover { transform: translateY(-2px); }
+        
+        .btn-success { background: var(--clr-success); color: #fff; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
+        .btn-success:hover { filter: brightness(1.1); }
         
         .check-in-info { display: flex; align-items: center; gap: 8px; justify-content: center; font-size: 12px; font-weight: 600; color: var(--clr-success); }
 

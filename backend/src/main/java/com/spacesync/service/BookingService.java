@@ -21,6 +21,9 @@ public class BookingService {
     private final BookingRepository bookingRepository;
     private final com.spacesync.repository.ResourceRepository resourceRepository;
     private final com.spacesync.repository.IncidentTicketRepository incidentTicketRepository;
+    private final com.spacesync.user.UserRepository userRepository;
+    private final EmailService emailService;
+    private final EmailTemplateService emailTemplateService;
     private final QrCodeService qrCodeService;
 
     public byte[] getQrCodeBytes(Long bookingId) {
@@ -100,10 +103,33 @@ public class BookingService {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Booking not found with id: " + id));
         booking.setStatus(status);
-        if (status == BookingStatus.REJECTED && rejectReason != null) {
+        if ((status == BookingStatus.REJECTED || status == BookingStatus.CANCELLED) && rejectReason != null) {
             booking.setRejectReason(rejectReason);
         }
         Booking updatedBooking = bookingRepository.save(booking);
+        
+        com.spacesync.user.User user = userRepository.findById(booking.getUserId()).orElse(null);
+
+        if (user != null && user.getEmail() != null) {
+            String userName = user.getName() != null ? user.getName() : "User";
+            String startStr = booking.getStartTime().toString().replace("T", " ");
+            String endStr = booking.getEndTime().toString().replace("T", " ");
+            String resourceName = resourceRepository.findById(booking.getResourceId())
+                .map(com.spacesync.entity.Resource::getName)
+                .orElse(booking.getResourceId());
+
+            if (status == BookingStatus.APPROVED) {
+                String htmlBody = emailTemplateService.buildApprovalEmail(userName, resourceName, startStr, endStr);
+                emailService.sendEmail(user.getEmail(), "Booking Approved - SpaceSync", htmlBody);
+            } else if (status == BookingStatus.REJECTED) {
+                String htmlBody = emailTemplateService.buildRejectionEmail(userName, resourceName, startStr, endStr, rejectReason);
+                emailService.sendEmail(user.getEmail(), "Booking Rejected - SpaceSync", htmlBody);
+            } else if (status == BookingStatus.CANCELLED) {
+                String htmlBody = emailTemplateService.buildCancellationEmail(userName, resourceName, startStr, endStr, rejectReason);
+                emailService.sendEmail(user.getEmail(), "Booking Cancelled - SpaceSync", htmlBody);
+            }
+        }
+
         return mapToResponseDTO(updatedBooking);
     }
 
@@ -120,10 +146,15 @@ public class BookingService {
                 .map(com.spacesync.entity.Resource::getName)
                 .orElse("Unknown Resource");
 
+        com.spacesync.user.User user = userRepository.findById(booking.getUserId()).orElse(null);
+        String userName = user != null && user.getName() != null ? user.getName() : "Unknown User";
+        String userEmail = user != null && user.getEmail() != null ? user.getEmail() : "";
+
         return BookingResponseDTO.builder()
                 .id(booking.getId())
                 .userId(booking.getUserId())
-                .userName("User " + booking.getUserId()) // Standardized mock for now
+                .userName(userName)
+                .userEmail(userEmail)
                 .resourceId(booking.getResourceId())
                 .resourceName(resourceName)
                 .startTime(booking.getStartTime())
