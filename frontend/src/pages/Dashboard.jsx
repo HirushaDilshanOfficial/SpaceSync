@@ -27,6 +27,7 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [incidentsCount, setIncidentsCount] = useState(0);
 
   useEffect(() => {
     const fetchBookings = async () => {
@@ -53,6 +54,27 @@ export default function Dashboard() {
     fetchBookings();
   }, [user?.id]);
 
+  useEffect(() => {
+    const fetchIncidents = async () => {
+      try {
+        if (!user?.email) return;
+        const token = localStorage.getItem('token');
+        const response = await fetch(`/api/incidents/reported-by?userId=${user.email}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setIncidentsCount(data.length);
+        }
+      } catch (err) {
+        console.error('Incidents count fetch error:', err);
+      }
+    };
+    fetchIncidents();
+  }, [user?.email]);
+
   const upcomingBooking = bookings.find(b => 
     (b.status === 'APPROVED' || b.status === 'CHECKED_IN') && 
     new Date(b.endTime) > new Date()
@@ -61,6 +83,7 @@ export default function Dashboard() {
   const stats = [
     { label: 'Upcoming', value: bookings.filter(b => b.status === 'APPROVED').length, icon: Calendar, color: 'var(--clr-primary)' },
     { label: 'Completed', value: bookings.filter(b => b.status === 'CHECKED_IN').length, icon: CheckCircle, color: 'var(--clr-success)' },
+    { label: 'Reports', value: incidentsCount, icon: AlertTriangle, color: 'var(--clr-warning)', onClick: () => navigate('/my-reports') },
     { label: 'Alerts', value: unreadCount, icon: Bell, color: 'var(--clr-accent)' },
   ];
 
@@ -115,6 +138,10 @@ export default function Dashboard() {
             </div>
           </div>
           <motion.div variants={itemVariants} className="header-actions" style={{ display: 'flex', gap: '12px' }}>
+            <button className="btn btn-ghost border-indigo-100 text-indigo-600" onClick={() => navigate('/my-reports')}>
+              <BookOpen size={18} />
+              <span>My Reports</span>
+            </button>
             <button className="btn btn-ghost border-indigo-100 text-indigo-600" onClick={() => navigate('/report-incident')}>
               <AlertTriangle size={18} />
               <span>Report Issue</span>
@@ -133,6 +160,8 @@ export default function Dashboard() {
               key={idx} 
               variants={itemVariants} 
               className="stat-card glass-card"
+              onClick={stat.onClick}
+              style={{ cursor: stat.onClick ? 'pointer' : 'default' }}
             >
               <div className="stat-icon" style={{ backgroundColor: `${stat.color}15`, color: stat.color }}>
                 <stat.icon size={20} />

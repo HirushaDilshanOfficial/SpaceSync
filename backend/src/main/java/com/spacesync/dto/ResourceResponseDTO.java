@@ -18,6 +18,7 @@ public class ResourceResponseDTO {
     private String location;
     private String building;
     private String description;
+    private String imageUrl;
     private ResourceStatus status;
     private LocalTime availabilityStart;
     private LocalTime availabilityEnd;
