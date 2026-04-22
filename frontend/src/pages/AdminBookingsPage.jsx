@@ -23,7 +23,7 @@ export function AdminBookingsPage() {
   const [rejectModal, setRejectModal] = useState({ open: false, booking: null, reason: '' });
   const [approveModal, setApproveModal] = useState({ open: false, booking: null });
   const [cancelModal, setCancelModal] = useState({ open: false, booking: null, reason: '' });
-  const [scannerModal, setScannerModal] = useState({ open: false, processing: false, feedback: null });
+  const [scannerModal, setScannerModal] = useState({ open: false, processing: false, feedback: null, scannedBooking: null });
   const [error, setError] = useState('');
   const [showError, setShowError] = useState(false);
 
@@ -96,11 +96,13 @@ export function AdminBookingsPage() {
       const data = await response.json();
       
       if (response.ok) {
-        setScannerModal(prev => ({ ...prev, feedback: `Success! Checked-in ${data.userId}`, processing: false }));
-        setTimeout(() => {
-          setScannerModal({ open: false, processing: false, feedback: null });
-          fetchBookings();
-        }, 2000);
+        setScannerModal(prev => ({ 
+          ...prev, 
+          feedback: `Success! Checked-in User`, 
+          processing: false,
+          scannedBooking: data 
+        }));
+        fetchBookings();
       } else {
         throw new Error(data.message || 'Check-in failed');
       }
@@ -417,6 +419,17 @@ export function AdminBookingsPage() {
                 <div className={`scanner-overlay ${scannerModal.feedback.includes('Error') ? 'error' : 'success'}`}>
                   {scannerModal.feedback.includes('Error') ? <XCircle size={32} /> : <CheckCircle size={32} />}
                   <p>{scannerModal.feedback}</p>
+                  
+                  {scannerModal.scannedBooking && (
+                    <div style={{ textAlign: 'left', background: 'rgba(0,0,0,0.5)', padding: '16px', borderRadius: '12px', width: '90%', fontSize: '13px', marginTop: '16px', overflowY: 'auto', maxHeight: '200px' }}>
+                      <p style={{ marginBottom: '4px' }}><strong>ID:</strong> BKG-{scannerModal.scannedBooking.id}</p>
+                      <p style={{ marginBottom: '4px' }}><strong>Resource:</strong> {scannerModal.scannedBooking.resourceId}</p>
+                      <p style={{ marginBottom: '4px' }}><strong>User:</strong> {scannerModal.scannedBooking.userName || scannerModal.scannedBooking.userId}</p>
+                      <p style={{ marginBottom: '4px' }}><strong>Time:</strong> {new Date(scannerModal.scannedBooking.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(scannerModal.scannedBooking.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                      <p style={{ marginBottom: '4px' }}><strong>Attendees:</strong> {scannerModal.scannedBooking.attendees}</p>
+                      <p style={{ marginBottom: '4px' }}><strong>Purpose:</strong> {scannerModal.scannedBooking.purpose}</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
