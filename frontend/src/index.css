@@ -214,7 +214,6 @@ img { max-width: 100%; display: block; }
 .glass-card:hover {
   border-color: rgba(79,110,247,0.28);
   box-shadow: 0 8px 32px rgba(79,110,247,0.18);
-  background: rgba(18, 34, 66, 0.88);
 }
 
 /* ── Badge ── */

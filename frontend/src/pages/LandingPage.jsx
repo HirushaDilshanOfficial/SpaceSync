@@ -210,10 +210,6 @@ export default function LandingPage() {
               ))}
             </div>
           </div>
-          <div className="lp-hero-mockup">
-            <div className="lp-mockup-glow" />
-            <img src="/hero-mockup.png" alt="SpaceSync Dashboard Preview" className="lp-mockup-img" />
-          </div>
         </div>
       </section>
 

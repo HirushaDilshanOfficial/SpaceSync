@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   CalendarDays, LayoutDashboard, CalendarPlus,
   ShieldCheck, Menu, X, AlertTriangle, Wrench,
-  LogOut, User, Bell, ChevronDown
+  LogOut, User, Bell, ChevronDown, Home
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -12,6 +12,7 @@ const NAVY  = '#003087';
 const GOLD  = '#F5A800';
 
 const navItems = [
+  { to: '/',                label: 'Home',         icon: Home            },
   { to: '/dashboard',       label: 'Dashboard',    icon: LayoutDashboard },
   { to: '/new-booking',     label: 'Book Space',   icon: CalendarPlus    },
   { to: '/my-bookings',     label: 'My Bookings',  icon: CalendarDays    },

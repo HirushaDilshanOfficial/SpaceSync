@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route, Navigate, Link, useNavigate, Outlet } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { Plus, Home } from 'lucide-react';
 import { AuthProvider } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -65,6 +65,7 @@ const ProtectedLayout = () => {
           <nav className="header-nav">
             {!isAdmin ? (
               <>
+                <Link to="/" className="nav-link"><span className="nav-dot"></span>Home</Link>
                 <Link to="/dashboard" className="nav-link"><span className="nav-dot"></span>Dashboard</Link>
                 <Link to="/my-bookings" className="nav-link"><span className="nav-dot"></span>My Bookings</Link>
                 <Link to="/my-reports" className="nav-link"><span className="nav-dot"></span>My Reports</Link>
@@ -72,6 +73,7 @@ const ProtectedLayout = () => {
               </>
             ) : (
               <>
+                <Link to="/" className="nav-link"><span className="nav-dot"></span>Home</Link>
                 <Link to="/admin" className="nav-link admin-link"><span className="nav-dot"></span>Admin Dashboard</Link>
                 <Link to="/admin/bookings" className="nav-link"><span className="nav-dot"></span>Manage Bookings</Link>
                 <Link to="/admin/users" className="nav-link"><span className="nav-dot"></span>User Management</Link>
@@ -181,9 +183,8 @@ const ProtectedLayout = () => {
             box-shadow: 0 4px 12px rgba(245, 168, 0, 0.3);
           }
           .nav-link-accent:hover {
-            background: #ffb700 !important;
-            transform: translateY(-2px) !important;
-            box-shadow: 0 6px 18px rgba(245, 168, 0, 0.4) !important;
+            transform: translateY(-1px);
+            opacity: 0.95;
           }
           
           .header-actions { display: flex; gap: 18px; align-items: center; }

@@ -28,6 +28,7 @@ export default function Dashboard() {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [incidentsCount, setIncidentsCount] = useState(0);
+  const [recentIncidents, setRecentIncidents] = useState([]);
 
   useEffect(() => {
     const fetchBookings = async () => {
@@ -67,6 +68,7 @@ export default function Dashboard() {
         if (response.ok) {
           const data = await response.json();
           setIncidentsCount(data.length);
+          setRecentIncidents(data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)).slice(0, 3));
         }
       } catch (err) {
         console.error('Incidents count fetch error:', err);
@@ -287,6 +289,42 @@ export default function Dashboard() {
               <button className="btn-link" onClick={() => navigate('/notifications')}>
                 View all notifications
               </button>
+            </motion.section>
+
+            <motion.section variants={itemVariants} className="side-card">
+              <div className="side-header">
+                <h3>My Recent Reports</h3>
+                <Link to="/my-reports" className="link-all" style={{fontSize: '12px'}}>All <ChevronRight size={12} /></Link>
+              </div>
+              <div className="side-list">
+                {recentIncidents.length > 0 ? (
+                  recentIncidents.map((inc, i) => (
+                    <div key={i} className="side-item" style={{ borderBottom: '1px solid var(--clr-border)', paddingBottom: '12px', marginBottom: i === recentIncidents.length - 1 ? 0 : '8px' }}>
+                      <div className="item-content" style={{ width: '100%' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+                          <p className="item-text" style={{ fontWeight: '700', color: 'var(--clr-text)', margin: 0 }}>{inc.title}</p>
+                          <span style={{ 
+                            fontSize: '10px', 
+                            padding: '2px 8px', 
+                            borderRadius: '100px',
+                            background: inc.status === 'OPEN' ? '#fef2f2' : '#ecfdf5',
+                            color: inc.status === 'OPEN' ? '#dc2626' : '#059669',
+                            fontWeight: '800'
+                          }}>
+                            {inc.status}
+                          </span>
+                        </div>
+                        <p style={{ fontSize: '12px', color: 'var(--clr-text-muted)', margin: 0 }}>{inc.resourceName || inc.resourceId}</p>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                    <p style={{ color: 'var(--clr-text-faint)', fontSize: '14px' }}>No issues reported yet</p>
+                    <button className="btn-link" onClick={() => navigate('/report-incident')}>Report an Issue</button>
+                  </div>
+                )}
+              </div>
             </motion.section>
 
             <motion.section variants={itemVariants} className="side-card promo-card grad-purple">
