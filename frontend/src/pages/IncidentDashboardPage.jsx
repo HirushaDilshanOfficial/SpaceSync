@@ -15,17 +15,17 @@ const STATUS_TABS = [
 ];
 
 const PRIORITY_CFG = {
-  CRITICAL: { bg: 'rgba(239,68,68,.18)',  text: '#f87171', label: 'Critical', dot: '#ef4444' },
-  HIGH:     { bg: 'rgba(249,115,22,.18)', text: '#fb923c', label: 'High',     dot: '#f97316' },
-  MEDIUM:   { bg: 'rgba(234,179,8,.18)',  text: '#facc15', label: 'Medium',   dot: '#eab308' },
-  LOW:      { bg: 'rgba(34,197,94,.18)',  text: '#4ade80', label: 'Low',      dot: '#22c55e' },
+  CRITICAL: { bg: '#fef2f2', text: '#dc2626', label: 'Critical', dot: '#ef4444' },
+  HIGH:     { bg: '#fff7ed', text: '#ea580c', label: 'High',     dot: '#f97316' },
+  MEDIUM:   { bg: '#fefce8', text: '#ca8a04', label: 'Medium',   dot: '#eab308' },
+  LOW:      { bg: '#f0fdf4', text: '#16a34a', label: 'Low',      dot: '#22c55e' },
 };
 
 const STATUS_CFG = {
-  OPEN:        { bg: 'rgba(59,130,246,.18)',  text: '#60a5fa', label: 'Open'        },
-  IN_PROGRESS: { bg: 'rgba(139,92,246,.18)', text: '#a78bfa', label: 'In Progress' },
-  RESOLVED:    { bg: 'rgba(16,185,129,.18)', text: '#34d399', label: 'Resolved'    },
-  CLOSED:      { bg: 'rgba(107,114,128,.18)',text: '#9ca3af', label: 'Closed'      },
+  OPEN:        { bg: '#eff6ff', text: '#2563eb', label: 'Open'        },
+  IN_PROGRESS: { bg: '#f5f3ff', text: '#7c3aed', label: 'In Progress' },
+  RESOLVED:    { bg: '#ecfdf5', text: '#059669', label: 'Resolved'    },
+  CLOSED:      { bg: '#f8fafc', text: '#64748b', label: 'Closed'      },
 };
 
 const TYPE_ICON = { INCIDENT: Zap, MAINTENANCE: Wrench, REPAIR: Wrench };
@@ -251,8 +251,16 @@ export function IncidentDashboardPage() {
                 key={inc.id}
                 style={S.card}
                 onClick={() => navigate(`/incidents/${inc.id}`)}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = 'rgba(88,166,255,.35)'; e.currentTarget.style.background = 'rgba(255,255,255,.035)'; }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = 'rgba(255,255,255,.07)'; e.currentTarget.style.background = 'var(--clr-surface)'; }}
+                onMouseEnter={e => { 
+                  e.currentTarget.style.borderColor = 'var(--clr-primary)'; 
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                  e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                }}
+                onMouseLeave={e => { 
+                  e.currentTarget.style.borderColor = 'var(--clr-border)'; 
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                }}
               >
                 {/* Priority dot */}
                 <div style={{ ...S.dot, background: pr.dot }} />
@@ -276,16 +284,8 @@ export function IncidentDashboardPage() {
                   <span style={{ ...S.badge, background: pr.bg, color: pr.text }}>{pr.label}</span>
                   <span style={{ ...S.badge, background: st.bg, color: st.text }}>{st.label}</span>
 
-                  {inc.status === 'OPEN' && (
-                    <button style={{ ...S.actionBtn, color: '#a78bfa', background: 'rgba(139,92,246,.2)' }}
-                      onClick={e => updateStatus(e, inc.id, 'IN_PROGRESS')}>Start</button>
-                  )}
-                  {inc.status === 'IN_PROGRESS' && (
-                    <button style={{ ...S.actionBtn, color: '#34d399', background: 'rgba(16,185,129,.2)' }}
-                      onClick={e => updateStatus(e, inc.id, 'RESOLVED')}>Resolve</button>
-                  )}
-                  {inc.status === 'RESOLVED' && (
-                    <button style={{ ...S.actionBtn, color: '#9ca3af', background: 'rgba(107,114,128,.2)' }}
+                      {inc.status === 'RESOLVED' && (
+                    <button style={{ ...S.actionBtn, color: '#9ca3af', background: '#f1f5f9', border: '1px solid var(--clr-border)' }}
                       onClick={e => updateStatus(e, inc.id, 'CLOSED')}>Close</button>
                   )}
 
@@ -308,43 +308,46 @@ const S = {
     padding: '28px 28px 60px',
     width: '100%',
     boxSizing: 'border-box',
+    background: 'var(--clr-bg)',
+    backgroundImage: 'var(--grad-mesh)',
   },
   topBar: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 28,
+    marginBottom: 32,
     gap: 16,
     flexWrap: 'wrap',
   },
   h1: {
-    fontSize: 26,
+    fontSize: 28,
     fontWeight: 800,
-    letterSpacing: '-0.5px',
+    letterSpacing: '-1.2px',
     color: 'var(--clr-text)',
-    marginBottom: 5,
+    marginBottom: 6,
   },
   subtitle: {
-    fontSize: 13,
+    fontSize: 15,
     color: 'var(--clr-text-muted)',
   },
   primaryBtn: {
     display: 'inline-flex',
     alignItems: 'center',
-    gap: 7,
-    padding: '10px 20px',
-    background: 'var(--clr-primary)',
+    gap: 8,
+    padding: '11px 22px',
+    background: 'var(--grad-primary)',
     color: '#fff',
     border: 'none',
     borderRadius: 10,
     fontWeight: 700,
-    fontSize: 13,
+    fontSize: 14,
     cursor: 'pointer',
     flexShrink: 0,
+    boxShadow: '0 4px 12px rgba(0,48,135,0.2)',
   },
   headerBtns: {
     display: 'flex',
-    gap: 10,
+    gap: 12,
     flexWrap: 'wrap',
     alignItems: 'center',
     flexShrink: 0,
@@ -352,22 +355,23 @@ const S = {
   secondaryBtn: {
     display: 'inline-flex',
     alignItems: 'center',
-    gap: 7,
-    padding: '10px 20px',
-    background: 'var(--clr-surface)',
+    gap: 8,
+    padding: '11px 22px',
+    background: '#ffffff',
     color: 'var(--clr-text)',
     border: '1px solid var(--clr-border)',
     borderRadius: 10,
     fontWeight: 600,
-    fontSize: 13,
+    fontSize: 14,
     cursor: 'pointer',
     flexShrink: 0,
+    boxShadow: 'var(--shadow-sm)',
   },
   /* search */
   searchRow: {
     display: 'flex',
-    gap: 10,
-    marginBottom: 14,
+    gap: 12,
+    marginBottom: 16,
     alignItems: 'center',
   },
   searchBox: {
@@ -378,24 +382,26 @@ const S = {
   },
   searchIcon: {
     position: 'absolute',
-    left: 13,
+    left: 14,
     color: 'var(--clr-text-muted)',
     pointerEvents: 'none',
   },
   searchInput: {
     width: '100%',
-    padding: '10px 36px 10px 38px',
-    background: 'var(--clr-surface)',
+    padding: '12px 36px 12px 42px',
+    background: '#ffffff',
     border: '1px solid var(--clr-border)',
-    borderRadius: 10,
+    borderRadius: 12,
     color: 'var(--clr-text)',
-    fontSize: 13,
+    fontSize: 14,
     outline: 'none',
     boxSizing: 'border-box',
+    boxShadow: 'var(--shadow-sm)',
+    fontFamily: 'inherit',
   },
   clearBtn: {
     position: 'absolute',
-    right: 10,
+    right: 12,
     background: 'none',
     border: 'none',
     cursor: 'pointer',
@@ -406,140 +412,150 @@ const S = {
   filterToggle: {
     display: 'inline-flex',
     alignItems: 'center',
-    gap: 6,
-    padding: '10px 16px',
-    background: 'var(--clr-surface)',
+    gap: 8,
+    padding: '12px 18px',
+    background: '#ffffff',
     border: '1px solid var(--clr-border)',
-    borderRadius: 10,
+    borderRadius: 12,
     color: 'var(--clr-text-muted)',
-    fontSize: 13,
-    fontWeight: 600,
+    fontSize: 14,
+    fontWeight: 700,
     cursor: 'pointer',
     flexShrink: 0,
     position: 'relative',
+    boxShadow: 'var(--shadow-sm)',
+    transition: 'all 0.2s',
   },
   filterToggleActive: {
     borderColor: 'var(--clr-primary)',
     color: 'var(--clr-primary)',
+    background: '#eff6ff',
   },
   filterBadge: {
     background: 'var(--clr-primary)',
     color: '#fff',
     borderRadius: 20,
-    padding: '1px 7px',
+    padding: '1px 8px',
     fontSize: 10,
     fontWeight: 800,
   },
   /* filter panel */
   filterPanel: {
-    background: 'var(--clr-surface)',
+    background: '#ffffff',
     border: '1px solid var(--clr-border)',
-    borderRadius: 12,
-    padding: '20px 20px 16px',
-    marginBottom: 16,
+    borderRadius: 16,
+    padding: '24px',
+    marginBottom: 20,
+    boxShadow: 'var(--shadow-md)',
   },
   filterGrid: {
     display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-    gap: 14,
+    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+    gap: 20,
   },
   filterField: {
     display: 'flex',
     flexDirection: 'column',
-    gap: 6,
+    gap: 8,
   },
   label: {
-    fontSize: 11,
-    fontWeight: 700,
-    color: 'var(--clr-text-muted)',
+    fontSize: 12,
+    fontWeight: 800,
+    color: 'var(--clr-text)',
     textTransform: 'uppercase',
-    letterSpacing: '0.5px',
+    letterSpacing: '0.8px',
   },
   select: {
-    padding: '9px 12px',
-    background: 'rgba(255,255,255,.04)',
+    padding: '11px 14px',
+    background: '#f8fafc',
     border: '1px solid var(--clr-border)',
-    borderRadius: 8,
+    borderRadius: 10,
     color: 'var(--clr-text)',
-    fontSize: 13,
+    fontSize: 14,
     outline: 'none',
     width: '100%',
     boxSizing: 'border-box',
-    colorScheme: 'dark',
+    fontFamily: 'inherit',
+    colorScheme: 'light',
   },
   clearFiltersBtn: {
     display: 'inline-flex',
     alignItems: 'center',
-    gap: 5,
-    marginTop: 14,
-    padding: '7px 14px',
-    background: 'rgba(239,68,68,.12)',
-    color: '#f87171',
-    border: '1px solid rgba(239,68,68,.2)',
+    gap: 6,
+    marginTop: 20,
+    padding: '8px 16px',
+    background: '#fef2f2',
+    color: '#dc2626',
+    border: '1px solid #fee2e2',
     borderRadius: 8,
-    fontSize: 12,
-    fontWeight: 600,
+    fontSize: 13,
+    fontWeight: 700,
     cursor: 'pointer',
   },
   /* tabs */
   tabRow: {
     display: 'flex',
-    gap: 6,
-    marginBottom: 10,
+    gap: 8,
+    marginBottom: 16,
     flexWrap: 'wrap',
   },
   tab: {
     display: 'inline-flex',
     alignItems: 'center',
-    gap: 7,
-    padding: '7px 14px',
-    background: 'transparent',
+    gap: 8,
+    padding: '8px 16px',
+    background: '#ffffff',
     border: '1px solid var(--clr-border)',
-    borderRadius: 8,
+    borderRadius: 10,
     color: 'var(--clr-text-muted)',
-    fontWeight: 500,
-    fontSize: 13,
+    fontWeight: 700,
+    fontSize: 14,
     cursor: 'pointer',
-    transition: 'all .15s',
+    transition: 'all .2s',
+    boxShadow: 'var(--shadow-sm)',
   },
   tabActive: {
     background: 'var(--clr-primary)',
     borderColor: 'var(--clr-primary)',
     color: '#fff',
-    fontWeight: 700,
+    boxShadow: '0 4px 12px rgba(0,48,135,0.2)',
   },
   tabCount: {
-    padding: '1px 7px',
+    padding: '1px 8px',
     borderRadius: 20,
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: 800,
-    background: 'rgba(255,255,255,.1)',
+    background: '#f1f5f9',
+    color: 'var(--clr-text-muted)',
   },
   tabCountActive: {
-    background: 'rgba(255,255,255,.28)',
+    background: 'rgba(255,255,255,0.2)',
+    color: '#fff',
   },
   resultCount: {
-    fontSize: 12,
+    fontSize: 13,
     color: 'var(--clr-text-muted)',
-    marginBottom: 14,
+    marginBottom: 16,
+    fontWeight: 600,
   },
   /* list */
   list: {
     display: 'flex',
     flexDirection: 'column',
-    gap: 8,
+    gap: 12,
   },
   card: {
     display: 'flex',
     alignItems: 'center',
-    gap: 14,
-    padding: '15px 18px',
-    background: 'var(--clr-surface)',
-    border: '1px solid rgba(255,255,255,.07)',
-    borderRadius: 12,
+    gap: 16,
+    padding: '20px 24px',
+    background: '#ffffff',
+    border: '1px solid var(--clr-border)',
+    borderRadius: 16,
     cursor: 'pointer',
-    transition: 'border-color .2s, background .2s',
+    transition: 'all 0.3s cubic-bezier(.4,0,.2,1)',
     flexWrap: 'wrap',
+    boxShadow: 'var(--shadow-sm)',
   },
   dot: {
     width: 8,
@@ -548,9 +564,9 @@ const S = {
     flexShrink: 0,
   },
   typeIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 9,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
@@ -561,46 +577,54 @@ const S = {
     minWidth: 0,
   },
   cardTitle: {
-    fontSize: 14,
-    fontWeight: 600,
+    fontSize: 16,
+    fontWeight: 800,
     color: 'var(--clr-text)',
-    marginBottom: 4,
+    marginBottom: 6,
     whiteSpace: 'nowrap',
     overflow: 'hidden',
     textOverflow: 'ellipsis',
+    letterSpacing: '-0.3px',
   },
   cardMeta: {
-    fontSize: 12,
+    fontSize: 13,
     color: 'var(--clr-text-muted)',
   },
   cardRight: {
     display: 'flex',
     alignItems: 'center',
-    gap: 7,
+    gap: 10,
     flexShrink: 0,
     flexWrap: 'wrap',
   },
   badge: {
-    padding: '3px 9px',
-    borderRadius: 20,
+    padding: '4px 12px',
+    borderRadius: 6,
     fontSize: 11,
-    fontWeight: 700,
+    fontWeight: 800,
     whiteSpace: 'nowrap',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
   },
   actionBtn: {
-    padding: '5px 12px',
-    borderRadius: 7,
+    padding: '6px 14px',
+    borderRadius: 8,
     border: 'none',
     fontSize: 12,
-    fontWeight: 700,
+    fontWeight: 800,
     cursor: 'pointer',
-    transition: 'opacity .15s',
+    transition: 'all 0.2s',
     whiteSpace: 'nowrap',
   },
   emptyState: {
     textAlign: 'center',
-    padding: '90px 24px',
+    padding: '100px 24px',
     color: 'var(--clr-text-muted)',
-    fontSize: 14,
+    fontSize: 15,
+    background: '#ffffff',
+    borderRadius: 16,
+    border: '1px solid var(--clr-border)',
+    boxShadow: 'var(--shadow-sm)',
   },
 };
+// End of file

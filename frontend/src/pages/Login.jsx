@@ -31,20 +31,29 @@ export default function Login() {
 
   return (
     <div className="login-container">
-      <div className="login-bg">
-        <div className="glow-orb top-left"></div>
-        <div className="glow-orb bottom-right"></div>
-      </div>
+      <div className="login-bg" style={{ background: 'var(--clr-bg)', backgroundImage: 'var(--grad-mesh)' }}></div>
       
       <motion.div 
-        className="login-card glass-card"
+        className="login-card"
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
+        style={{
+          background: '#ffffff',
+          border: '1px solid var(--clr-border)',
+          borderRadius: '24px',
+          padding: '48px',
+          boxShadow: 'var(--shadow-xl)',
+          width: '100%',
+          maxWidth: '440px',
+          textAlign: 'center',
+          position: 'relative',
+          zIndex: 1
+        }}
       >
-        <div className="lock-icon">🔒</div>
-        <h2>Welcome to SpaceSync</h2>
-        <p className="login-subtitle">Smart Campus Operations Hub</p>
+        <div className="lock-icon" style={{ fontSize: '40px', marginBottom: '24px', display: 'block' }}>🛡️</div>
+        <h2 style={{ fontSize: '32px', fontWeight: 800, color: 'var(--clr-text)', marginBottom: '8px', letterSpacing: '-1px' }}>Welcome Back</h2>
+        <p className="login-subtitle" style={{ color: 'var(--clr-text-muted)', fontSize: '16px' }}>Smart Campus Operations Hub</p>
         
         {error && (
           <div className="alert alert-error fade-up" style={{
@@ -99,7 +108,20 @@ export default function Login() {
           <div className="divider-line"></div>
         </div>
         
-        <button className="btn google-btn" onClick={loginWithGoogle}>
+        <button className="btn google-btn" onClick={loginWithGoogle} style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '100%',
+          background: '#ffffff',
+          color: 'var(--clr-text)',
+          border: '1px solid var(--clr-border)',
+          height: '48px',
+          borderRadius: '12px',
+          fontWeight: 700,
+          cursor: 'pointer',
+          transition: 'all 0.3s'
+        }}>
           <svg className="google-icon" viewBox="0 0 24 24" width="20" height="20" style={{marginRight: '12px'}}>
             <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
             <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>

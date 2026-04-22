@@ -6,17 +6,17 @@ import {
 } from 'lucide-react';
 
 const PRIORITY_CFG = {
-  CRITICAL: { bg: 'rgba(239,68,68,.18)',  text: '#f87171', dot: '#ef4444', label: 'Critical' },
-  HIGH:     { bg: 'rgba(249,115,22,.18)', text: '#fb923c', dot: '#f97316', label: 'High'     },
-  MEDIUM:   { bg: 'rgba(234,179,8,.18)',  text: '#facc15', dot: '#eab308', label: 'Medium'   },
-  LOW:      { bg: 'rgba(34,197,94,.18)',  text: '#4ade80', dot: '#22c55e', label: 'Low'      },
+  CRITICAL: { bg: '#fef2f2', text: '#dc2626', dot: '#ef4444', label: 'Critical' },
+  HIGH:     { bg: '#fff7ed', text: '#ea580c', dot: '#f97316', label: 'High'     },
+  MEDIUM:   { bg: '#fefce8', text: '#ca8a04', dot: '#eab308', label: 'Medium'   },
+  LOW:      { bg: '#f0fdf4', text: '#16a34a', dot: '#22c55e', label: 'Low'      },
 };
 
 const STATUS_CFG = {
-  OPEN:        { bg: 'rgba(59,130,246,.18)',  text: '#60a5fa', label: 'Open'        },
-  IN_PROGRESS: { bg: 'rgba(139,92,246,.18)', text: '#a78bfa', label: 'In Progress' },
-  RESOLVED:    { bg: 'rgba(16,185,129,.18)', text: '#34d399', label: 'Resolved'    },
-  CLOSED:      { bg: 'rgba(107,114,128,.18)',text: '#9ca3af', label: 'Closed'      },
+  OPEN:        { bg: '#eff6ff', text: '#2563eb', label: 'Open'        },
+  IN_PROGRESS: { bg: '#f5f3ff', text: '#7c3aed', label: 'In Progress' },
+  RESOLVED:    { bg: '#ecfdf5', text: '#059669', label: 'Resolved'    },
+  CLOSED:      { bg: '#eef2ff', text: '#4338ca', label: 'Closed'      },
 };
 
 const TYPE_CFG = {
@@ -179,24 +179,24 @@ export function IncidentDetailsPage() {
             <div style={S.actionBtns}>
               {incident.status === 'OPEN' && (
                 <button
-                  style={{ ...S.actionBtn, background: 'rgba(139,92,246,.2)', color: '#a78bfa' }}
+                  style={{ ...S.actionBtn, background: '#f5f3ff', color: '#7c3aed', border: '1px solid #ede9fe' }}
                   onClick={() => updateStatus('IN_PROGRESS')}
                 >Start Work</button>
               )}
               {incident.status === 'IN_PROGRESS' && (
                 <button
-                  style={{ ...S.actionBtn, background: 'rgba(16,185,129,.2)', color: '#34d399' }}
+                  style={{ ...S.actionBtn, background: '#ecfdf5', color: '#059669', border: '1px solid #d1fae5' }}
                   onClick={() => updateStatus('RESOLVED')}
                 >Mark Resolved</button>
               )}
               {incident.status === 'RESOLVED' && (
                 <button
-                  style={{ ...S.actionBtn, background: 'rgba(107,114,128,.2)', color: '#9ca3af' }}
+                  style={{ ...S.actionBtn, background: '#eff6ff', color: '#1e40af', border: '1px solid #dbeafe' }}
                   onClick={() => updateStatus('CLOSED')}
                 >Close Ticket</button>
               )}
               {incident.status === 'CLOSED' && (
-                <p style={{ color: 'var(--clr-text-muted)', fontSize: 13 }}>Ticket is closed.</p>
+                <p style={{ color: 'var(--clr-text-muted)', fontSize: 13, fontWeight: 700 }}>Ticket is closed.</p>
               )}
             </div>
           </div>
@@ -215,7 +215,7 @@ export function IncidentDetailsPage() {
               )}
               <InfoRow icon={<Calendar size={13}/>} label="Reported"   value={fmtDate(incident.createdAt)} />
               {incident.resolvedAt && (
-                <InfoRow icon={<CheckCircle size={13}/>} label="Resolved" value={fmtDate(incident.resolvedAt)} valueColor="#34d399" />
+                <InfoRow icon={<CheckCircle size={13}/>} label="Resolved" value={fmtDate(incident.resolvedAt)} valueColor="#059669" />
               )}
             </div>
           </div>
@@ -243,8 +243,10 @@ function InfoRow({ icon, label, value, valueColor }) {
 const S = {
   page: {
     minHeight: '100vh',
-    padding: '28px 28px 60px',
-    width: '100%',
+    padding: '40px 24px 80px',
+    background: 'var(--clr-bg)',
+    backgroundImage: 'var(--grad-mesh)',
+    color: 'var(--clr-text)',
     boxSizing: 'border-box',
   },
   centered: {
@@ -253,154 +255,167 @@ const S = {
     alignItems: 'center',
     justifyContent: 'center',
     color: 'var(--clr-text-muted)',
-    fontSize: 14,
+    fontSize: 15,
+    gap: 16,
   },
   topBar: {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 24,
+    marginBottom: 40,
     flexWrap: 'wrap',
-    gap: 12,
+    gap: 16,
   },
   backBtn: {
     display: 'inline-flex',
     alignItems: 'center',
-    gap: 6,
-    padding: '8px 16px',
-    background: 'var(--clr-surface)',
+    gap: 8,
+    padding: '10px 20px',
+    background: '#ffffff',
     border: '1px solid var(--clr-border)',
-    borderRadius: 9,
-    color: 'var(--clr-text)',
-    fontSize: 13,
-    fontWeight: 600,
+    borderRadius: 12,
+    color: 'var(--clr-text-muted)',
+    fontSize: 14,
+    fontWeight: 700,
     cursor: 'pointer',
+    transition: 'all 0.2s',
+    boxShadow: 'var(--shadow-sm)',
   },
   topBadges: {
     display: 'flex',
-    gap: 8,
-    flexWrap: 'wrap',
+    gap: 12,
   },
   badge: {
-    padding: '4px 12px',
+    padding: '6px 16px',
     borderRadius: 20,
     fontSize: 12,
-    fontWeight: 700,
+    fontWeight: 800,
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+    border: '1px solid rgba(0,0,0,0.05)',
   },
 
   /* Title */
   titleBlock: {
-    marginBottom: 24,
+    marginBottom: 40,
   },
   typeChip: {
     display: 'inline-flex',
     alignItems: 'center',
-    gap: 6,
-    padding: '4px 12px',
-    borderRadius: 8,
+    gap: 8,
+    padding: '6px 16px',
+    borderRadius: 12,
     fontSize: 12,
-    fontWeight: 700,
-    marginBottom: 10,
+    fontWeight: 800,
+    marginBottom: 16,
+    textTransform: 'uppercase',
+    letterSpacing: '1px',
+    border: '1px solid rgba(0,0,0,0.05)',
   },
   h1: {
-    fontSize: 24,
+    fontSize: 36,
     fontWeight: 800,
-    letterSpacing: '-0.4px',
+    letterSpacing: '-1.5px',
     color: 'var(--clr-text)',
-    marginBottom: 10,
-    lineHeight: 1.25,
+    marginBottom: 16,
+    lineHeight: 1.1,
   },
   metaRow: {
     display: 'flex',
-    gap: 18,
+    gap: 24,
     flexWrap: 'wrap',
     alignItems: 'center',
   },
   metaItem: {
     display: 'inline-flex',
     alignItems: 'center',
-    gap: 5,
-    fontSize: 13,
+    gap: 8,
+    fontSize: 15,
     color: 'var(--clr-text-muted)',
+    fontWeight: 600,
   },
 
   /* Two col */
   cols: {
     display: 'grid',
-    gridTemplateColumns: '1fr 300px',
-    gap: 18,
+    gridTemplateColumns: '1fr 360px',
+    gap: 32,
     alignItems: 'start',
   },
-  colLeft:  { display: 'flex', flexDirection: 'column', gap: 16 },
-  colRight: { display: 'flex', flexDirection: 'column', gap: 16 },
+  colLeft:  { display: 'flex', flexDirection: 'column', gap: 24 },
+  colRight: { display: 'flex', flexDirection: 'column', gap: 24 },
 
   /* Card */
   card: {
-    background: 'var(--clr-surface)',
+    background: '#ffffff',
     border: '1px solid var(--clr-border)',
-    borderRadius: 14,
-    padding: '18px 20px',
+    borderRadius: '24px',
+    padding: 32,
+    boxShadow: 'var(--shadow-sm)',
   },
   cardLabel: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: 800,
-    color: 'var(--clr-text-muted)',
+    color: 'var(--clr-primary)',
     textTransform: 'uppercase',
-    letterSpacing: '0.6px',
-    marginBottom: 12,
+    letterSpacing: '1px',
+    marginBottom: 24,
+    display: 'block',
   },
 
   /* Description */
   descText: {
-    fontSize: 14,
+    fontSize: 16,
     color: 'var(--clr-text)',
-    lineHeight: 1.7,
+    lineHeight: 1.6,
+    fontWeight: 500,
   },
 
   /* Actions */
   actionBtns: {
     display: 'flex',
     flexDirection: 'column',
-    gap: 8,
+    gap: 12,
   },
   actionBtn: {
-    padding: '10px 16px',
-    borderRadius: 9,
+    padding: '14px 20px',
+    borderRadius: 12,
     border: 'none',
-    fontSize: 13,
-    fontWeight: 700,
+    fontSize: 14,
+    fontWeight: 800,
     cursor: 'pointer',
     textAlign: 'center',
-    transition: 'opacity .15s',
+    transition: 'all 0.3s cubic-bezier(.4,0,.2,1)',
   },
 
   /* Info grid */
   infoGrid: {
     display: 'flex',
     flexDirection: 'column',
-    gap: 10,
+    gap: 20,
   },
   infoRow: {
     display: 'flex',
     alignItems: 'center',
-    gap: 8,
-    fontSize: 13,
+    gap: 12,
+    fontSize: 14,
   },
   infoIcon: {
-    color: 'var(--clr-text-muted)',
+    color: 'var(--clr-text-faint)',
     flexShrink: 0,
     display: 'flex',
     alignItems: 'center',
   },
   infoLabel: {
     color: 'var(--clr-text-muted)',
-    width: 90,
+    width: 110,
     flexShrink: 0,
-    fontSize: 12,
+    fontSize: 13,
+    fontWeight: 700,
   },
   infoValue: {
     color: 'var(--clr-text)',
-    fontWeight: 500,
+    fontWeight: 700,
     flex: 1,
   },
 
@@ -411,14 +426,14 @@ const S = {
   },
   logItem: {
     display: 'flex',
-    gap: 12,
+    gap: 20,
   },
   logDotCol: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
     flexShrink: 0,
-    width: 16,
+    width: 20,
   },
   logDot: {
     width: 10,
@@ -426,39 +441,46 @@ const S = {
     borderRadius: '50%',
     background: 'var(--clr-primary)',
     flexShrink: 0,
-    marginTop: 3,
+    marginTop: 6,
+    border: '2px solid #fff',
+    zIndex: 1,
+    boxShadow: '0 0 0 4px #eff6ff',
   },
   logLine: {
     flex: 1,
-    width: 1,
-    background: 'var(--clr-border)',
-    minHeight: 16,
-    marginTop: 4,
+    width: 2,
+    background: '#f1f5f9',
+    minHeight: 32,
   },
   logHeader: {
     display: 'flex',
     alignItems: 'center',
-    gap: 8,
+    gap: 12,
     flexWrap: 'wrap',
-    marginBottom: 4,
+    marginBottom: 8,
   },
   logActor: {
-    fontSize: 13,
-    fontWeight: 700,
+    fontSize: 15,
+    fontWeight: 800,
     color: 'var(--clr-text)',
   },
   logAction: {
-    fontSize: 12,
+    fontSize: 13,
     color: 'var(--clr-text-muted)',
+    fontWeight: 600,
   },
   logTime: {
-    fontSize: 11,
-    color: 'var(--clr-text-muted)',
+    fontSize: 12,
+    color: 'var(--clr-text-faint)',
     marginLeft: 'auto',
   },
   logDetails: {
-    fontSize: 13,
+    fontSize: 14,
     color: 'var(--clr-text-muted)',
     lineHeight: 1.5,
+    background: '#f8fafc',
+    padding: '12px 16px',
+    borderRadius: '12px',
+    marginTop: 4,
   },
 };
