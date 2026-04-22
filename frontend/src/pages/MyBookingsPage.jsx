@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, Plus, CheckCircle, AlertCircle, QrCode, X, Search, Filter, Users, AlertTriangle } from 'lucide-react';
+import { Calendar, Clock, Plus, CheckCircle, AlertCircle, QrCode, X, Search, Filter, Users, AlertTriangle, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -328,7 +328,26 @@ export function MyBookingsPage() {
               <p className="qr-desc">Show this QR to the administrator to check-in to your reserved space.</p>
             </div>
 
-            <button onClick={() => setQrModal({ open: false, bookingId: null })} className="btn btn-primary w-full">Close</button>
+            <div className="flex gap-3 w-full">
+              <button 
+                onClick={() => {
+                  if (qrImage) {
+                    const link = document.createElement('a');
+                    link.href = qrImage;
+                    link.download = `SpaceSync-Booking-${qrModal.bookingId}-QR.png`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }
+                }} 
+                className="btn btn-ghost flex-1"
+                disabled={!qrImage || qrLoading}
+                style={{ border: '1px solid var(--clr-border)' }}
+              >
+                <Download size={18} style={{ marginRight: '8px' }}/> Download
+              </button>
+              <button onClick={() => setQrModal({ open: false, bookingId: null })} className="btn btn-primary flex-1">Close</button>
+            </div>
           </div>
         </div>
       )}
