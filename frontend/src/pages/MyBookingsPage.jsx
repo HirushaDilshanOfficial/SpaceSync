@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, Plus, CheckCircle, AlertCircle, QrCode, X, Search, Filter, Users, AlertTriangle } from 'lucide-react';
+import { Calendar, Clock, Plus, CheckCircle, AlertCircle, QrCode, X, Search, Filter, Users, AlertTriangle, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
@@ -7,6 +7,7 @@ const statusConfig = {
   PENDING:    { color: 'var(--clr-warning)', bg: 'rgba(210,153,34,0.1)',   dot: 'var(--clr-warning)',   icon: AlertCircle },
   APPROVED:   { color: 'var(--clr-success)', bg: 'rgba(63,185,80,0.1)', dot: 'var(--clr-success)', icon: CheckCircle },
   CHECKED_IN: { color: 'var(--clr-primary)', bg: 'rgba(88,166,255,0.1)', dot: 'var(--clr-primary)', icon: CheckCircle },
+  CHECKED_OUT: { color: 'var(--clr-text-muted)', bg: 'rgba(139,148,158,0.1)', dot: 'var(--clr-text-muted)', icon: CheckCircle },
   REJECTED:   { color: 'var(--clr-danger)', bg: 'rgba(248,81,73,0.1)',         dot: 'var(--clr-danger)',     icon: X },
   CANCELLED:  { color: 'var(--clr-text-muted)', bg: 'rgba(139,148,158,0.1)',    dot: 'var(--clr-text-muted)',    icon: X },
 };
@@ -17,6 +18,37 @@ export function MyBookingsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [qrModal, setQrModal] = useState({ open: false, bookingId: null });
+  const [qrImage, setQrImage] = useState(null);
+  const [qrLoading, setQrLoading] = useState(false);
+
+  // Filters
+  const [filterStatus, setFilterStatus] = useState('ALL');
+  const [filterDate, setFilterDate] = useState('');
+  const [filterResource, setFilterResource] = useState('');
+
+  const handleOpenQr = async (bookingId) => {
+    setQrModal({ open: true, bookingId });
+    setQrImage(null);
+    setQrLoading(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/bookings/${bookingId}/qr`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (response.ok) {
+        const blob = await response.blob();
+        setQrImage(URL.createObjectURL(blob));
+      } else {
+        console.error('Failed to load QR');
+      }
+    } catch (error) {
+      console.error('Error fetching QR:', error);
+    } finally {
+      setQrLoading(false);
+    }
+  };
   const navigate = useNavigate();
 
   const fetchBookings = async () => {
@@ -85,6 +117,21 @@ export function MyBookingsPage() {
     </div>
   );
 
+  const filteredBookings = bookings.filter(booking => {
+    if (filterStatus !== 'ALL' && booking.status !== filterStatus) return false;
+    if (filterDate) {
+      const bDate = new Date(booking.startTime).toISOString().split('T')[0];
+      if (bDate !== filterDate) return false;
+    }
+    if (filterResource) {
+      // Assuming resourceId holds the resource name or identifier displayed
+      if (!booking.resourceId.toLowerCase().includes(filterResource.toLowerCase())) {
+        return false;
+      }
+    }
+    return true;
+  });
+
   return (
     <div className="my-bookings-container">
       <header className="page-header">
@@ -116,7 +163,65 @@ export function MyBookingsPage() {
         ))}
       </div>
 
-      {bookings.length === 0 ? (
+      <div className="filters-bar glass-card" style={{ padding: '16px', marginBottom: '24px', display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <div className="filter-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--clr-text-muted)' }}>Status</label>
+          <select 
+            value={filterStatus} 
+            onChange={(e) => setFilterStatus(e.target.value)}
+            style={{ padding: '8px', borderRadius: '8px', border: '1px solid var(--clr-border)', background: 'var(--clr-bg)', color: 'var(--clr-text)', outline: 'none' }}
+          >
+            <option value="ALL">All Statuses</option>
+            <option value="PENDING">Pending</option>
+            <option value="APPROVED">Approved</option>
+            <option value="CHECKED_IN">Checked In</option>
+            <option value="CHECKED_OUT">Checked Out</option>
+            <option value="REJECTED">Rejected</option>
+            <option value="CANCELLED">Cancelled</option>
+          </select>
+        </div>
+
+        <div className="filter-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--clr-text-muted)' }}>Date</label>
+          <input 
+            type="date" 
+            value={filterDate}
+            onChange={(e) => setFilterDate(e.target.value)}
+            style={{ padding: '8px', borderRadius: '8px', border: '1px solid var(--clr-border)', background: 'var(--clr-bg)', color: 'var(--clr-text)', outline: 'none' }}
+          />
+        </div>
+
+        <div className="filter-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '200px' }}>
+          <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--clr-text-muted)' }}>Resource</label>
+          <div style={{ position: 'relative' }}>
+            <Search size={16} style={{ position: 'absolute', left: '10px', top: '10px', color: 'var(--clr-text-muted)' }} />
+            <input 
+              type="text" 
+              placeholder="Search resource..." 
+              value={filterResource}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (/^[a-zA-Z0-9\s]*$/.test(value)) {
+                  setFilterResource(value);
+                }
+              }}
+              style={{ width: '100%', padding: '8px 8px 8px 32px', borderRadius: '8px', border: '1px solid var(--clr-border)', background: 'var(--clr-bg)', color: 'var(--clr-text)', outline: 'none' }}
+            />
+          </div>
+        </div>
+        
+        {(filterStatus !== 'ALL' || filterDate !== '' || filterResource !== '') && (
+          <button 
+            onClick={() => { setFilterStatus('ALL'); setFilterDate(''); setFilterResource(''); }}
+            className="btn btn-ghost btn-sm"
+            style={{ color: 'var(--clr-danger)' }}
+          >
+            Clear Filters
+          </button>
+        )}
+      </div>
+
+      {filteredBookings.length === 0 ? (
         <div className="empty-state glass-card">
           <Calendar size={48} className="empty-icon" />
           <h3>No bookings yet</h3>
@@ -125,7 +230,7 @@ export function MyBookingsPage() {
         </div>
       ) : (
         <div className="bookings-grid">
-          {bookings.map((booking) => {
+          {filteredBookings.map((booking) => {
             const status = statusConfig[booking.status] || statusConfig.PENDING;
             const startDate = new Date(booking.startTime);
             const endDate = new Date(booking.endTime);
@@ -158,9 +263,9 @@ export function MyBookingsPage() {
                     <p className="purpose-text">{booking.purpose}</p>
                   </div>
 
-                  {booking.status === 'REJECTED' && booking.rejectReason && (
+                  {(booking.status === 'REJECTED' || booking.status === 'CANCELLED') && booking.rejectReason && (
                     <div className="reject-reason-box">
-                      <p className="reject-label">Admin Feedback</p>
+                      <p className="reject-label">Feedback / Reason</p>
                       <p className="reject-text">{booking.rejectReason}</p>
                     </div>
                   )}
@@ -169,7 +274,7 @@ export function MyBookingsPage() {
                 <div className="card-actions">
                   {(booking.status === 'APPROVED' || booking.status === 'CHECKED_IN') && (
                     <button
-                      onClick={() => setQrModal({ open: true, bookingId: booking.id })}
+                      onClick={() => handleOpenQr(booking.id)}
                       className="btn btn-ghost btn-sm btn-qr"
                     >
                       <QrCode size={14} /> Check-in QR
@@ -206,11 +311,16 @@ export function MyBookingsPage() {
             </div>
             
             <div className="qr-container">
-              <img 
-                src={`http://localhost:8081/api/bookings/${qrModal.bookingId}/qr`} 
-                alt="Check-in QR" 
-                onError={(e) => { e.target.src = 'https://via.placeholder.com/240?text=QR+Code'; }}
-              />
+              {qrLoading ? (
+                <div className="spinner"></div>
+              ) : qrImage ? (
+                <img 
+                  src={qrImage} 
+                  alt="Check-in QR" 
+                />
+              ) : (
+                <div style={{ color: 'var(--clr-text-muted)', textAlign: 'center', fontSize: '14px' }}>QR Code not available</div>
+              )}
             </div>
 
             <div className="qr-info">
@@ -218,7 +328,26 @@ export function MyBookingsPage() {
               <p className="qr-desc">Show this QR to the administrator to check-in to your reserved space.</p>
             </div>
 
-            <button onClick={() => setQrModal({ open: false, bookingId: null })} className="btn btn-primary w-full">Close</button>
+            <div className="flex gap-3 w-full">
+              <button 
+                onClick={() => {
+                  if (qrImage) {
+                    const link = document.createElement('a');
+                    link.href = qrImage;
+                    link.download = `SpaceSync-Booking-${qrModal.bookingId}-QR.png`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }
+                }} 
+                className="btn btn-ghost flex-1"
+                disabled={!qrImage || qrLoading}
+                style={{ border: '1px solid var(--clr-border)' }}
+              >
+                <Download size={18} style={{ marginRight: '8px' }}/> Download
+              </button>
+              <button onClick={() => setQrModal({ open: false, bookingId: null })} className="btn btn-primary flex-1">Close</button>
+            </div>
           </div>
         </div>
       )}

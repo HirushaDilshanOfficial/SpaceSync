@@ -27,7 +27,17 @@ spring:
             client-secret: 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
             scope: openid,profile,email
             redirect-uri: http://localhost:5173/login/oauth2/code/google
-
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: "easystay823@gmail.com"
+    password: "tlrigoqpekwvummt"
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 app:
   jwt:
     secret: SpaceSyncSuperSecretKeyForJWTSigningMustBe256BitsOrMoreInProductionReplaceThis2026
