@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, Loader2, Info, AlertTriangle, X, XCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
@@ -7,12 +7,13 @@ import { useAuth } from '../context/AuthContext';
 export function NewBookingPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [resources, setResources] = useState([]);
   const [allBookings, setAllBookings] = useState([]);
   const [formData, setFormData] = useState({
-    resourceId: '',
+    resourceId: location.state?.preselectedResource || '',
     date: '',
     startTime: '',
     endTime: '',
@@ -62,9 +63,44 @@ export function NewBookingPage() {
 
   const conflict = hasConflict();
 
+  const getTodayDateString = () => {
+    const today = new Date();
+    // Use local timezone instead of strict ISO to avoid shifting issues
+    const year = today.getFullYear();
+    const month = String(today.getMonth() + 1).padStart(2, '0');
+    const day = String(today.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const getCurrentTimeString = () => {
+    const now = new Date();
+    return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+  };
+
+  const todayStr = getTodayDateString();
+  const nowStr = getCurrentTimeString();
+
   const handleChange = (e) => {
     const { id, value } = e.target;
-    setFormData(prev => ({ ...prev, [id]: value }));
+    let updates = { [id]: value };
+    
+    if (id === 'date' && value === todayStr) {
+      if (formData.startTime && formData.startTime < nowStr) {
+        updates.startTime = nowStr;
+      }
+    }
+    
+    if (id === 'startTime' && (formData.date === todayStr || !formData.date)) {
+      if (value < nowStr) {
+        updates.startTime = nowStr;
+        if (!formData.date) updates.date = todayStr;
+        setError("Past times cannot be selected for today's date.");
+        setShowError(true);
+        setTimeout(() => setShowError(false), 3000);
+      }
+    }
+    
+    setFormData(prev => ({ ...prev, ...updates }));
   };
 
   const handleSubmit = async (e) => {
@@ -74,6 +110,52 @@ export function NewBookingPage() {
     setShowError(false);
     
     try {
+      if (parseInt(formData.attendees, 10) < 1) {
+        throw new Error("At least 1 attendee is required.");
+      }
+      
+      if (formData.date < todayStr) {
+        throw new Error("Cannot book a workspace for a past date.");
+      }
+      
+      const startTimeMins = parseT(formData.startTime);
+      const endTimeMins = parseT(formData.endTime);
+      const nowMins = parseT(nowStr);
+
+      if (formData.date === todayStr && startTimeMins < nowMins) {
+        throw new Error("Start time cannot be in the past.");
+      }
+
+      if (startTimeMins >= endTimeMins) {
+        throw new Error("End time must be after the start time.");
+      }
+      
+      const durationMins = endTimeMins - startTimeMins;
+      if (durationMins < 30) {
+        throw new Error("Booking duration must be at least 30 minutes.");
+      }
+      if (durationMins > 240) {
+        throw new Error("Booking duration cannot exceed 4 hours.");
+      }
+
+      // Capacity Validation
+      const selectedResource = resources.find(r => r.name === formData.resourceId);
+      if (selectedResource && selectedResource.capacity) {
+        if (parseInt(formData.attendees, 10) > selectedResource.capacity) {
+          throw new Error(`Maximum capacity for ${selectedResource.name} is ${selectedResource.capacity} attendees.`);
+        }
+      }
+
+      // Operating Hours Validation
+      if (selectedResource && selectedResource.availabilityStart && selectedResource.availabilityEnd) {
+        const resStartMins = parseT(selectedResource.availabilityStart.substring(0, 5));
+        const resEndMins = parseT(selectedResource.availabilityEnd.substring(0, 5));
+        
+        if (startTimeMins < resStartMins || endTimeMins > resEndMins) {
+          throw new Error(`${selectedResource.name} is only available between ${selectedResource.availabilityStart.substring(0, 5)} and ${selectedResource.availabilityEnd.substring(0, 5)}.`);
+        }
+      }
+
       const startDateTime = `${formData.date}T${formData.startTime}:00`;
       const endDateTime = `${formData.date}T${formData.endTime}:00`;
 
@@ -215,6 +297,7 @@ export function NewBookingPage() {
               <input 
                 id="date"
                 type="date" 
+                min={todayStr}
                 className="form-control" 
                 required 
                 value={formData.date}
@@ -242,6 +325,7 @@ export function NewBookingPage() {
               <input 
                 id="startTime"
                 type="time" 
+                min={formData.date === todayStr ? nowStr : undefined}
                 className="form-control" 
                 required 
                 value={formData.startTime}

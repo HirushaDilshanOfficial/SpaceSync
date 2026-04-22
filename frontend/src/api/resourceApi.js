@@ -19,4 +19,11 @@ export const resourceApi = {
   update:       (id, data) => axios.put(`${BASE_URL}/${id}`, data, { headers: getAuthHeader() }),
   updateStatus: (id, status) => axios.patch(`${BASE_URL}/${id}/status`, { status }, { headers: getAuthHeader() }),
   remove:       (id)       => axios.delete(`${BASE_URL}/${id}`, { headers: getAuthHeader() }),
+  uploadImage:  (file)     => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return axios.post('http://localhost:8081/api/upload/image', formData, {
+      headers: { ...getAuthHeader(), 'Content-Type': 'multipart/form-data' }
+    });
+  },
 };

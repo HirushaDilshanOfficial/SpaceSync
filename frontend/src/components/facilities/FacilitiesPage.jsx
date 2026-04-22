@@ -69,8 +69,11 @@ function ResourceCard({ resource, onEdit, onDelete, onStatusChange }) {
             width: '46px', height: '46px', background: meta.bg, borderRadius: '12px',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '22px', flexShrink: 0, border: `1px solid ${meta.color}22`,
+            overflow: 'hidden',
           }}>
-            {meta.emoji}
+            {resource.imageUrl ? (
+              <img src={resource.imageUrl} alt={resource.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : meta.emoji}
           </div>
           <div>
             <div style={{ fontSize: '14px', fontWeight: '700', color: '#1a2a3a', lineHeight: 1.3 }}>

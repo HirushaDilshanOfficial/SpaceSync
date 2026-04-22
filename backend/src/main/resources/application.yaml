@@ -45,6 +45,11 @@ app:
   cors:
     allowed-origins: http://localhost:5173,http://localhost:5174,http://localhost:3000
 
+cloudinary:
+  cloud-name: dlolyxisz
+  api-key: 837955516483426
+  api-secret: CpNdFST5ap2yVrQ86CIqxKempGI
+
 logging:
   level:
     com.spacesync: DEBUG

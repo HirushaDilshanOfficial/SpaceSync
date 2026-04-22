@@ -42,7 +42,7 @@ function StatusBadge({ status }) {
 }
 
 /* ─── Resource Card ─────────────────────────────────────────────── */
-function ResourceCard({ resource }) {
+function ResourceCard({ resource, onBook }) {
   const [hovered, setHovered] = useState(false);
   const meta = TYPE_META[resource.type] ?? { bg: '#f0f4f8', color: '#555', emoji: '📦', label: resource.type };
   const isActive = resource.status === 'ACTIVE';
@@ -88,8 +88,11 @@ function ResourceCard({ resource }) {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '22px', flexShrink: 0,
             border: `1px solid ${meta.color}22`,
+            overflow: 'hidden',
           }}>
-            {meta.emoji}
+            {resource.imageUrl ? (
+              <img src={resource.imageUrl} alt={resource.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+            ) : meta.emoji}
           </div>
           <div>
             <div style={{ fontSize: '15px', fontWeight: '700', color: '#1a2a3a', lineHeight: 1.3 }}>
@@ -144,6 +147,23 @@ function ResourceCard({ resource }) {
           {resource.description}
         </p>
       )}
+
+      {/* Booking Button */}
+      <div style={{ marginTop: 'auto', paddingTop: '16px' }}>
+        <button
+          onClick={() => onBook(resource)}
+          style={{
+            width: '100%', background: '#e8871a', color: '#fff', border: 'none',
+            borderRadius: '10px', padding: '10px', fontSize: '13px',
+            fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s',
+            boxShadow: '0 3px 10px rgba(232,135,26,0.25)',
+          }}
+          onMouseOver={e => e.target.style.filter = 'brightness(1.1)'}
+          onMouseOut={e => e.target.style.filter = 'brightness(1)'}
+        >
+          Book Now
+        </button>
+      </div>
     </div>
   );
 }
@@ -257,30 +277,44 @@ export default function FacilitiesUserPage() {
 
   const handleFilter = (f) => { setFilters(f); load(f); };
 
+  const handleBook = (resource) => {
+    if (!user) {
+      navigate('/login');
+    } else {
+      navigate('/new-booking', { state: { preselectedResource: resource.name } });
+    }
+  };
+
   const stats = [
     {
-      label: 'Total Resources',
-      value: resources.length,
+      label: 'Lecture Halls',
+      value: resources.filter(r => r.type === 'LECTURE_HALL').length,
       bg: 'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)',
       color: '#3b5bdb', border: '#c5d0fa', emoji: '🏛️',
     },
     {
-      label: 'Available Now',
-      value: resources.filter(r => r.status === 'ACTIVE').length,
-      bg: 'linear-gradient(135deg, #e6f4ea 0%, #d1fae5 100%)',
-      color: '#1a7a34', border: '#b0dbb8', emoji: '✅',
-    },
-    {
-      label: 'Unavailable',
-      value: resources.filter(r => r.status === 'OUT_OF_SERVICE').length,
-      bg: 'linear-gradient(135deg, #fdecea 0%, #fee2e2 100%)',
-      color: '#c0392b', border: '#f5b7b1', emoji: '⛔',
-    },
-    {
       label: 'Labs',
       value: resources.filter(r => r.type === 'LAB').length,
+      bg: 'linear-gradient(135deg, #e6f4ea 0%, #d1fae5 100%)',
+      color: '#1a7a34', border: '#b0dbb8', emoji: '🔬',
+    },
+    {
+      label: 'Meeting Rooms',
+      value: resources.filter(r => r.type === 'MEETING_ROOM').length,
+      bg: 'linear-gradient(135deg, #fff3e0 0%, #ffedd5 100%)',
+      color: '#e65100', border: '#fed7aa', emoji: '🤝',
+    },
+    {
+      label: 'Equipment',
+      value: resources.filter(r => r.type === 'EQUIPMENT').length,
       bg: 'linear-gradient(135deg, #f3e5f5 0%, #ede9fe 100%)',
-      color: '#7b1fa2', border: '#d8b4fe', emoji: '🔬',
+      color: '#7b1fa2', border: '#d8b4fe', emoji: '🖥️',
+    },
+    {
+      label: 'Study Rooms',
+      value: resources.filter(r => r.type === 'ROOM').length,
+      bg: 'linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%)',
+      color: '#444444', border: '#cbd5e1', emoji: '🚪',
     },
   ];
 
@@ -497,7 +531,7 @@ export default function FacilitiesUserPage() {
               gap: '20px',
             }}>
               {resources.map(r => (
-                <ResourceCard key={r.id} resource={r} />
+                <ResourceCard key={r.id} resource={r} onBook={handleBook} />
               ))}
             </div>
           </>

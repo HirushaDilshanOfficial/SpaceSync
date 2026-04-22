@@ -27,9 +27,11 @@ public class ResourceRequestDTO {
     @Size(max = 100, message = "Building must not exceed 100 characters")
     private String building;
 
-    private ResourceStatus status;
-
     private String description;
+
+    private String imageUrl;
+
+    private ResourceStatus status;
 
 
     @NotNull(message = "Availability start time is required")

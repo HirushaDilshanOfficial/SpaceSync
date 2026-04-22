@@ -199,7 +199,12 @@ export function AdminBookingsPage() {
               type="text" 
               placeholder="Search bookings..." 
               value={search}
-              onChange={e => setSearch(e.target.value)}
+              onChange={e => {
+                const val = e.target.value;
+                if (/^[a-zA-Z0-9\s]*$/.test(val)) {
+                  setSearch(val);
+                }
+              }}
             />
           </div>
           <div className="date-filter">

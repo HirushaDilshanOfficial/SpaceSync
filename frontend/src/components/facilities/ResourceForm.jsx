@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import { resourceApi } from '../../api/resourceApi';
 
 const EMPTY = {
   name: '', type: 'LECTURE_HALL', capacity: '',
   location: '', building: '', status: 'ACTIVE',
   availabilityStart: '08:00', availabilityEnd: '18:00',
+  imageUrl: '',
 };
 
 const inp = (err) => ({
@@ -22,6 +24,7 @@ const lbl = {
 export default function ResourceForm({ initial, onSubmit, onClose }) {
   const [form, setForm]     = useState(initial ?? EMPTY);
   const [errors, setErrors] = useState({});
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => { setForm(initial ?? EMPTY); }, [initial]);
 
@@ -45,6 +48,21 @@ export default function ResourceForm({ initial, onSubmit, onClose }) {
       ...form,
       capacity: form.type === 'EQUIPMENT' ? null : Number(form.capacity),
     });
+  };
+
+  const handleFileChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      setUploading(true);
+      const { data } = await resourceApi.uploadImage(file);
+      setForm(f => ({ ...f, imageUrl: data.url }));
+    } catch (err) {
+      alert('Failed to upload image. Please try again.');
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -129,6 +147,33 @@ export default function ResourceForm({ initial, onSubmit, onClose }) {
                 <option value="ACTIVE">Active</option>
                 <option value="OUT_OF_SERVICE">Out of Service</option>
               </select>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <label style={lbl}>Resource Image</label>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                {form.imageUrl && (
+                  <div style={{ width: '60px', height: '60px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e0e6ed' }}>
+                    <img src={form.imageUrl} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                )}
+                <div style={{ flex: 1 }}>
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    onChange={handleFileChange} 
+                    style={{ ...inp(false), padding: '6px' }} 
+                  />
+                  {uploading && <p style={{ fontSize: '11px', color: '#e8871a', margin: '4px 0 0' }}>Uploading to Cloudinary...</p>}
+                </div>
+              </div>
+              <input 
+                name="imageUrl" 
+                value={form.imageUrl} 
+                onChange={set} 
+                placeholder="Or paste image URL here..." 
+                style={{ ...inp(false), marginTop: '8px' }} 
+              />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '24px' }}>

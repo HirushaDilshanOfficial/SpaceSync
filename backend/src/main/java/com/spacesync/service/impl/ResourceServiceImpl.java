@@ -30,6 +30,7 @@ public class ResourceServiceImpl implements ResourceService {
                 .location(r.getLocation())
                 .building(r.getBuilding())
                 .description(r.getDescription())
+                .imageUrl(r.getImageUrl())
                 .status(r.getStatus())
                 .availabilityStart(r.getAvailabilityStart())
                 .availabilityEnd(r.getAvailabilityEnd())
@@ -45,6 +46,7 @@ public class ResourceServiceImpl implements ResourceService {
         resource.setLocation(dto.getLocation());
         resource.setBuilding(dto.getBuilding());
         resource.setDescription(dto.getDescription());
+        resource.setImageUrl(dto.getImageUrl());
         resource.setStatus(dto.getStatus() != null ? dto.getStatus() : ResourceStatus.ACTIVE);
         resource.setAvailabilityStart(dto.getAvailabilityStart());
         resource.setAvailabilityEnd(dto.getAvailabilityEnd());
