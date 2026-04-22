@@ -47,6 +47,13 @@ public class BookingService {
             throw new IllegalStateException("Already checked in");
         }
 
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime earliestCheckInTime = booking.getStartTime().minusMinutes(10);
+        
+        if (now.isBefore(earliestCheckInTime)) {
+            throw new IllegalStateException("Check-in is only allowed 10 minutes before the booking start time.");
+        }
+
         booking.setStatus(BookingStatus.CHECKED_IN);
         booking.setCheckedInAt(LocalDateTime.now());
         Booking savedBooking = bookingRepository.save(booking);
