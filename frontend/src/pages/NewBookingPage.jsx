@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, Loader2, Info, AlertTriangle, X, XCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
@@ -7,12 +7,13 @@ import { useAuth } from '../context/AuthContext';
 export function NewBookingPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const location = useLocation();
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [resources, setResources] = useState([]);
   const [allBookings, setAllBookings] = useState([]);
   const [formData, setFormData] = useState({
-    resourceId: '',
+    resourceId: location.state?.preselectedResource || '',
     date: '',
     startTime: '',
     endTime: '',
