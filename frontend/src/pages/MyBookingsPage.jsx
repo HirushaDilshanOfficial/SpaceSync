@@ -1,408 +1,505 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, Plus, CheckCircle, AlertCircle, QrCode, X, Search, Filter, Users, AlertTriangle, Download } from 'lucide-react';
+import { Calendar, Clock, Plus, CheckCircle, AlertCircle, QrCode, X, Search, Users, AlertTriangle, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const statusConfig = {
-  PENDING:    { color: 'var(--clr-warning)', bg: 'rgba(210,153,34,0.1)',   dot: 'var(--clr-warning)',   icon: AlertCircle },
-  APPROVED:   { color: 'var(--clr-success)', bg: 'rgba(63,185,80,0.1)', dot: 'var(--clr-success)', icon: CheckCircle },
-  CHECKED_IN: { color: 'var(--clr-primary)', bg: 'rgba(88,166,255,0.1)', dot: 'var(--clr-primary)', icon: CheckCircle },
-  CHECKED_OUT: { color: 'var(--clr-text-muted)', bg: 'rgba(139,148,158,0.1)', dot: 'var(--clr-text-muted)', icon: CheckCircle },
-  REJECTED:   { color: 'var(--clr-danger)', bg: 'rgba(248,81,73,0.1)',         dot: 'var(--clr-danger)',     icon: X },
-  CANCELLED:  { color: 'var(--clr-text-muted)', bg: 'rgba(139,148,158,0.1)',    dot: 'var(--clr-text-muted)',    icon: X },
+/* ── SLIIT Brand tokens ───────────────────────────────────────── */
+/* ── SLIIT Brand tokens ───────────────────────────────────────── */
+const C = {
+  navy:      '#003087',      /* SLIIT Navy */
+  navyDark:  '#001a52',
+  navyLight: 'rgba(0, 48, 135, 0.08)',
+  gold:      '#F5A800',
+  goldLight: 'rgba(245, 168, 0, 0.1)',
+  bg:        '#f8fafc',
+  white:     '#ffffff',
+  border:    '#e2e8f0',
+  text:      '#0f172a',
+  muted:     '#475569',
+  faint:     '#94a3b8',
 };
 
+const STATUS = {
+  PENDING:     { label: 'Pending',     color: '#d97706', bg: '#fffbeb', border: '#fef3c7', dot: '#f59e0b' },
+  APPROVED:    { label: 'Approved',    color: '#059669', bg: '#ecfdf5', border: '#d1fae5', dot: '#10b981' },
+  CHECKED_IN:  { label: 'Checked In',  color: '#2563eb', bg: '#eff6ff', border: '#dbeafe', dot: '#3b82f6' },
+  CHECKED_OUT: { label: 'Checked Out', color: '#475569', bg: '#f1f5f9', border: '#e2e8f0', dot: '#64748b' },
+  REJECTED:    { label: 'Rejected',    color: '#dc2626', bg: '#fef2f2', border: '#fee2e2', dot: '#ef4444' },
+  CANCELLED:   { label: 'Cancelled',   color: '#64748b', bg: '#f8fafc', border: '#f1f5f9', dot: '#94a3b8' },
+};
+
+const CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  * { box-sizing: border-box; }
+
+  @keyframes spin    { to { transform: rotate(360deg); } }
+  @keyframes fadeUp  { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+  @keyframes modalIn { from { opacity:0; transform:scale(0.96); } to { opacity:1; transform:scale(1); } }
+
+  .bk-card {
+    background: #ffffff;
+    border: 1px solid var(--clr-border);
+    border-radius: 20px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.3s cubic-bezier(.4,0,.2,1);
+    animation: fadeUp 0.4s ease both;
+  }
+  .bk-card:hover {
+    border-color: var(--clr-primary);
+    box-shadow: var(--shadow-md);
+    transform: translateY(-4px);
+  }
+
+  .bk-stat {
+    background: #ffffff;
+    border: 1px solid var(--clr-border);
+    border-radius: 16px;
+    padding: 20px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: all 0.3s;
+    box-shadow: var(--shadow-sm);
+  }
+  .bk-stat:hover { 
+    transform: translateY(-3px); 
+    border-color: var(--clr-primary);
+    box-shadow: var(--shadow-md);
+  }
+
+  .bk-input {
+    border: 1px solid var(--clr-border);
+    border-radius: 12px;
+    padding: 0 16px;
+    height: 46px;
+    font-size: 14px;
+    color: var(--clr-text);
+    background: #ffffff;
+    outline: none;
+    font-family: inherit;
+    transition: all 0.2s;
+    width: 100%;
+  }
+  .bk-input:focus {
+    border-color: var(--clr-primary);
+    box-shadow: 0 0 0 3px rgba(0, 48, 135, 0.08);
+  }
+
+  .bk-btn-primary {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    background: var(--grad-primary);
+    color: #ffffff; border: none; border-radius: 12px;
+    padding: 12px 24px; font-size: 14px; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+    box-shadow: 0 4px 12px rgba(0, 48, 135, 0.2);
+    transition: all 0.25s;
+  }
+  .bk-btn-primary:hover { 
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 48, 135, 0.3);
+  }
+
+  .bk-btn-navy {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    background: var(--clr-primary);
+    color: #fff; border: none; border-radius: 12px;
+    padding: 10px 20px; font-size: 14px; font-weight: 700;
+    cursor: pointer; font-family: inherit;
+    transition: all 0.25s;
+  }
+  .bk-btn-navy:hover { 
+    background: var(--clr-primary-dark);
+    transform: translateY(-2px);
+  }
+
+  .bk-btn-ghost {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    background: #ffffff; border: 1px solid var(--clr-border);
+    border-radius: 12px; padding: 10px 20px;
+    font-size: 14px; font-weight: 700; color: var(--clr-text-muted);
+    cursor: pointer; font-family: inherit;
+    transition: all 0.2s;
+  }
+  .bk-btn-ghost:hover { 
+    background: #eff6ff; 
+    border-color: var(--clr-primary); 
+    color: var(--clr-primary); 
+  }
+
+  .bk-btn-danger {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    background: #fef2f2; border: 1px solid #fee2e2;
+    border-radius: 12px; padding: 10px 20px;
+    font-size: 14px; font-weight: 700; color: #dc2626;
+    cursor: pointer; font-family: inherit;
+    transition: all 0.2s;
+  }
+  .bk-btn-danger:hover { background: #fee2e2; border-color: #fca5a5; }
+
+  .bk-modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(15, 23, 42, 0.4);
+    backdrop-filter: blur(8px);
+    z-index: 2000;
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  .bk-modal {
+    background: #ffffff;
+    border-radius: 24px;
+    padding: 32px;
+    width: 100%; max-width: 440px;
+    display: flex; flex-direction: column; gap: 24px;
+    box-shadow: var(--shadow-xl);
+    animation: modalIn 0.3s cubic-bezier(.4,0,.2,1);
+    border: 1px solid var(--clr-border);
+  }
+  .bk-empty-state {
+    text-align: center; padding: 80px 40px; 
+    background: #ffffff; 
+    border-radius: 24px; 
+    border: 2px dashed var(--clr-border);
+  }
+`;
+`;
+`;
+
+/* ── Sub-components ───────────────────────────────────────────── */
+function StatusBadge({ status }) {
+  const s = STATUS[status] || STATUS.PENDING;
+  return (
+    <span style={{
+      display: 'inline-flex', alignItems: 'center', gap: '5px',
+      background: s.bg, color: s.color,
+      border: `1px solid ${s.border}`,
+      borderRadius: '20px', padding: '4px 11px',
+      fontSize: '11px', fontWeight: '700',
+      textTransform: 'uppercase', letterSpacing: '0.4px',
+    }}>
+      <span style={{ width: 6, height: 6, borderRadius: '50%', background: s.dot, display: 'inline-block' }} />
+      {s.label}
+    </span>
+  );
+}
+
+function StatCard({ label, value, icon, accent }) {
+  return (
+    <div className="bk-stat">
+      <div style={{
+        width: 44, height: 44, borderRadius: 12,
+        background: accent + '18',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: accent, fontSize: 20, flexShrink: 0,
+      }}>
+        {icon}
+      </div>
+      <div>
+        <div style={{ fontSize: 26, fontWeight: 800, color: accent, lineHeight: 1 }}>{value}</div>
+        <div style={{ fontSize: 11, color: C.muted, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.4px', marginTop: 3 }}>{label}</div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Main Page ────────────────────────────────────────────────── */
 export function MyBookingsPage() {
   const { user } = useAuth();
-  const [bookings, setBookings] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [qrModal, setQrModal] = useState({ open: false, bookingId: null });
-  const [qrImage, setQrImage] = useState(null);
-  const [qrLoading, setQrLoading] = useState(false);
-
-  // Filters
-  const [filterStatus, setFilterStatus] = useState('ALL');
-  const [filterDate, setFilterDate] = useState('');
-  const [filterResource, setFilterResource] = useState('');
-
-  const handleOpenQr = async (bookingId) => {
-    setQrModal({ open: true, bookingId });
-    setQrImage(null);
-    setQrLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`/api/bookings/${bookingId}/qr`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (response.ok) {
-        const blob = await response.blob();
-        setQrImage(URL.createObjectURL(blob));
-      } else {
-        console.error('Failed to load QR');
-      }
-    } catch (error) {
-      console.error('Error fetching QR:', error);
-    } finally {
-      setQrLoading(false);
-    }
-  };
   const navigate = useNavigate();
+  const [bookings,     setBookings]     = useState([]);
+  const [loading,      setLoading]      = useState(true);
+  const [error,        setError]        = useState(null);
+  const [qrModal,      setQrModal]      = useState({ open: false, bookingId: null });
+  const [qrImage,      setQrImage]      = useState(null);
+  const [qrLoading,    setQrLoading]    = useState(false);
+  const [filterStatus, setFilterStatus] = useState('ALL');
+  const [filterDate,   setFilterDate]   = useState('');
+  const [filterSearch, setFilterSearch] = useState('');
 
+  /* ── Fetch ── */
   const fetchBookings = async () => {
     try {
       if (!user?.id) return;
       setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/bookings/my?userId=${user.id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const res = await fetch(`/api/bookings/my?userId=${user.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
-      if (!response.ok) throw new Error('Failed to fetch bookings');
-      const data = await response.json();
+      if (!res.ok) throw new Error('Failed to fetch bookings');
+      const data = await res.json();
       setBookings(data.sort((a, b) => new Date(b.startTime) - new Date(a.startTime)));
     } catch (err) {
-      console.error(err);
       setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchBookings();
-  }, [user?.id]);
+  useEffect(() => { fetchBookings(); }, [user?.id]);
 
-  const handleCancel = async (id) => {
-    if (!window.confirm('Are you sure you want to cancel this booking?')) return;
+  /* ── QR ── */
+  const handleOpenQr = async (bookingId) => {
+    setQrModal({ open: true, bookingId });
+    setQrImage(null); setQrLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/bookings/${id}/status?status=CANCELLED`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const res = await fetch(`/api/bookings/${bookingId}/qr`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
-      if (response.ok) {
-        fetchBookings(); // Refresh data
-      }
-    } catch (err) {
-      console.error('Failed to cancel:', err);
-    }
+      if (res.ok) setQrImage(URL.createObjectURL(await res.blob()));
+    } catch (e) { console.error(e); }
+    finally { setQrLoading(false); }
   };
 
+  /* ── Cancel ── */
+  const handleCancel = async (id) => {
+    if (!window.confirm('Cancel this booking?')) return;
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/bookings/${id}/status?status=CANCELLED`, {
+        method: 'PATCH', headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) fetchBookings();
+    } catch (e) { console.error(e); }
+  };
+
+  /* ── Filter ── */
+  const filtered = bookings.filter(b => {
+    if (filterStatus !== 'ALL' && b.status !== filterStatus) return false;
+    if (filterDate) {
+      const d = new Date(b.startTime).toISOString().split('T')[0];
+      if (d !== filterDate) return false;
+    }
+    if (filterSearch && !b.resourceId?.toLowerCase().includes(filterSearch.toLowerCase())) return false;
+    return true;
+  });
+
+  const hasFilter = filterStatus !== 'ALL' || filterDate || filterSearch;
+
+  /* ── States ── */
   if (loading) return (
-    <div className="loading-state">
-      <div className="spinner"></div>
-      <p>Loading your bookings...</p>
-      <style>{`
-        .loading-state { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 400px; gap: 16px; color: var(--clr-text-muted); }
-        .spinner { width: 32px; height: 32px; border: 3px solid var(--clr-border); border-top-color: var(--clr-primary); border-radius: 50%; animation: spin 1s linear infinite; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-      `}</style>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: 400, gap: 14, fontFamily: 'Inter, sans-serif' }}>
+      <style>{CSS}</style>
+      <div style={{ width: 40, height: 40, borderRadius: '50%', border: '3px solid #dce6f5', borderTopColor: C.navy, animation: 'spin 0.8s linear infinite' }} />
+      <p style={{ color: C.muted, fontSize: 14 }}>Loading your bookings…</p>
     </div>
   );
 
   if (error) return (
-    <div className="error-state">
-      <AlertCircle size={40} />
-      <p>Error: {error}</p>
-      <button onClick={fetchBookings} className="btn btn-ghost btn-sm">Try Again</button>
-      <style>{`
-        .error-state { text-align: center; padding: 60px; color: var(--clr-danger); display: flex; flex-direction: column; align-items: center; gap: 16px; background: rgba(248,81,73,0.05); border-radius: 20px; border: 1px solid rgba(248,81,73,0.1); }
-      `}</style>
+    <div style={{ textAlign: 'center', padding: 60, color: '#dc2626', fontFamily: 'Inter, sans-serif' }}>
+      <style>{CSS}</style>
+      <AlertCircle size={40} style={{ margin: '0 auto 12px' }} />
+      <p style={{ marginBottom: 16 }}>{error}</p>
+      <button className="bk-btn-ghost" onClick={fetchBookings}>Try Again</button>
     </div>
   );
 
-  const filteredBookings = bookings.filter(booking => {
-    if (filterStatus !== 'ALL' && booking.status !== filterStatus) return false;
-    if (filterDate) {
-      const bDate = new Date(booking.startTime).toISOString().split('T')[0];
-      if (bDate !== filterDate) return false;
-    }
-    if (filterResource) {
-      // Assuming resourceId holds the resource name or identifier displayed
-      if (!booking.resourceId.toLowerCase().includes(filterResource.toLowerCase())) {
-        return false;
-      }
-    }
-    return true;
-  });
-
   return (
-    <div className="my-bookings-container">
-      <header className="page-header">
-        <div className="header-text">
-          <h1 className="page-title">My Bookings</h1>
-          <p className="page-subtitle">Track and manage your workspace reservations.</p>
-        </div>
-        <div className="flex gap-3">
-          <button onClick={() => navigate('/report-incident')} className="btn btn-ghost border-indigo-100 text-indigo-600">
-            <AlertCircle size={18} /> Report Issue
-          </button>
-          <button onClick={() => navigate('/new-booking')} className="btn btn-primary">
-            <Plus size={18} /> New Booking
-          </button>
-        </div>
-      </header>
+    <div style={{ maxWidth: 1200, margin: '36px auto', padding: '0 24px 72px', fontFamily: "'Inter','Segoe UI',sans-serif", color: C.text }}>
+      <style>{CSS}</style>
 
-      <div className="stats-grid">
-        {[
-          { label: 'Pending', count: bookings.filter(b => b.status === 'PENDING').length, color: 'var(--clr-warning)' },
-          { label: 'Approved', count: bookings.filter(b => b.status === 'APPROVED').length, color: 'var(--clr-success)' },
-          { label: 'Checked In', count: bookings.filter(b => b.status === 'CHECKED_IN').length, color: 'var(--clr-primary)' },
-          { label: 'Total', count: bookings.length, color: 'var(--clr-text)' }
-        ].map((stat, i) => (
-          <div key={i} className="stat-card glass-card">
-            <span className="stat-label">{stat.label}</span>
-            <span className="stat-value" style={{ color: stat.color }}>{stat.count}</span>
+      {/* ── Header ── */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32, flexWrap: 'wrap', gap: 16 }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+            <div style={{ width: 38, height: 38, borderRadius: 10, background: `linear-gradient(135deg, ${C.navyDark}, ${C.navy})`, display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 3px 10px rgba(0,48,135,0.25)' }}>
+              <Calendar size={18} color="#fff" />
+            </div>
+            <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, letterSpacing: '-0.5px' }}>My Bookings</h1>
           </div>
-        ))}
+          <p style={{ margin: 0, fontSize: 14, color: C.muted }}>Track and manage your SLIIT workspace reservations</p>
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button className="bk-btn-ghost" onClick={() => navigate('/report-incident')}>
+            <AlertCircle size={15} /> Report Issue
+          </button>
+          <button className="bk-btn-primary" onClick={() => navigate('/new-booking')}>
+            <Plus size={15} /> New Booking
+          </button>
+        </div>
       </div>
 
-      <div className="filters-bar glass-card" style={{ padding: '16px', marginBottom: '24px', display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
-        <div className="filter-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--clr-text-muted)' }}>Status</label>
-          <select 
-            value={filterStatus} 
-            onChange={(e) => setFilterStatus(e.target.value)}
-            style={{ padding: '8px', borderRadius: '8px', border: '1px solid var(--clr-border)', background: 'var(--clr-bg)', color: 'var(--clr-text)', outline: 'none' }}
-          >
-            <option value="ALL">All Statuses</option>
-            <option value="PENDING">Pending</option>
-            <option value="APPROVED">Approved</option>
-            <option value="CHECKED_IN">Checked In</option>
-            <option value="CHECKED_OUT">Checked Out</option>
-            <option value="REJECTED">Rejected</option>
-            <option value="CANCELLED">Cancelled</option>
-          </select>
+      {/* ── Stats ── */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 14, marginBottom: 28 }}>
+        <StatCard label="Total"      value={bookings.length}                                          icon="📋" accent={C.navy} />
+        <StatCard label="Pending"    value={bookings.filter(b=>b.status==='PENDING').length}          icon="⏳" accent="#b45309" />
+        <StatCard label="Approved"   value={bookings.filter(b=>b.status==='APPROVED').length}         icon="✅" accent="#059669" />
+        <StatCard label="Checked In" value={bookings.filter(b=>b.status==='CHECKED_IN').length}       icon="🔵" accent={C.navy} />
+      </div>
+
+      {/* ── Filters ── */}
+      <div style={{ background: '#ffffff', border: `1px solid ${C.border}`, borderRadius: 16, padding: '14px 18px', marginBottom: 28, display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-end', boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
+        {/* Search */}
+        <div style={{ flex: 1, minWidth: 180, position: 'relative' }}>
+          <Search size={15} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: C.faint, pointerEvents: 'none' }} />
+          <input className="bk-input" style={{ paddingLeft: 34 }} placeholder="Search resource…" value={filterSearch} onChange={e => setFilterSearch(e.target.value)} />
         </div>
 
-        <div className="filter-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--clr-text-muted)' }}>Date</label>
-          <input 
-            type="date" 
-            value={filterDate}
-            onChange={(e) => setFilterDate(e.target.value)}
-            style={{ padding: '8px', borderRadius: '8px', border: '1px solid var(--clr-border)', background: 'var(--clr-bg)', color: 'var(--clr-text)', outline: 'none' }}
-          />
-        </div>
+        {/* Status */}
+        <select className="bk-input" style={{ width: 160 }} value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
+          <option value="ALL">All Statuses</option>
+          <option value="PENDING">Pending</option>
+          <option value="APPROVED">Approved</option>
+          <option value="CHECKED_IN">Checked In</option>
+          <option value="CHECKED_OUT">Checked Out</option>
+          <option value="REJECTED">Rejected</option>
+          <option value="CANCELLED">Cancelled</option>
+        </select>
 
-        <div className="filter-group" style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '200px' }}>
-          <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--clr-text-muted)' }}>Resource</label>
-          <div style={{ position: 'relative' }}>
-            <Search size={16} style={{ position: 'absolute', left: '10px', top: '10px', color: 'var(--clr-text-muted)' }} />
-            <input 
-              type="text" 
-              placeholder="Search resource..." 
-              value={filterResource}
-              onChange={(e) => {
-                const value = e.target.value;
-                if (/^[a-zA-Z0-9\s]*$/.test(value)) {
-                  setFilterResource(value);
-                }
-              }}
-              style={{ width: '100%', padding: '8px 8px 8px 32px', borderRadius: '8px', border: '1px solid var(--clr-border)', background: 'var(--clr-bg)', color: 'var(--clr-text)', outline: 'none' }}
-            />
-          </div>
-        </div>
-        
-        {(filterStatus !== 'ALL' || filterDate !== '' || filterResource !== '') && (
-          <button 
-            onClick={() => { setFilterStatus('ALL'); setFilterDate(''); setFilterResource(''); }}
-            className="btn btn-ghost btn-sm"
-            style={{ color: 'var(--clr-danger)' }}
-          >
-            Clear Filters
+        {/* Date */}
+        <input className="bk-input" type="date" style={{ width: 160 }} value={filterDate} onChange={e => setFilterDate(e.target.value)} />
+
+        {hasFilter && (
+          <button className="bk-btn-danger" style={{ padding: '8px 14px' }} onClick={() => { setFilterStatus('ALL'); setFilterDate(''); setFilterSearch(''); }}>
+            ✕ Clear
           </button>
         )}
       </div>
 
-      {filteredBookings.length === 0 ? (
-        <div className="empty-state glass-card">
-          <Calendar size={48} className="empty-icon" />
-          <h3>No bookings yet</h3>
-          <p>You haven't made any workspace reservations. Start by booking a space!</p>
-          <button onClick={() => navigate('/new-booking')} className="btn btn-primary">Book Now</button>
+      {/* ── Empty ── */}
+      {filtered.length === 0 ? (
+        <div className="bk-empty-state">
+          <p style={{ fontSize: 52, marginBottom: 14 }}>📅</p>
+          <p style={{ fontSize: 18, fontWeight: 700, marginBottom: 8, color: C.text }}>No bookings found</p>
+          <p style={{ fontSize: 14, color: C.muted, marginBottom: 24 }}>
+            {hasFilter ? 'Try adjusting your filters.' : "You haven't made any reservations yet."}
+          </p>
+          {!hasFilter && <button className="bk-btn-primary" onClick={() => navigate('/new-booking')}>📅 Book a Space</button>}
         </div>
       ) : (
-        <div className="bookings-grid">
-          {filteredBookings.map((booking) => {
-            const status = statusConfig[booking.status] || statusConfig.PENDING;
-            const startDate = new Date(booking.startTime);
-            const endDate = new Date(booking.endTime);
-            const dateStr = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-            const timeRange = `${startDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} – ${endDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+        <>
+          <p style={{ margin: '0 0 16px', fontSize: 13, color: C.faint }}>
+            Showing <strong style={{ color: C.text }}>{filtered.length}</strong> booking{filtered.length !== 1 ? 's' : ''}
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))', gap: 22 }}>
+            {filtered.map((booking, i) => {
+              const start   = new Date(booking.startTime);
+              const end     = new Date(booking.endTime);
+              const dateStr = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+              const timeStr = `${start.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})} – ${end.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})}`;
+              const canQr     = booking.status === 'APPROVED' || booking.status === 'CHECKED_IN';
+              const canCancel = booking.status === 'APPROVED' || booking.status === 'PENDING';
 
-            return (
-              <div key={booking.id} className="booking-card glass-card">
-                <div className="card-header">
-                  <span className="booking-id">BKG-{booking.id.toString().slice(-4).toUpperCase()}</span>
-                  <span className="status-badge" style={{ color: status.color, backgroundColor: status.bg }}>
-                    <span className="status-dot" style={{ backgroundColor: status.dot }}></span>
-                    {booking.status}
-                  </span>
-                </div>
-
-                <h3 className="resource-name">{booking.resourceId}</h3>
-
-                <div className="booking-details">
-                  <div className="detail-item">
-                    <Calendar size={14} /> <span>{dateStr}</span>
-                  </div>
-                  <div className="detail-item">
-                    <Clock size={14} /> <span>{timeRange}</span>
-                  </div>
-                  <div className="detail-item">
-                    <Users size={14} /> <span>{booking.attendees} attendees</span>
-                  </div>
-                  <div className="purpose-box">
-                    <p className="purpose-text">{booking.purpose}</p>
+              return (
+                <div className="bk-card" key={booking.id} style={{ animationDelay: `${i * 0.04}s` }}>
+                  {/* Top stripe */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: C.faint, background: C.navyLight, padding: '3px 9px', borderRadius: 6 }}>
+                      BKG-{String(booking.id).slice(-4).toUpperCase()}
+                    </span>
+                    <StatusBadge status={booking.status} />
                   </div>
 
-                  {(booking.status === 'REJECTED' || booking.status === 'CANCELLED') && booking.rejectReason && (
-                    <div className="reject-reason-box">
-                      <p className="reject-label">Feedback / Reason</p>
-                      <p className="reject-text">{booking.rejectReason}</p>
+                  {/* Resource name */}
+                  <div style={{ fontSize: 17, fontWeight: 700, color: C.navy }}>{booking.resourceId}</div>
+
+                  {/* Details */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: C.muted }}>
+                      <Calendar size={14} color={C.navy} /> <span>{dateStr}</span>
                     </div>
-                  )}
-                </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: C.muted }}>
+                      <Clock size={14} color={C.navy} /> <span>{timeStr}</span>
+                    </div>
+                    {booking.attendees && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: C.muted }}>
+                        <Users size={14} color={C.navy} /> <span>{booking.attendees} attendees</span>
+                      </div>
+                    )}
+                    {booking.purpose && (
+                      <div style={{ borderLeft: `3px solid ${C.gold}`, paddingLeft: 10, marginTop: 4 }}>
+                        <p style={{ margin: 0, fontSize: 12, color: C.muted, fontStyle: 'italic', lineHeight: 1.5 }}>{booking.purpose}</p>
+                      </div>
+                    )}
+                    {(booking.status === 'REJECTED' || booking.status === 'CANCELLED') && booking.rejectReason && (
+                      <div style={{ background: '#fff1f2', border: '1px solid #fecdd3', borderRadius: 10, padding: '10px 12px', marginTop: 4 }}>
+                        <div style={{ fontSize: 10, fontWeight: 700, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Reason</div>
+                        <div style={{ fontSize: 12, color: C.text, lineHeight: 1.4 }}>{booking.rejectReason}</div>
+                      </div>
+                    )}
+                  </div>
 
-                <div className="card-actions">
-                  {(booking.status === 'APPROVED' || booking.status === 'CHECKED_IN') && (
-                    <button
-                      onClick={() => handleOpenQr(booking.id)}
-                      className="btn btn-ghost btn-sm btn-qr"
-                    >
-                      <QrCode size={14} /> Check-in QR
+                  {/* Actions */}
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', paddingTop: 4, borderTop: `1px solid ${C.border}` }}>
+                    {canQr && (
+                      <button className="bk-btn-navy" style={{ padding: '7px 14px', fontSize: 12 }} onClick={() => handleOpenQr(booking.id)}>
+                        <QrCode size={13} /> QR Code
+                      </button>
+                    )}
+                    {canCancel && (
+                      <button className="bk-btn-danger" style={{ padding: '7px 14px', fontSize: 12 }} onClick={() => handleCancel(booking.id)}>
+                        Cancel
+                      </button>
+                    )}
+                    <button className="bk-btn-ghost" style={{ padding: '7px 12px', fontSize: 12, marginLeft: 'auto' }}
+                      onClick={() => navigate('/report-incident', { state: { resourceId: booking.resourceId } })}>
+                      <AlertTriangle size={12} /> Issue
                     </button>
-                  )}
-                  {(booking.status === 'APPROVED' || booking.status === 'PENDING') && (
-                    <button
-                      onClick={() => handleCancel(booking.id)}
-                      className="btn btn-danger btn-sm"
-                    >
-                      Cancel
-                    </button>
-                  )}
-                  <button
-                    onClick={() => navigate('/report-incident', { state: { resourceId: booking.resourceId } })}
-                    className="btn btn-ghost btn-sm text-amber-600 hover:bg-amber-50"
-                  >
-                    <AlertTriangle size={14} /> Report Issue
-                  </button>
+                  </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        </>
       )}
 
-      {/* QR Modal */}
+      {/* ── QR Modal ── */}
       {qrModal.open && (
-        <div className="modal-overlay" onClick={() => setQrModal({ open: false, bookingId: null })}>
-          <div className="modal-content glass-card" onClick={e => e.stopPropagation()}>
-            <div className="modal-header">
-              <h3>Check-in QR Code</h3>
-              <button onClick={() => setQrModal({ open: false, bookingId: null })} className="close-btn"><X size={20} /></button>
+        <div className="bk-modal-overlay" onClick={() => setQrModal({ open: false, bookingId: null })}>
+          <div className="bk-modal" onClick={e => e.stopPropagation()}>
+            {/* Modal header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 36, height: 36, borderRadius: 10, background: `linear-gradient(135deg, ${C.navyDark}, ${C.navy})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <QrCode size={18} color="#fff" />
+                </div>
+                <span style={{ fontWeight: 800, fontSize: 17 }}>Check-in QR</span>
+              </div>
+              <button style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.muted, padding: 4 }}
+                onClick={() => setQrModal({ open: false, bookingId: null })}>
+                <X size={20} />
+              </button>
             </div>
-            
-            <div className="qr-container">
+
+            {/* QR Image */}
+            <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', height: 240, border: `1px solid ${C.border}` }}>
               {qrLoading ? (
-                <div className="spinner"></div>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', border: '3px solid #dce6f5', borderTopColor: C.navy, animation: 'spin 0.8s linear infinite' }} />
               ) : qrImage ? (
-                <img 
-                  src={qrImage} 
-                  alt="Check-in QR" 
-                />
+                <img src={qrImage} alt="QR" style={{ width: 190, height: 190, objectFit: 'contain', borderRadius: 8 }} />
               ) : (
-                <div style={{ color: 'var(--clr-text-muted)', textAlign: 'center', fontSize: '14px' }}>QR Code not available</div>
+                <p style={{ color: C.muted, fontSize: 13 }}>QR not available</p>
               )}
             </div>
 
-            <div className="qr-info">
-              <p className="qr-title">Scan at Entrance</p>
-              <p className="qr-desc">Show this QR to the administrator to check-in to your reserved space.</p>
+            {/* Info */}
+            <div style={{ textAlign: 'center' }}>
+              <p style={{ fontWeight: 700, fontSize: 16, marginBottom: 4 }}>Scan at Entrance</p>
+              <p style={{ fontSize: 13, color: C.muted, lineHeight: 1.5 }}>Show this QR to the administrator to check-in to your reserved space.</p>
             </div>
 
-            <div className="flex gap-3 w-full">
-              <button 
+            {/* Buttons */}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button className="bk-btn-ghost" style={{ flex: 1 }} disabled={!qrImage || qrLoading}
                 onClick={() => {
-                  if (qrImage) {
-                    const link = document.createElement('a');
-                    link.href = qrImage;
-                    link.download = `SpaceSync-Booking-${qrModal.bookingId}-QR.png`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                  }
-                }} 
-                className="btn btn-ghost flex-1"
-                disabled={!qrImage || qrLoading}
-                style={{ border: '1px solid var(--clr-border)' }}
-              >
-                <Download size={18} style={{ marginRight: '8px' }}/> Download
+                  if (!qrImage) return;
+                  const a = document.createElement('a');
+                  a.href = qrImage;
+                  a.download = `SpaceSync-QR-${qrModal.bookingId}.png`;
+                  a.click();
+                }}>
+                <Download size={15} /> Download
               </button>
-              <button onClick={() => setQrModal({ open: false, bookingId: null })} className="btn btn-primary flex-1">Close</button>
+              <button className="bk-btn-navy" style={{ flex: 1 }} onClick={() => setQrModal({ open: false, bookingId: null })}>
+                Close
+              </button>
             </div>
           </div>
         </div>
       )}
-
-      <style>{`
-        .my-bookings-container { max-width: 1200px; margin: 40px auto; padding: 0 24px; }
-        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 32px; gap: 20px; flex-wrap: wrap; }
-        .page-title { font-size: 32px; font-weight: 700; margin-bottom: 4px; letter-spacing: -0.5px; }
-        .page-subtitle { color: var(--clr-text-muted); font-size: 15px; }
-
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px; margin-bottom: 40px; }
-        .stat-card { padding: 20px; display: flex; flex-direction: column; gap: 8px; }
-        .stat-label { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--clr-text-muted); }
-        .stat-value { font-size: 28px; font-weight: 700; }
-
-        .bookings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px; }
-        .booking-card { padding: 24px; display: flex; flex-direction: column; gap: 16px; transition: transform 0.2s; }
-        .booking-card:hover { transform: translateY(-4px); }
-
-        .card-header { display: flex; justify-content: space-between; align-items: center; }
-        .booking-id { font-size: 11px; font-weight: 700; color: var(--clr-text-faint); background: rgba(255,255,255,0.05); padding: 2px 8px; border-radius: 4px; }
-        .status-badge { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 20px; text-transform: uppercase; }
-        .status-dot { width: 6px; height: 6px; border-radius: 50%; }
-
-        .resource-name { font-size: 20px; font-weight: 600; color: var(--clr-text); }
-        .booking-details { display: flex; flex-direction: column; gap: 8px; }
-        .detail-item { display: flex; align-items: center; gap: 8px; color: var(--clr-text-muted); font-size: 14px; }
-
-        .purpose-box { margin-top: 8px; padding-left: 12px; border-left: 2px solid var(--clr-primary); opacity: 0.8; }
-        .purpose-text { font-size: 13px; line-height: 1.4; color: var(--clr-text-muted); font-style: italic; }
-        
-        .reject-reason-box { margin-top: 12px; padding: 12px; background: rgba(248,81,73,0.08); border: 1px solid rgba(248,81,73,0.2); border-radius: 12px; }
-        .reject-label { font-size: 10px; font-weight: 700; text-transform: uppercase; color: var(--clr-danger); margin-bottom: 4px; }
-        .reject-text { font-size: 12px; color: var(--clr-text); line-height: 1.4; }
-
-        .empty-state { text-align: center; padding: 80px 40px; display: flex; flex-direction: column; align-items: center; gap: 20px; }
-        .empty-icon { color: var(--clr-text-faint); margin-bottom: 8px; }
-        .empty-state h3 { font-size: 24px; }
-        .empty-state p { color: var(--clr-text-muted); max-width: 400px; margin-bottom: 12px; }
-
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .modal-content { width: 100%; max-width: 400px; padding: 32px; position: relative; display: flex; flex-direction: column; gap: 24px; animation: modalIn 0.3s ease-out; }
-        @keyframes modalIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-        
-        .modal-header { display: flex; justify-content: space-between; align-items: center; }
-        .close-btn { background: none; border: none; color: var(--clr-text-muted); cursor: pointer; padding: 4px; }
-        .close-btn:hover { color: var(--clr-text); }
-
-        .qr-container { background: #fff; padding: 16px; border-radius: 16px; display: flex; align-items: center; justify-content: center; width: 240px; height: 240px; margin: 0 auto; }
-        .qr-container img { width: 100%; height: 100%; object-fit: contain; }
-
-        .qr-info { text-align: center; }
-        .qr-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
-        .qr-desc { color: var(--clr-text-muted); font-size: 14px; }
-      `}</style>
     </div>
   );
 }

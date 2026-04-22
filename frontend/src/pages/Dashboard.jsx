@@ -137,12 +137,12 @@ export default function Dashboard() {
               </motion.p>
             </div>
           </div>
-          <motion.div variants={itemVariants} className="header-actions" style={{ display: 'flex', gap: '12px' }}>
-            <button className="btn btn-ghost border-indigo-100 text-indigo-600" onClick={() => navigate('/my-reports')}>
+          <motion.div variants={itemVariants} className="header-actions" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            <button className="btn btn-ghost" onClick={() => navigate('/my-reports')}>
               <BookOpen size={18} />
               <span>My Reports</span>
             </button>
-            <button className="btn btn-ghost border-indigo-100 text-indigo-600" onClick={() => navigate('/report-incident')}>
+            <button className="btn btn-ghost" onClick={() => navigate('/report-incident')}>
               <AlertTriangle size={18} />
               <span>Report Issue</span>
             </button>
@@ -159,7 +159,7 @@ export default function Dashboard() {
             <motion.div 
               key={idx} 
               variants={itemVariants} 
-              className="stat-card glass-card"
+              className="stat-card"
               onClick={stat.onClick}
               style={{ cursor: stat.onClick ? 'pointer' : 'default' }}
             >
@@ -184,49 +184,51 @@ export default function Dashboard() {
               </div>
 
               {upcomingBooking ? (
-                <div className="upcoming-main-card glass-card active-border">
+                <div className="upcoming-main-card">
                   <div className="card-top">
                     <div className="space-meta">
                       <span className="space-type-badge">CONFIRMED</span>
-                      <h3 className="space-name">{upcomingBooking.resourceId}</h3>
+                      <h3 className="space-name">{upcomingBooking.resourceName || upcomingBooking.resourceId}</h3>
                       <div className="time-meta">
-                        <Clock size={14} className="icon-blue" />
-                        <span>{new Date(upcomingBooking.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} Today</span>
+                        <Clock size={16} className="icon-blue" />
+                        <span>{new Date(upcomingBooking.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · {new Date(upcomingBooking.startTime).toLocaleDateString([], { weekday: 'long' })}</span>
                       </div>
                     </div>
                     <div className="qr-preview">
-                      <QrCode size={32} strokeWidth={1.5} />
+                      <QrCode size={36} strokeWidth={1.5} />
                     </div>
                   </div>
                   <div className="card-footer">
                     <div className="location-info">
-                      <MapPin size={14} />
-                      <span>Main Campus, Level 2</span>
+                      <MapPin size={16} />
+                      <span>{upcomingBooking.location || 'SLIIT Main Campus'}</span>
                     </div>
-                    <div className="flex gap-2">
+                    <div style={{ display: 'flex', gap: '10px' }}>
                       <button 
-                        className="btn btn-sm btn-blur"
+                        className="btn btn-sm btn-primary"
+                        style={{ padding: '8px 20px', fontSize: '13px' }}
                         onClick={() => navigate('/my-bookings')}
                       >
                         Check Details
                       </button>
                       <button 
-                        className="btn btn-sm btn-ghost text-amber-500 hover:bg-amber-500/10"
+                        className="btn btn-sm btn-ghost"
+                        style={{ padding: '8px 12px', color: '#dc2626' }}
                         onClick={() => navigate('/report-incident', { state: { resourceId: upcomingBooking.resourceId } })}
                       >
-                        <AlertTriangle size={14} />
+                        <AlertTriangle size={16} />
                       </button>
                     </div>
                   </div>
                 </div>
               ) : (
-                <div className="empty-state glass-card">
+                <div className="empty-state">
                   <div className="empty-icon">
-                    <Zap size={32} />
+                    <Calendar size={48} strokeWidth={1} style={{ opacity: 0.3 }} />
                   </div>
                   <h3>No upcoming sessions</h3>
                   <p>Book a space to get started with your research or study session.</p>
-                  <button className="btn btn-ghost btn-sm" onClick={() => navigate('/new-booking')}>
+                  <button className="btn btn-ghost" onClick={() => navigate('/new-booking')} style={{ marginTop: '8px' }}>
                     Browse Spaces
                   </button>
                 </div>
@@ -239,19 +241,19 @@ export default function Dashboard() {
               </div>
               <div className="category-grid">
                 {[
-                  { name: 'Study Pods', icon: BookOpen, count: 12 },
-                  { name: 'Meeting Rooms', icon: Users, count: 5 },
-                  { name: 'Research Labs', icon: Zap, count: 3 }
+                  { name: 'Study Pods', icon: BookOpen, count: 12, color: '#2563eb' },
+                  { name: 'Meeting Rooms', icon: Users, count: 5, color: '#7c3aed' },
+                  { name: 'Research Labs', icon: Zap, count: 3, color: '#ea580c' }
                 ].map((cat, i) => (
-                  <div key={i} className="cat-card glass-card hover-lift">
-                    <div className="cat-icon-box">
+                  <div key={i} className="cat-card hover-lift" onClick={() => navigate('/new-booking')}>
+                    <div className="cat-icon-box" style={{ background: `${cat.color}10`, color: cat.color }}>
                       <cat.icon size={20} />
                     </div>
                     <div className="cat-info">
                       <h4>{cat.name}</h4>
                       <span>{cat.count} available</span>
                     </div>
-                    <ArrowRight size={16} className="arrow" />
+                    <ArrowRight size={18} className="arrow" />
                   </div>
                 ))}
               </div>
@@ -260,7 +262,7 @@ export default function Dashboard() {
 
           {/* Right Column: Side Info */}
           <div className="dash-col-right">
-            <motion.section variants={itemVariants} className="side-card notifications-side glass-card">
+            <motion.section variants={itemVariants} className="side-card notifications-side">
               <div className="side-header">
                 <h3>Recent Alerts</h3>
                 {unreadCount > 0 && <span className="unread-dot-label">{unreadCount}</span>}
@@ -277,19 +279,21 @@ export default function Dashboard() {
                     </div>
                   ))
                 ) : (
-                  <p className="empty-msg">No recent notifications</p>
+                  <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                    <p style={{ color: 'var(--clr-text-faint)', fontSize: '14px' }}>No recent notifications</p>
+                  </div>
                 )}
               </div>
-              <button className="btn btn-link" onClick={() => navigate('/notifications')}>
+              <button className="btn-link" onClick={() => navigate('/notifications')}>
                 View all notifications
               </button>
             </motion.section>
 
             <motion.section variants={itemVariants} className="side-card promo-card grad-purple">
-              <Zap size={24} className="promo-icon" />
+              <Zap size={32} className="promo-icon" />
               <h3>Premium Spaces</h3>
               <p>Get priority access to the new High-Performance Computing Lab.</p>
-              <button className="btn btn-white btn-sm">Explore Lab</button>
+              <button className="btn btn-white" style={{ width: '100%' }}>Explore Lab</button>
             </motion.section>
           </div>
         </div>
@@ -300,414 +304,220 @@ export default function Dashboard() {
           min-height: 100vh;
           overflow-x: hidden;
           position: relative;
+          background: var(--clr-bg);
+          background-image: var(--grad-mesh);
         }
 
-        /* ── Header ── */
         .dash-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 40px;
+          margin-bottom: 48px;
           flex-wrap: wrap;
-          gap: 20px;
+          gap: 24px;
         }
-
-        .user-greeting {
-          display: flex;
-          align-items: center;
-          gap: 20px;
-        }
-
-        .avatar-wrapper {
-          position: relative;
-          width: 64px;
-          height: 64px;
-        }
-
+        .user-greeting { display: flex; align-items: center; gap: 24px; }
+        .avatar-wrapper { position: relative; width: 80px; height: 80px; }
         .user-avatar {
-          width: 100%;
-          height: 100%;
-          border-radius: 20px;
-          object-fit: cover;
-          border: 2px solid var(--clr-border);
+          width: 100%; height: 100%; border-radius: 24px; object-fit: cover;
+          border: 3px solid #fff;
+          box-shadow: var(--shadow-md);
         }
-
         .user-avatar.placeholder {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: var(--clr-bg-card);
+          display: flex; align-items: center; justify-content: center;
+          background: #ffffff;
           color: var(--clr-primary);
         }
-
         .status-dot {
-          position: absolute;
-          bottom: -2px;
-          right: -2px;
-          width: 16px;
-          height: 16px;
-          background: var(--clr-success);
-          border: 3px solid var(--clr-bg);
-          border-radius: 50%;
+          position: absolute; bottom: 4px; right: 4px; width: 18px; height: 18px;
+          background: #10b981; border: 3px solid #fff; border-radius: 50%;
         }
-
         .greeting-text h1 {
-          font-size: 28px;
-          font-weight: 700;
-          letter-spacing: -0.5px;
-          margin-bottom: 4px;
+          font-size: 36px; font-weight: 800; letter-spacing: -1.5px; margin-bottom: 4px;
+          color: var(--clr-text);
         }
+        .text-muted { color: var(--clr-text-muted); font-size: 16px; font-weight: 500; }
 
-        .text-muted {
-          color: var(--clr-text-muted);
-          font-size: 15px;
-        }
-
-        /* ── Stats ── */
         .stats-row {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 20px;
-          margin-bottom: 40px;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 24px;
+          margin-bottom: 48px;
         }
+        @media (max-width: 900px) { .stats-row { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 500px) { .stats-row { grid-template-columns: 1fr; } }
 
         .stat-card {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          padding: 20px;
-        }
-
-        .stat-icon {
-          width: 44px;
-          height: 44px;
-          border-radius: 12px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .stat-info {
-          display: flex;
-          flex-direction: column;
-        }
-
-        .stat-value {
-          font-size: 24px;
-          font-weight: 700;
-          line-height: 1;
-        }
-
-        .stat-label {
-          font-size: 13px;
-          color: var(--clr-text-muted);
-          font-weight: 500;
-          margin-top: 4px;
-        }
-
-        /* ── Grid Layout ── */
-        .dash-main-grid {
-          display: grid;
-          grid-template-columns: 1fr 340px;
-          gap: 32px;
-        }
-
-        @media (max-width: 1024px) {
-          .dash-main-grid {
-            grid-template-columns: 1fr;
-          }
-        }
-
-        .section-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 20px;
-        }
-
-        .section-header h2 {
-          font-size: 20px;
-          font-weight: 600;
-        }
-
-        .link-all {
-          font-size: 14px;
-          font-weight: 500;
-          display: flex;
-          align-items: center;
-          gap: 4px;
-        }
-
-        /* ── Upcoming Card ── */
-        .upcoming-main-card {
-          padding: 32px;
-          margin-bottom: 40px;
-          border-left: 4px solid var(--clr-primary);
-        }
-
-        .card-top {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          margin-bottom: 24px;
-        }
-
-        .space-type-badge {
-          font-size: 11px;
-          font-weight: 700;
-          letter-spacing: 1px;
-          color: var(--clr-primary);
-          background: rgba(88, 166, 255, 0.1);
-          padding: 4px 8px;
-          border-radius: 6px;
-          display: inline-block;
-          margin-bottom: 12px;
-        }
-
-        .space-name {
-          font-size: 24px;
-          font-weight: 700;
-          margin-bottom: 8px;
-        }
-
-        .time-meta {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 15px;
-          color: var(--clr-text);
-        }
-
-        .icon-blue { color: var(--clr-primary); }
-
-        .qr-preview {
-          background: #fff;
-          color: #000;
-          padding: 12px;
-          border-radius: 16px;
-          opacity: 0.9;
-        }
-
-        .card-footer {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding-top: 24px;
-          border-top: 1px solid var(--clr-border);
-        }
-
-        .location-info {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          font-size: 14px;
-          color: var(--clr-text-muted);
-        }
-
-        .btn-blur {
-          background: rgba(255,255,255,0.05);
-          backdrop-filter: blur(10px);
+          display: flex; align-items: center; gap: 20px; padding: 24px;
+          background: #ffffff;
           border: 1px solid var(--clr-border);
+          border-radius: 20px;
+          transition: all 0.3s cubic-bezier(.4,0,.2,1);
+          box-shadow: var(--shadow-sm);
         }
-
-        /* ── Categories ── */
-        .category-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-          gap: 16px;
+        .stat-card:hover {
+          transform: translateY(-6px);
+          border-color: var(--clr-primary);
+          box-shadow: var(--shadow-md);
         }
+        .stat-icon {
+          width: 52px; height: 52px; border-radius: 14px;
+          display: flex; align-items: center; justify-content: center;
+        }
+        .stat-info { display: flex; flex-direction: column; }
+        .stat-value { font-size: 32px; font-weight: 800; line-height: 1; color: var(--clr-text); letter-spacing: -1px; }
+        .stat-label { font-size: 14px; color: var(--clr-text-muted); font-weight: 700; margin-top: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
 
+        .dash-main-grid { display: grid; grid-template-columns: 1fr 380px; gap: 40px; }
+        @media (max-width: 1024px) { .dash-main-grid { grid-template-columns: 1fr; } }
+
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .section-header h2 { font-size: 22px; font-weight: 800; color: var(--clr-text); letter-spacing: -0.5px; }
+        .link-all {
+          font-size: 14px; font-weight: 700; display: flex; align-items: center; gap: 6px;
+          color: var(--clr-primary); transition: all 0.2s;
+        }
+        .link-all:hover { color: var(--clr-electric); gap: 10px; }
+
+        .upcoming-main-card {
+          padding: 32px; margin-bottom: 48px;
+          border-radius: 28px;
+          background: #ffffff;
+          border: 1px solid var(--clr-border);
+          box-shadow: var(--shadow-md);
+          position: relative; overflow: hidden;
+        }
+        .upcoming-main-card::before {
+          content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 6px;
+          background: var(--grad-primary);
+        }
+        .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; }
+        .space-type-badge {
+          font-size: 11px; font-weight: 800; letter-spacing: 1px; padding: 6px 14px;
+          border-radius: 8px; display: inline-block; margin-bottom: 16px;
+          background: #ecfdf5; color: #059669; border: 1px solid #d1fae5;
+        }
+        .space-name { font-size: 28px; font-weight: 800; margin-bottom: 8px; color: var(--clr-text); letter-spacing: -0.8px; }
+        .time-meta { display: flex; align-items: center; gap: 8px; font-size: 16px; color: var(--clr-text-muted); font-weight: 600; }
+        .icon-blue { color: var(--clr-primary); }
+        .qr-preview {
+          background: #f8fafc; color: var(--clr-primary);
+          padding: 20px; border-radius: 20px; border: 1px solid var(--clr-border);
+          transition: all 0.3s cubic-bezier(.4,0,.2,1); cursor: pointer;
+        }
+        .qr-preview:hover { transform: scale(1.05); border-color: var(--clr-primary); box-shadow: var(--shadow-md); color: var(--clr-electric); }
+        .card-footer {
+          display: flex; justify-content: space-between; align-items: center;
+          padding-top: 32px; border-top: 1px solid #f1f5f9;
+        }
+        .location-info { display: flex; align-items: center; gap: 8px; font-size: 15px; color: var(--clr-text-muted); font-weight: 600; }
+
+        .category-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px; }
         .cat-card {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          padding: 16px;
-          cursor: pointer;
-          position: relative;
+          display: flex; align-items: center; gap: 20px; padding: 24px; cursor: pointer;
+          background: #ffffff;
+          border: 1px solid var(--clr-border); border-radius: 20px;
+          transition: all 0.3s cubic-bezier(.4,0,.2,1);
+          box-shadow: var(--shadow-sm);
         }
-
+        .cat-card:hover {
+          transform: translateY(-6px); border-color: var(--clr-primary);
+          box-shadow: var(--shadow-md);
+        }
         .cat-icon-box {
-          width: 48px;
-          height: 48px;
-          border-radius: 14px;
-          background: var(--clr-bg-hover);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: var(--clr-accent);
+          width: 56px; height: 56px; border-radius: 14px;
+          display: flex; align-items: center; justify-content: center;
+          transition: all 0.3s;
         }
-
-        .cat-info h4 {
-          font-size: 15px;
-          font-weight: 600;
-          margin-bottom: 2px;
+        .cat-card:hover .cat-icon-box {
+          background: var(--grad-primary) !important; color: #fff !important;
         }
+        .cat-info h4 { font-size: 17px; font-weight: 800; margin-bottom: 4px; color: var(--clr-text); }
+        .cat-info span { font-size: 14px; color: var(--clr-text-muted); font-weight: 500; }
+        .cat-card .arrow { margin-left: auto; opacity: 0; transform: translateX(-10px); transition: all 0.3s; color: var(--clr-primary); }
+        .cat-card:hover .arrow { opacity: 1; transform: translateX(0); }
 
-        .cat-info span {
-          font-size: 12px;
-          color: var(--clr-text-muted);
-        }
-
-        .cat-card .arrow {
-          margin-left: auto;
-          opacity: 0;
-          transform: translateX(-10px);
-          transition: all 0.3s ease;
-        }
-
-        .cat-card:hover .arrow {
-          opacity: 1;
-          transform: translateX(0);
-        }
-
-        /* ── Side Cards ── */
         .side-card {
-          padding: 24px;
-          margin-bottom: 24px;
+          padding: 32px; margin-bottom: 32px; border-radius: 24px;
+          background: #ffffff;
+          border: 1px solid var(--clr-border);
+          box-shadow: var(--shadow-md);
         }
-
-        .side-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 20px;
-        }
-
-        .side-header h3 {
-          font-size: 16px;
-          font-weight: 600;
-        }
-
+        .side-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .side-header h3 { font-size: 19px; font-weight: 800; color: var(--clr-text); }
         .unread-dot-label {
-          background: var(--clr-danger);
-          color: #fff;
-          font-size: 10px;
-          font-weight: 700;
-          padding: 2px 6px;
-          border-radius: 10px;
+          background: var(--clr-danger); color: #fff;
+          font-size: 11px; font-weight: 800; padding: 4px 10px; border-radius: 12px;
         }
-
-        .side-list {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-          margin-bottom: 20px;
-        }
-
+        .side-list { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
         .side-item {
-          display: flex;
-          gap: 12px;
+          display: flex; gap: 14px; padding: 14px; border-radius: 16px;
+          transition: all 0.2s;
+          border: 1px solid transparent;
         }
-
-        .item-dot {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-          background: var(--clr-border);
-          margin-top: 6px;
-          flex-shrink: 0;
-        }
-
-        .item-dot.active {
-          background: var(--clr-primary);
-          box-shadow: 0 0 8px var(--clr-primary);
-        }
-
-        .item-text {
-          font-size: 13px;
-          line-height: 1.4;
-          color: var(--clr-text);
-          margin-bottom: 4px;
-        }
-
-        .item-time {
-          font-size: 11px;
-          color: var(--clr-text-muted);
-        }
-
+        .side-item:hover { background: #f8fafc; border-color: #f1f5f9; }
+        .item-dot { width: 10px; height: 10px; border-radius: 50%; background: #e2e8f0; margin-top: 6px; flex-shrink: 0; }
+        .item-dot.active { background: var(--clr-primary); box-shadow: 0 0 0 4px rgba(0,48,135,0.1); }
+        .item-text { font-size: 14px; line-height: 1.6; color: var(--clr-text); margin-bottom: 4px; font-weight: 500; }
+        .item-time { font-size: 12px; color: var(--clr-text-faint); font-weight: 600; }
         .btn-link {
-          background: none;
-          padding: 0;
-          color: var(--clr-primary);
-          font-size: 13px;
-          font-weight: 600;
+          background: none; padding: 8px 0; color: var(--clr-primary); font-size: 14px; font-weight: 800;
+          border: none; cursor: pointer; transition: all 0.2s; text-transform: uppercase; letter-spacing: 0.5px;
         }
+        .btn-link:hover { color: var(--clr-electric); text-decoration: underline; }
 
         .promo-card {
           background: var(--grad-primary);
-          color: #fff;
-          text-align: center;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 12px;
+          color: #fff; text-align: center; display: flex; flex-direction: column;
+          align-items: center; gap: 20px; border-radius: 24px;
+          position: relative; overflow: hidden; border: none; padding: 40px 32px;
+          box-shadow: 0 12px 32px rgba(0,48,135,0.25);
         }
-
-        .grad-purple {
-          background: linear-gradient(135deg, #a371f7 0%, #7c3aed 100%);
+        .promo-icon { color: var(--clr-accent); filter: drop-shadow(0 4px 12px rgba(245,168,0,0.4)); }
+        .promo-card h3 { font-size: 22px; margin-bottom: 4px; font-weight: 800; position: relative; z-index: 1; letter-spacing: -0.5px; }
+        .promo-card p { font-size: 15px; opacity: 0.95; position: relative; z-index: 1; margin-bottom: 8px; line-height: 1.6; }
+        .btn-white {
+          background: #ffffff; color: var(--clr-primary); font-weight: 800; border-radius: 12px;
+          padding: 12px 24px; position: relative; z-index: 1;
+          transition: all 0.25s; border: none;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+          font-family: inherit; font-size: 14px; cursor: pointer;
         }
+        .btn-white:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.15); color: var(--clr-electric); }
 
-        .promo-card h3 { margin-bottom: 0; }
-        .promo-card p { font-size: 14px; opacity: 0.9; }
-        .btn-white { background: #fff; color: #7c3aed; }
-
-        /* ── Empty State ── */
         .empty-state {
-          padding: 60px;
-          text-align: center;
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 16px;
+          padding: 80px 40px; text-align: center; display: flex; flex-direction: column;
+          align-items: center; gap: 20px; border-radius: 28px;
+          background: #ffffff;
+          border: 2px dashed #e2e8f0;
         }
+        .empty-icon { color: #cbd5e1; }
+        .empty-state h3 { font-size: 20px; font-weight: 800; color: var(--clr-text); }
+        .empty-state p { color: var(--clr-text-muted); max-width: 280px; line-height: 1.5; }
 
-        .empty-icon {
-          color: var(--clr-text-faint);
-        }
+        .btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; padding: 12px 24px; border-radius: 12px; font-weight: 800; font-size: 14px; cursor: pointer; transition: all 0.3s cubic-bezier(.4,0,.2,1); border: none; font-family: inherit; }
+        .btn-primary { background: var(--grad-primary); color: #fff; box-shadow: 0 4px 12px rgba(0,48,135,0.2); }
+        .btn-primary:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,48,135,0.3); }
+        .btn-ghost { background: #eff6ff; color: var(--clr-primary); border: 1px solid #dbeafe; box-shadow: var(--shadow-sm); }
+        .btn-ghost:hover { background: #dbeafe; color: var(--clr-primary); border-color: var(--clr-primary); transform: translateY(-2px); }
 
-        /* ── Blobs ── */
-        .dashboard-blobs {
-          position: fixed;
-          inset: 0;
-          z-index: 0;
-          pointer-events: none;
-        }
+        @keyframes float { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-20px) scale(1.02); } }
+        .hover-lift { transition: all 0.25s cubic-bezier(.4,0,.2,1); }
+        .hover-lift:hover { transform: translateY(-6px); }
 
-        .blob {
-          position: absolute;
-          filter: blur(80px);
-          opacity: 0.15;
-          border-radius: 50%;
-        }
-
+        .dashboard-blobs { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+        .blob { position: absolute; border-radius: 50%; opacity: 0.4; }
         .blob-1 {
-          width: 400px;
-          height: 400px;
-          background: var(--clr-primary);
-          top: -100px;
-          right: -100px;
+          width: 500px; height: 500px; top: -150px; right: -150px;
+          background: radial-gradient(circle, rgba(0, 48, 135, 0.05), transparent 70%);
+          filter: blur(60px); animation: float 12s ease-in-out infinite;
         }
-
         .blob-2 {
-          width: 300px;
-          height: 300px;
-          background: var(--clr-accent);
-          bottom: 100px;
-          left: -50px;
+          width: 400px; height: 400px; bottom: -80px; left: -120px;
+          background: radial-gradient(circle, rgba(245, 168, 0, 0.05), transparent 70%);
+          filter: blur(60px); animation: float 15s ease-in-out infinite reverse;
         }
-
-        /* ── Utilities ── */
-        .hover-lift {
-          transition: transform 0.2s ease;
-        }
-        .hover-lift:hover {
-          transform: translateY(-4px);
-        }
-
-        .btn-sm {
-          padding: 8px 16px;
-          font-size: 13px;
-        }
+        .btn-sm { padding: 10px 20px; font-size: 14px; border-radius: 10px; }
       `}</style>
     </div>
   );

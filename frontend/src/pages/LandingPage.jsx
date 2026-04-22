@@ -132,7 +132,7 @@ export default function LandingPage() {
             ) : (
               <>
                 <Link to="/dashboard" className="lp-btn-ghost">Dashboard</Link>
-                <button onClick={logout} className="lp-btn-primary">Logout</button>
+                <button onClick={logout} className="lp-btn-logout">Logout</button>
               </>
             )}
           </div>
@@ -153,7 +153,7 @@ export default function LandingPage() {
             ) : (
               <>
                 <Link to="/dashboard" className="lp-btn-ghost" onClick={() => setMenuOpen(false)}>Dashboard</Link>
-                <button onClick={() => { logout(); setMenuOpen(false); }} className="lp-btn-primary">Logout</button>
+                <button onClick={() => { logout(); setMenuOpen(false); }} className="lp-btn-logout">Logout</button>
               </>
             )}
           </div>
@@ -195,19 +195,10 @@ export default function LandingPage() {
                   </Link>
                 </>
               ) : (
-                <>
-                  <Link to="/signup" className="lp-btn-primary lp-btn-lg">
-                    Sign Up Now
-                    <Icon path={ICONS.arrow} size={18} />
-                  </Link>
-                  <Link to="/login" className="lp-btn-ghost lp-btn-lg">
-                    Login
-                  </Link>
-                  <Link to="/resources" className="lp-btn-ghost lp-btn-lg">
-                    <Icon path={ICONS.globe} size={18} />
-                    Explore Resources
-                  </Link>
-                </>
+                <Link to="/resources" className="lp-btn-primary lp-btn-lg">
+                  <Icon path={ICONS.globe} size={18} />
+                  Explore Resources
+                </Link>
               )}
             </div>
             <div className="lp-trust-row">

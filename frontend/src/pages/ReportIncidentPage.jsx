@@ -66,17 +66,31 @@ export function ReportIncidentPage() {
   /* ── Success ── */
   if (submitted) {
     return (
-      <div style={styles.successWrap}>
-        <div style={styles.successCard}>
-          <div style={styles.successIconRing}>
-            <CheckCircle size={36} color="#22c55e" />
+      <div className="success-wrap">
+        <div className="success-card">
+          <div className="success-icon-ring">
+            <CheckCircle size={40} color="#059669" strokeWidth={2.5} />
           </div>
-          <h2 style={styles.successTitle}>Report Submitted!</h2>
-          <p style={styles.successText}>
-            Your incident has been logged. Our team will look into it shortly.
+          <h2 className="success-title">Report Submitted!</h2>
+          <p className="success-text">
+            Your incident has been logged. Our facilities team will review and address the issue shortly.
           </p>
-          <p style={{ color: '#6b7280', fontSize: 13, marginTop: 8 }}>Redirecting to dashboard…</p>
+          <div className="success-loader">
+            <div className="success-progress"></div>
+          </div>
+          <p style={{ color: 'var(--clr-text-faint)', fontSize: 13, fontWeight: 600 }}>Redirecting to dashboard…</p>
         </div>
+        <style>{`
+          .success-wrap { min-height: 80vh; display: flex; align-items: center; justify-content: center; padding: 24px; font-family: 'Inter', sans-serif; }
+          .success-card { text-align: center; max-width: 440px; padding: 48px; background: #ffffff; border-radius: 32px; border: 1px solid var(--clr-border); box-shadow: var(--shadow-lg); animation: slideUp 0.6s cubic-bezier(.4,0,.2,1); }
+          @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+          .success-icon-ring { width: 88px; height: 88px; border-radius: 50%; background: #ecfdf5; border: 4px solid #a7f3d0; display: flex; align-items: center; justify-content: center; margin: 0 auto 32px; }
+          .success-title { font-size: 32px; font-weight: 900; color: var(--clr-text); margin-bottom: 16px; letter-spacing: -1.5px; }
+          .success-text { color: var(--clr-text-muted); font-size: 16px; line-height: 1.7; margin-bottom: 32px; font-weight: 500; }
+          .success-loader { width: 100%; height: 6px; background: #f1f5f9; border-radius: 100px; margin-bottom: 16px; overflow: hidden; }
+          .success-progress { height: 100%; background: var(--clr-success); width: 0%; animation: progress 2.5s linear forwards; }
+          @keyframes progress { from { width: 0%; } to { width: 100%; } }
+        `}</style>
       </div>
     );
   }
@@ -84,304 +98,179 @@ export function ReportIncidentPage() {
   const isValid = formData.title && formData.description && formData.ticketType && formData.priority;
 
   return (
-    <div style={styles.page}>
-      <div style={styles.container}>
+    <div className="report-incident-root">
+      <div className="container">
 
         {/* Header */}
-        <div style={styles.header}>
-          <button style={styles.backBtn} onClick={() => navigate(-1)}>
+        <header className="page-header">
+          <button className="back-btn" onClick={() => navigate(-1)}>
             <ArrowLeft size={16} />
             <span>Back</span>
           </button>
-          <div>
-            <h1 style={styles.pageTitle}>Report an Issue</h1>
-            <p style={styles.pageSubtitle}>Tell us about a problem — we'll get it sorted.</p>
-          </div>
-        </div>
+          <h1 className="page-title">Report an Issue</h1>
+          <p className="page-subtitle">Tell us about a problem — we'll get it sorted.</p>
+        </header>
 
-        <form onSubmit={handleSubmit} style={styles.form}>
-
-          {/* Title */}
-          <Field label="What's the issue?" required>
-            <input
-              id="title"
-              type="text"
-              value={formData.title}
-              onChange={handleChange}
-              placeholder="e.g. Projector not working in Lab 2"
-              style={styles.input}
-              required
-            />
-          </Field>
-
-          {/* Description */}
-          <Field label="Describe the problem" required>
-            <textarea
-              id="description"
-              value={formData.description}
-              onChange={handleChange}
-              rows={4}
-              placeholder="What happened? When did it start? Any other details…"
-              style={{ ...styles.input, resize: 'vertical', lineHeight: '1.6' }}
-              required
-            />
-          </Field>
-
-          {/* Row: Type + Priority */}
-          <div style={styles.row}>
-            <Field label="Type" required>
-              <select id="ticketType" value={formData.ticketType} onChange={handleChange} style={styles.input} required>
-                <option value="">Select type…</option>
-                <option value="INCIDENT">⚡ Incident</option>
-                <option value="MAINTENANCE">🔧 Maintenance</option>
-                <option value="REPAIR">🔨 Repair</option>
-              </select>
+        <div className="form-card">
+          <form onSubmit={handleSubmit} className="report-form">
+            <Field label="What's the issue?" required>
+              <input
+                id="title"
+                type="text"
+                className="form-control"
+                value={formData.title}
+                onChange={handleChange}
+                placeholder="e.g. Projector not working in Lab 2"
+                required
+              />
             </Field>
 
-            <Field label="Priority" required>
-              <select id="priority" value={formData.priority} onChange={handleChange} style={styles.input} required>
-                <option value="">Select priority…</option>
-                <option value="CRITICAL">🔴 Critical</option>
-                <option value="HIGH">🟠 High</option>
-                <option value="MEDIUM">🟡 Medium</option>
-                <option value="LOW">🟢 Low</option>
-              </select>
+            <Field label="Describe the problem" required>
+              <textarea
+                id="description"
+                className="form-control textarea"
+                value={formData.description}
+                onChange={handleChange}
+                rows={4}
+                placeholder="What happened? When did it start? Any other details…"
+                required
+              />
             </Field>
-          </div>
 
-          {/* Resource */}
-          <Field label="Affected Space / Resource" required>
-            <select id="resourceId" value={formData.resourceId} onChange={handleChange} style={styles.input} required>
-              <option value="">Select a resource…</option>
-              {resources.map(r => (
-                <option key={r.id} value={r.id}>{r.name} ({r.type})</option>
-              ))}
-            </select>
-          </Field>
+            <div className="form-row">
+              <Field label="Ticket Type" required>
+                <select id="ticketType" className="form-control" value={formData.ticketType} onChange={handleChange} required>
+                  <option value="">Select type…</option>
+                  <option value="INCIDENT">⚡ Incident</option>
+                  <option value="MAINTENANCE">🔧 Maintenance</option>
+                  <option value="REPAIR">🔨 Repair</option>
+                </select>
+              </Field>
 
-          {/* Notes */}
-          <Field label="Additional notes" hint="Optional">
-            <textarea
-              id="notes"
-              value={formData.notes}
-              onChange={handleChange}
-              rows={3}
-              placeholder="Anything else the team should know?"
-              style={{ ...styles.input, resize: 'vertical', lineHeight: '1.6' }}
-            />
-          </Field>
-
-          {/* Priority hint */}
-          {formData.priority === 'CRITICAL' && (
-            <div style={styles.criticalBanner}>
-              <AlertTriangle size={16} color="#ef4444" />
-              <span>Critical issues are escalated immediately to the facilities team.</span>
+              <Field label="Priority" required>
+                <select id="priority" className="form-control" value={formData.priority} onChange={handleChange} required>
+                  <option value="">Select priority…</option>
+                  <option value="CRITICAL">🔴 Critical</option>
+                  <option value="HIGH">🟠 High</option>
+                  <option value="MEDIUM">🟡 Medium</option>
+                  <option value="LOW">🟢 Low</option>
+                </select>
+              </Field>
             </div>
-          )}
 
-          {/* Actions */}
-          <div style={styles.actions}>
-            <button type="button" onClick={() => navigate(-1)} style={styles.cancelBtn}>
-              Cancel
-            </button>
-            <button type="submit" disabled={loading || !isValid} style={{
-              ...styles.submitBtn,
-              opacity: (!isValid || loading) ? 0.5 : 1,
-              cursor:  (!isValid || loading) ? 'not-allowed' : 'pointer',
-            }}>
-              {loading ? (
-                <><Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} /> Submitting…</>
-              ) : (
-                <><Send size={16} /> Submit Report</>
-              )}
-            </button>
-          </div>
+            <Field label="Affected Space / Resource" required>
+              <select id="resourceId" className="form-control" value={formData.resourceId} onChange={handleChange} required>
+                <option value="">Select a resource…</option>
+                {resources.map(r => (
+                  <option key={r.id} value={r.id}>{r.name} ({r.type})</option>
+                ))}
+              </select>
+            </Field>
 
-          <style>{`
-            @keyframes spin { to { transform: rotate(360deg); } }
-            input:focus, select:focus, textarea:focus {
-              outline: none;
-              border-color: #6366f1 !important;
-              box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
-            }
-            select option { background: #1e1e2e; color: #e2e8f0; }
-          `}</style>
+            {formData.priority === 'CRITICAL' && (
+              <div className="critical-banner">
+                <AlertTriangle size={18} />
+                <span>Critical issues are escalated immediately to the facilities team.</span>
+              </div>
+            )}
 
-        </form>
+            <div className="form-actions">
+              <button type="button" onClick={() => navigate(-1)} className="btn btn-ghost">
+                Cancel
+              </button>
+              <button type="submit" disabled={loading || !isValid} className="btn btn-primary">
+                {loading ? <><Loader2 size={16} className="animate-spin" /> Submitting…</> : <><Send size={18} /> Submit Report</>}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
+
+      <style>{`
+        .report-incident-root {
+          min-height: 100vh;
+          padding: 60px 24px 100px;
+          background: var(--clr-bg);
+          background-image: var(--grad-mesh);
+          color: var(--clr-text);
+          font-family: 'Inter', sans-serif;
+        }
+        .container { max-width: 760px; margin: 0 auto; }
+        .page-header { margin-bottom: 48px; }
+        .back-btn {
+          display: inline-flex; align-items: center; gap: 8px;
+          background: none; border: none; color: var(--clr-text-muted);
+          font-size: 14px; font-weight: 700; cursor: pointer;
+          margin-bottom: 16px; transition: all 0.2s;
+        }
+        .back-btn:hover { color: var(--clr-primary); transform: translateX(-4px); }
+        .page-title { font-size: 40px; font-weight: 900; color: var(--clr-text); letter-spacing: -2px; margin-bottom: 12px; }
+        .page-subtitle { color: var(--clr-text-muted); font-size: 17px; font-weight: 500; }
+
+        .form-card {
+          background: #ffffff;
+          border: 1px solid var(--clr-border);
+          border-radius: 32px;
+          padding: 56px;
+          box-shadow: var(--shadow-lg);
+          animation: slideUp 0.6s ease both;
+        }
+        .report-form { display: flex; flex-direction: column; gap: 36px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+        @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
+
+        .form-control {
+          background: #f8fafc !important;
+          border: 1px solid var(--clr-border) !important;
+          color: var(--clr-text) !important;
+          border-radius: 12px !important;
+          padding: 14px 20px !important;
+          width: 100%;
+          outline: none !important;
+          transition: all 0.25s cubic-bezier(.4,0,.2,1);
+          font-family: inherit;
+          font-size: 15px !important;
+        }
+        .form-control:focus {
+          border-color: var(--clr-primary) !important;
+          background: #ffffff !important;
+          box-shadow: 0 0 0 4px rgba(0,48,135,0.08) !important;
+        }
+        .form-control option { background: #ffffff; color: var(--clr-text); }
+        .textarea { min-height: 140px; resize: vertical; line-height: 1.6; }
+
+        .critical-banner {
+          display: flex; align-items: center; gap: 14px;
+          padding: 20px 24px; background: #fff1f2;
+          border: 1px solid #fecdd3; border-radius: 16px;
+          color: #dc2626; font-size: 14px; font-weight: 700;
+        }
+
+        .form-actions {
+          display: flex; justify-content: flex-end; gap: 20px;
+          padding-top: 40px; border-top: 1px solid #f1f5f9;
+        }
+
+        .btn { padding: 14px 40px; border-radius: 12px; font-weight: 800; transition: all 0.3s cubic-bezier(.4,0,.2,1); border: none; cursor: pointer; font-family: inherit; font-size: 15px; display: inline-flex; align-items: center; justify-content: center; gap: 12px; }
+        .btn-primary { background: var(--grad-primary); color: #ffffff; box-shadow: 0 4px 14px rgba(0,48,135,0.25); }
+        .btn-primary:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,48,135,0.35); }
+        .btn-ghost { background: #ffffff; color: var(--clr-text-muted); border: 1px solid var(--clr-border); }
+        .btn-ghost:hover { background: #f8fafc; color: var(--clr-primary); border-color: var(--clr-primary); }
+        
+        .animate-spin { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      `}</style>
     </div>
   );
 }
 
-/* ── Field wrapper ── */
-function Field({ label, required, hint, children }) {
+function Field({ label, required, children }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <label style={styles.label}>
-          {label}
-          {required && <span style={{ color: '#f87171', marginLeft: 3 }}>*</span>}
-        </label>
-        {hint && <span style={styles.hint}>{hint}</span>}
-      </div>
+    <div className="field-group" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <label style={{ fontSize: 14, fontWeight: 800, color: 'var(--clr-text)', textTransform: 'uppercase', letterSpacing: '0.8px' }}>
+        {label} {required && <span style={{ color: '#ef4444' }}>*</span>}
+      </label>
       {children}
     </div>
   );
 }
-
-/* ── Styles ── */
-const styles = {
-  page: {
-    minHeight: '100vh',
-    padding: '40px 20px 60px',
-  },
-  container: {
-    maxWidth: 640,
-    margin: '0 auto',
-  },
-  header: {
-    marginBottom: 36,
-  },
-  backBtn: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 6,
-    background: 'none',
-    border: 'none',
-    color: '#8b949e',
-    fontSize: 14,
-    cursor: 'pointer',
-    padding: 0,
-    marginBottom: 16,
-    transition: 'color 0.2s',
-  },
-  pageTitle: {
-    fontSize: 28,
-    fontWeight: 700,
-    color: '#e6edf3',
-    letterSpacing: '-0.5px',
-    margin: 0,
-  },
-  pageSubtitle: {
-    color: '#8b949e',
-    fontSize: 15,
-    marginTop: 6,
-  },
-  form: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: 24,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: 600,
-    color: '#c9d1d9',
-  },
-  hint: {
-    fontSize: 11,
-    fontWeight: 500,
-    color: '#6b7280',
-    background: 'rgba(255,255,255,0.05)',
-    padding: '2px 8px',
-    borderRadius: 20,
-    textTransform: 'uppercase',
-    letterSpacing: '0.5px',
-  },
-  input: {
-    width: '100%',
-    padding: '12px 14px',
-    background: 'rgba(22, 27, 34, 0.8)',
-    border: '1px solid #30363d',
-    borderRadius: 12,
-    color: '#e6edf3',
-    fontSize: 15,
-    fontFamily: 'inherit',
-    transition: 'border-color 0.2s, box-shadow 0.2s',
-    boxSizing: 'border-box',
-  },
-  row: {
-    display: 'grid',
-    gridTemplateColumns: '1fr 1fr',
-    gap: 20,
-  },
-  criticalBanner: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: 10,
-    padding: '12px 16px',
-    background: 'rgba(239, 68, 68, 0.08)',
-    border: '1px solid rgba(239, 68, 68, 0.2)',
-    borderRadius: 12,
-    color: '#fca5a5',
-    fontSize: 13,
-  },
-  actions: {
-    display: 'flex',
-    gap: 12,
-    paddingTop: 8,
-    borderTop: '1px solid #21262d',
-    marginTop: 4,
-  },
-  cancelBtn: {
-    padding: '12px 24px',
-    background: 'transparent',
-    border: '1px solid #30363d',
-    borderRadius: 12,
-    color: '#8b949e',
-    fontSize: 14,
-    fontWeight: 600,
-    cursor: 'pointer',
-    fontFamily: 'inherit',
-    transition: 'all 0.2s',
-  },
-  submitBtn: {
-    flex: 1,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    padding: '12px 24px',
-    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-    border: 'none',
-    borderRadius: 12,
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 700,
-    fontFamily: 'inherit',
-    transition: 'all 0.2s',
-    boxShadow: '0 4px 14px rgba(99, 102, 241, 0.3)',
-  },
-  successWrap: {
-    minHeight: '70vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 24,
-  },
-  successCard: {
-    textAlign: 'center',
-    maxWidth: 400,
-  },
-  successIconRing: {
-    width: 80,
-    height: 80,
-    borderRadius: '50%',
-    background: 'rgba(34, 197, 94, 0.1)',
-    border: '2px solid rgba(34, 197, 94, 0.3)',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    margin: '0 auto 24px',
-  },
-  successTitle: {
-    fontSize: 26,
-    fontWeight: 700,
-    color: '#e6edf3',
-    marginBottom: 12,
-  },
-  successText: {
-    color: '#8b949e',
-    fontSize: 15,
-    lineHeight: 1.6,
-  },
-};

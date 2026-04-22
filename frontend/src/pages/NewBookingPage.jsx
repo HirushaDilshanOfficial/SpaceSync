@@ -198,48 +198,18 @@ export function NewBookingPage() {
 
   if (submitted) {
     return (
-      <div className="submit-success-view">
-        <div className="success-icon-wrapper">
-          <CheckCircle size={40} className="text-success" />
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: 24, textAlign: 'center', fontFamily: 'Inter, sans-serif' }}>
+        <div style={{ width: 80, height: 80, background: '#ecfdf5', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '4px solid #a7f3d0', margin: '0 auto' }}>
+          <CheckCircle size={40} color="#059669" />
         </div>
-        <div className="success-text">
-          <h2>Request Submitted!</h2>
-          <p>Your booking is now pending admin approval. Redirecting to dashboard...</p>
+        <div>
+          <h2 style={{ fontSize: 26, fontWeight: 800, color: 'var(--clr-text)', marginBottom: 12, letterSpacing: '-0.5px' }}>Request Submitted!</h2>
+          <p style={{ color: 'var(--clr-text-muted)', fontSize: 16, maxWidth: 360, margin: '0 auto', lineHeight: 1.6 }}>Your booking is now pending admin approval. You'll receive a notification once it's reviewed.</p>
         </div>
-        <div className="loading-dots">
-          <span></span>
-          <span></span>
-          <span></span>
+        <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 12 }}>
+          {[0,200,400].map(d => <span key={d} style={{ width: 10, height: 10, background: 'var(--clr-primary)', borderRadius: '50%', display: 'inline-block', animation: `bounce 1.4s ${d}ms infinite ease-in-out` }} />)}
         </div>
-        <style>{`
-          .submit-success-view {
-            display: flex;
-            flex-direction: column;
-            items-center: center;
-            justify-content: center;
-            min-height: 60vh;
-            gap: 24px;
-            text-align: center;
-          }
-          .success-icon-wrapper {
-            width: 80px;
-            height: 80px;
-            background: rgba(63, 185, 80, 0.1);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto;
-            border: 4px solid rgba(63, 185, 80, 0.05);
-          }
-          .success-text h2 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
-          .success-text p { color: var(--clr-text-muted); font-size: 15px; max-width: 320px; margin: 0 auto; }
-          .loading-dots { display: flex; gap: 6px; justify-content: center; margin-top: 8px; }
-          .loading-dots span { width: 6px; height: 6px; background: var(--clr-primary); border-radius: 50%; animation: bounce 1.4s infinite ease-in-out; }
-          .loading-dots span:nth-child(2) { animation-delay: 0.2s; opacity: 0.7; }
-          .loading-dots span:nth-child(3) { animation-delay: 0.4s; opacity: 0.4; }
-          @keyframes bounce { 0%, 80%, 100% { transform: scale(0); } 40% { transform: scale(1); } }
-        `}</style>
+        <style>{`@keyframes bounce { 0%,80%,100%{transform:scale(0); opacity: 0.3;} 40%{transform:scale(1); opacity: 1;} }`}</style>
       </div>
     );
   }
@@ -388,111 +358,125 @@ export function NewBookingPage() {
 
       <style>{`
         .booking-page-container {
-          max-width: 800px;
-          margin: 40px auto;
-          padding: 0 20px;
+          max-width: 840px;
+          margin: 48px auto;
+          padding: 0 24px 80px;
+          font-family: 'Inter', sans-serif;
         }
-        .page-header { margin-bottom: 32px; }
+        .page-header { margin-bottom: 40px; }
         .back-btn {
           background: none;
           border: none;
           color: var(--clr-text-muted);
-          display: flex;
+          display: inline-flex;
           align-items: center;
-          gap: 6px;
+          gap: 8px;
           font-size: 14px;
+          font-weight: 700;
           cursor: pointer;
           padding: 0;
-          margin-bottom: 12px;
-          transition: color 0.2s;
+          margin-bottom: 16px;
+          transition: all 0.2s;
         }
-        .back-btn:hover { color: var(--clr-primary); }
-        .page-title { font-size: 32px; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.5px; }
-        .page-subtitle { color: var(--clr-text-muted); font-size: 15px; }
+        .back-btn:hover { color: var(--clr-primary); transform: translateX(-4px); }
+        .page-title { font-size: 36px; font-weight: 800; margin-bottom: 8px; letter-spacing: -1.5px; color: var(--clr-text); }
+        .page-subtitle { color: var(--clr-text-muted); font-size: 16px; font-weight: 500; }
         
-        .booking-card { padding: 40px; border-radius: 24px; }
-        .booking-form { display: flex; flex-direction: column; gap: 24px; }
+        .booking-card {
+          background: #ffffff;
+          border: 1px solid var(--clr-border);
+          border-radius: 28px;
+          padding: 48px;
+          box-shadow: var(--shadow-lg);
+        }
+        .booking-form { display: flex; flex-direction: column; gap: 32px; }
         
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
         @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
         
-        .form-group { display: flex; flex-direction: column; gap: 8px; }
-        .form-group label { font-size: 14px; font-weight: 600; color: var(--clr-text); }
-        .req { color: var(--clr-danger); }
+        .form-group { display: flex; flex-direction: column; gap: 10px; }
+        .form-group label { font-size: 14px; font-weight: 800; color: var(--clr-text); text-transform: uppercase; letter-spacing: 0.5px; }
+        .req { color: #ef4444; }
         
-        .textarea { min-height: 120px; resize: vertical; }
+        .form-control {
+          background: #f8fafc !important;
+          border: 1px solid var(--clr-border) !important;
+          color: var(--clr-text) !important;
+          border-radius: 12px !important;
+          padding: 14px 18px !important;
+          transition: all 0.2s cubic-bezier(.4,0,.2,1) !important;
+          font-family: inherit;
+          font-size: 15px !important;
+          outline: none !important;
+        }
+        .form-control:focus {
+          border-color: var(--clr-primary) !important;
+          box-shadow: 0 0 0 4px rgba(0,48,135,0.08) !important;
+          background: #ffffff !important;
+        }
+        .form-control option { background: #ffffff; color: var(--clr-text); }
+
+        .textarea { min-height: 140px; resize: vertical; line-height: 1.6; }
         
         .info-box {
           display: flex;
-          gap: 12px;
-          background: rgba(88, 166, 255, 0.08);
-          border: 1px solid rgba(88, 166, 255, 0.15);
-          padding: 16px;
-          border-radius: 12px;
-          color: var(--clr-primary);
-          font-size: 13px;
-          line-height: 1.5;
+          gap: 16px;
+          background: #eff6ff;
+          border: 1px solid #dbeafe;
+          padding: 20px 24px;
+          border-radius: 16px;
+          color: #1e40af;
+          font-size: 14px;
+          line-height: 1.6;
+          align-items: center;
+          font-weight: 500;
         }
-        .info-box strong { color: var(--clr-text); }
+        .info-box svg { color: var(--clr-primary); }
         
         .conflict-warning {
           display: flex;
           align-items: center;
-          gap: 12px;
-          background: rgba(248, 81, 73, 0.08);
-          border: 1px solid rgba(248, 81, 73, 0.15);
-          padding: 16px;
-          border-radius: 12px;
-          color: var(--clr-danger);
-          font-size: 13px;
-          line-height: 1.5;
+          gap: 14px;
+          background: #fef2f2;
+          border: 1px solid #fee2e2;
+          padding: 16px 24px;
+          border-radius: 16px;
+          color: #dc2626;
+          font-size: 14px;
+          font-weight: 700;
         }
 
         .form-actions {
           display: flex;
           justify-content: flex-end;
-          gap: 12px;
-          padding-top: 24px;
-          border-top: 1px solid var(--clr-border);
+          gap: 16px;
+          padding-top: 32px;
+          border-top: 1px solid #f1f5f9;
         }
         
+        .btn { padding: 14px 36px; border-radius: 12px; font-weight: 800; transition: all 0.3s cubic-bezier(.4,0,.2,1); cursor: pointer; font-size: 15px; border: none; font-family: inherit; }
+        .btn-primary { background: var(--grad-primary); color: #ffffff; box-shadow: 0 4px 14px rgba(0,48,135,0.25); }
+        .btn-primary:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,48,135,0.35); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .btn-ghost { background: #ffffff; color: var(--clr-text-muted); border: 1px solid var(--clr-border); }
+        .btn-ghost:hover { background: #f8fafc; color: var(--clr-primary); border-color: var(--clr-primary); }
+
+        .custom-toast {
+          position: fixed; top: 24px; left: 50%; transform: translateX(-50%); z-index: 10000;
+          display: flex; align-items: center; gap: 16px; padding: 18px 28px;
+          background: #ffffff; border-radius: 16px; color: #dc2626;
+          box-shadow: 0 16px 48px rgba(0,0,0,0.15); min-width: 400px; max-width: 90vw;
+          justify-content: space-between; border: 1px solid #fee2e2;
+        }
+        .toast-content { display: flex; align-items: center; gap: 12px; font-size: 15px; font-weight: 800; }
+        .toast-close { background: none; border: none; color: #94a3b8; cursor: pointer; padding: 6px; display: flex; }
+        .toast-close:hover { color: #dc2626; }
+        .toast-progress { position: absolute; bottom: 0; left: 0; height: 4px; background: #ef4444; width: 100%; animation: progress 3s linear forwards; border-bottom-left-radius: 16px; }
+        @keyframes progress { from { width: 100%; } to { width: 0%; } }
+
         .animate-spin { animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-
-        /* ── Custom Toast ── */
-        .custom-toast {
-          position: fixed;
-          top: 0;
-          left: 50%;
-          z-index: 9999;
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 12px 20px;
-          background: rgba(248, 81, 73, 0.95);
-          backdrop-filter: blur(8px);
-          border: 1px solid rgba(248, 81, 73, 0.2);
-          border-radius: 12px;
-          color: #fff;
-          box-shadow: 0 8px 32px rgba(0,0,0,0.4);
-          min-width: 320px;
-          max-width: 90vw;
-          justify-content: space-between;
-        }
-        .toast-content { display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 500; }
-        .toast-close { background: none; border: none; color: rgba(255,255,255,0.7); cursor: pointer; padding: 4px; display: flex; }
-        .toast-close:hover { color: #fff; }
-        .toast-progress {
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          height: 3px;
-          background: rgba(255,255,255,0.3);
-          width: 100%;
-          animation: progress 3s linear forwards;
-          border-bottom-left-radius: 12px;
-        }
-        @keyframes progress { from { width: 100%; } to { width: 0%; } }
       `}</style>
     </div>
   );

@@ -3,13 +3,210 @@ import { Link, useNavigate } from 'react-router-dom';
 import { resourceApi } from '../../api/resourceApi';
 import { useAuth } from '../../context/AuthContext';
 
+/* ─── Injected global styles ────────────────────────────────────── */
+const GLOBAL_CSS = `
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+  * { box-sizing: border-box; }
+  body { margin: 0; }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes pulse-dot {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.4; }
+  }
+
+  .res-card {
+    background: #fff;
+    border: 1.5px solid #e8eef6;
+    border-radius: 18px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 2px 12px rgba(0,48,135,0.05);
+    transition: all 0.22s ease;
+    cursor: default;
+    overflow: hidden;
+    animation: fadeUp 0.35s ease both;
+  }
+  .res-card:hover {
+    border-color: #a8bce0;
+    box-shadow: 0 10px 36px rgba(0,48,135,0.13);
+    transform: translateY(-3px);
+  }
+
+  .res-card-img {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+  }
+  .res-card-img-placeholder {
+    width: 100%;
+    height: 160px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+  }
+
+  .filter-input {
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 0 14px;
+    height: 40px;
+    font-size: 13px;
+    color: #1e293b;
+    background: #f8fafc;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    font-family: 'Inter', sans-serif;
+  }
+  .filter-input:focus {
+    border-color: #003087;
+    box-shadow: 0 0 0 3px rgba(0,48,135,0.12);
+    background: #fff;
+  }
+
+  .book-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #e69500, #F5A800);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 11px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.22s ease;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 0.2px;
+    box-shadow: 0 4px 14px rgba(245,168,0,0.35);
+  }
+  .book-btn:hover {
+    filter: brightness(1.08);
+    box-shadow: 0 6px 20px rgba(245,168,0,0.45);
+    transform: translateY(-1px);
+  }
+  .book-btn:disabled {
+    background: #e2e8f0;
+    color: #94a3b8;
+    box-shadow: none;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .type-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border-radius: 20px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+  }
+
+  .stat-card {
+    border-radius: 16px;
+    padding: 20px 22px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border: 1.5px solid transparent;
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+  .stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  }
+
+  .nav-link-btn {
+    color: #475569;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    padding: 7px 16px;
+    border-radius: 9px;
+    border: 1.5px solid #e2e8f0;
+    background: #fff;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Inter', sans-serif;
+    cursor: pointer;
+  }
+  .nav-link-btn:hover {
+    border-color: #003087;
+    color: #003087;
+    background: #eef2f9;
+  }
+
+  .dash-btn {
+    background: linear-gradient(135deg, #002370, #003087);
+    color: #fff;
+    border: none;
+    border-radius: 9px;
+    padding: 8px 20px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    box-shadow: 0 3px 12px rgba(0,48,135,0.3);
+    transition: all 0.2s;
+  }
+  .dash-btn:hover {
+    filter: brightness(1.15);
+    box-shadow: 0 5px 18px rgba(0,48,135,0.4);
+  }
+
+  .search-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 180px;
+  }
+  .search-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    font-size: 15px;
+    pointer-events: none;
+  }
+  .search-input {
+    width: 100%;
+    border: 1.5px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 0 14px 0 36px;
+    height: 40px;
+    font-size: 13px;
+    color: #1e293b;
+    background: #f8fafc;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    font-family: 'Inter', sans-serif;
+  }
+  .search-input:focus {
+    border-color: #003087;
+    box-shadow: 0 0 0 3px rgba(0,48,135,0.12);
+    background: #fff;
+  }
+`;
+
 /* ─── Type metadata ─────────────────────────────────────────────── */
 const TYPE_META = {
-  LECTURE_HALL: { bg: '#e8f0fe', color: '#3b5bdb', emoji: '🏛️', label: 'Lecture Hall' },
-  LAB:          { bg: '#e6f4ea', color: '#1a7a34', emoji: '🔬', label: 'Lab'          },
-  MEETING_ROOM: { bg: '#fff3e0', color: '#e65100', emoji: '🤝', label: 'Meeting Room'  },
-  EQUIPMENT:    { bg: '#f3e5f5', color: '#7b1fa2', emoji: '🖥️', label: 'Equipment'     },
-  ROOM:         { bg: '#f0f4f8', color: '#444444', emoji: '🚪', label: 'Room'           },
+  LECTURE_HALL: { bg: '#eef2f9', color: '#003087', border: '#b3c3e0', emoji: '🏛️', label: 'Lecture Hall' },
+  LAB:          { bg: '#ecfdf5', color: '#059669', border: '#a7f3d0', emoji: '🔬', label: 'Lab'           },
+  MEETING_ROOM: { bg: '#fffbeb', color: '#b45309', border: '#fde68a', emoji: '🤝', label: 'Meeting Room'  },
+  EQUIPMENT:    { bg: '#f5f3ff', color: '#6d28d9', border: '#ddd6fe', emoji: '🖥️', label: 'Equipment'     },
+  ROOM:         { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa', emoji: '🚪', label: 'Study Room'    },
 };
 
 /* ─── Status Badge ──────────────────────────────────────────────── */
@@ -17,14 +214,14 @@ function StatusBadge({ status }) {
   const isActive = status === 'ACTIVE';
   return (
     <span style={{
-      background: isActive ? '#e6f4ea' : '#fdecea',
-      color:      isActive ? '#1a7a34' : '#c0392b',
-      border:     `1px solid ${isActive ? '#b0dbb8' : '#f5b7b1'}`,
+      background: isActive ? '#ecfdf5' : '#fff1f2',
+      color:      isActive ? '#059669' : '#e11d48',
+      border:     `1px solid ${isActive ? '#a7f3d0' : '#fecdd3'}`,
       borderRadius: '20px',
-      padding: '4px 12px',
+      padding: '4px 11px',
       fontSize: '11px',
       fontWeight: '700',
-      letterSpacing: '0.5px',
+      letterSpacing: '0.4px',
       textTransform: 'uppercase',
       display: 'inline-flex',
       alignItems: 'center',
@@ -32,9 +229,9 @@ function StatusBadge({ status }) {
     }}>
       <span style={{
         width: '6px', height: '6px', borderRadius: '50%',
-        background: isActive ? '#1a7a34' : '#c0392b',
+        background: isActive ? '#059669' : '#e11d48',
         display: 'inline-block',
-        boxShadow: isActive ? '0 0 6px #1a7a34' : '0 0 6px #c0392b',
+        animation: isActive ? 'pulse-dot 1.8s ease-in-out infinite' : 'none',
       }} />
       {isActive ? 'Available' : 'Unavailable'}
     </span>
@@ -43,126 +240,76 @@ function StatusBadge({ status }) {
 
 /* ─── Resource Card ─────────────────────────────────────────────── */
 function ResourceCard({ resource, onBook }) {
-  const [hovered, setHovered] = useState(false);
-  const meta = TYPE_META[resource.type] ?? { bg: '#f0f4f8', color: '#555', emoji: '📦', label: resource.type };
+  const meta = TYPE_META[resource.type] ?? { bg: '#f8fafc', color: '#64748b', border: '#e2e8f0', emoji: '📦', label: resource.type };
   const isActive = resource.status === 'ACTIVE';
 
   return (
-    <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{
-        background: '#fff',
-        border: `1.5px solid ${hovered ? '#a5b4fc' : '#e8edf2'}`,
-        borderRadius: '16px',
-        padding: '22px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '16px',
-        boxShadow: hovered
-          ? '0 12px 32px rgba(59,91,219,0.12)'
-          : '0 2px 8px rgba(0,0,0,0.04)',
-        transition: 'all 0.22s ease',
-        cursor: 'default',
-        position: 'relative',
-        overflow: 'hidden',
-      }}
-    >
-      {/* Top colour strip */}
-      <div style={{
-        position: 'absolute', top: 0, left: 0, right: 0,
-        height: '4px',
-        background: isActive
-          ? 'linear-gradient(90deg, #1a7a34, #52b788)'
-          : 'linear-gradient(90deg, #c0392b, #e57373)',
-        borderRadius: '16px 16px 0 0',
-      }} />
-
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginTop: '4px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{
-            width: '48px', height: '48px',
-            background: meta.bg,
-            borderRadius: '12px',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '22px', flexShrink: 0,
-            border: `1px solid ${meta.color}22`,
-            overflow: 'hidden',
-          }}>
-            {resource.imageUrl ? (
-              <img src={resource.imageUrl} alt={resource.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-            ) : meta.emoji}
-          </div>
-          <div>
-            <div style={{ fontSize: '15px', fontWeight: '700', color: '#1a2a3a', lineHeight: 1.3 }}>
-              {resource.name}
-            </div>
-            <div style={{
-              fontSize: '10px', color: meta.color, marginTop: '3px',
-              fontWeight: '700', letterSpacing: '0.6px', textTransform: 'uppercase',
-            }}>
-              {meta.label}
-            </div>
-          </div>
+    <div className="res-card">
+      {/* Image / Emoji banner */}
+      {resource.imageUrl ? (
+        <img src={resource.imageUrl} alt={resource.name} className="res-card-img" />
+      ) : (
+        <div className="res-card-img-placeholder" style={{ background: meta.bg }}>
+          {meta.emoji}
         </div>
-        <StatusBadge status={resource.status} />
-      </div>
-
-      {/* Details grid */}
-      <div style={{
-        display: 'grid', gridTemplateColumns: '1fr 1fr',
-        gap: '12px', fontSize: '12px',
-      }}>
-        {[
-          { label: 'Building',  value: resource.building  },
-          { label: 'Location',  value: resource.location  },
-          resource.capacity
-            ? { label: 'Capacity', value: `${resource.capacity} persons` }
-            : null,
-          resource.type !== 'EQUIPMENT' && resource.availabilityStart
-            ? { label: 'Hours', value: `${resource.availabilityStart} – ${resource.availabilityEnd}` }
-            : null,
-        ].filter(Boolean).map(({ label, value }) => (
-          <div key={label}>
-            <div style={{
-              fontSize: '10px', fontWeight: '700', color: '#7a9cc0',
-              marginBottom: '3px', textTransform: 'uppercase', letterSpacing: '0.5px',
-            }}>
-              {label}
-            </div>
-            <div style={{ color: '#1a2a3a', fontWeight: '500', fontSize: '13px' }}>
-              {value || '—'}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Description (if any) */}
-      {resource.description && (
-        <p style={{
-          margin: 0, fontSize: '12px', color: '#6a8caa',
-          lineHeight: 1.5, borderTop: '1px solid #f0f4f8', paddingTop: '12px',
-        }}>
-          {resource.description}
-        </p>
       )}
 
-      {/* Booking Button */}
-      <div style={{ marginTop: 'auto', paddingTop: '16px' }}>
-        <button
-          onClick={() => onBook(resource)}
-          style={{
-            width: '100%', background: '#e8871a', color: '#fff', border: 'none',
-            borderRadius: '10px', padding: '10px', fontSize: '13px',
-            fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s',
-            boxShadow: '0 3px 10px rgba(232,135,26,0.25)',
-          }}
-          onMouseOver={e => e.target.style.filter = 'brightness(1.1)'}
-          onMouseOut={e => e.target.style.filter = 'brightness(1)'}
-        >
-          Book Now
-        </button>
+      {/* Content */}
+      <div style={{ padding: '18px 20px 20px', display: 'flex', flexDirection: 'column', gap: '12px', flex: 1 }}>
+        {/* Header row */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+          <div>
+            <div style={{ fontSize: '15px', fontWeight: '700', color: '#0f172a', lineHeight: 1.3 }}>
+              {resource.name}
+            </div>
+            <span className="type-chip" style={{ background: meta.bg, color: meta.color, border: `1px solid ${meta.border}`, marginTop: '5px' }}>
+              {meta.emoji} {meta.label}
+            </span>
+          </div>
+          <StatusBadge status={resource.status} />
+        </div>
+
+        {/* Info grid */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+          {[
+            resource.building  ? { icon: '🏢', label: 'Building',  value: resource.building  } : null,
+            resource.location  ? { icon: '📍', label: 'Location',  value: resource.location  } : null,
+            resource.capacity  ? { icon: '👥', label: 'Capacity',  value: `${resource.capacity} persons` } : null,
+            resource.type !== 'EQUIPMENT' && resource.availabilityStart
+              ? { icon: '🕐', label: 'Hours', value: `${resource.availabilityStart} – ${resource.availabilityEnd}` }
+              : null,
+          ].filter(Boolean).map(({ icon, label, value }) => (
+            <div key={label} style={{
+              background: '#f8fafc', borderRadius: '10px', padding: '9px 11px',
+              border: '1px solid #f1f5f9',
+            }}>
+              <div style={{ fontSize: '10px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '3px' }}>
+                {icon} {label}
+              </div>
+              <div style={{ fontSize: '12px', fontWeight: '600', color: '#334155' }}>
+                {value}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Description */}
+        {resource.description && (
+          <p style={{ margin: 0, fontSize: '12px', color: '#64748b', lineHeight: 1.6 }}>
+            {resource.description}
+          </p>
+        )}
+
+        {/* Book button */}
+        <div style={{ marginTop: 'auto' }}>
+          <button
+            className="book-btn"
+            onClick={() => onBook(resource)}
+            disabled={!isActive}
+          >
+            {isActive ? '📅  Book Now' : '🚫  Unavailable'}
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -170,14 +317,7 @@ function ResourceCard({ resource, onBook }) {
 
 /* ─── Filters Bar ───────────────────────────────────────────────── */
 function FiltersBar({ onFilter }) {
-  const [f, setF] = useState({ type: '', status: '', building: '', location: '', minCapacity: '' });
-
-  const sel = {
-    border: '1.5px solid #e0e6ed', borderRadius: '10px', padding: '0 14px',
-    fontSize: '13px', color: '#1a2a3a', background: '#fff',
-    height: '42px', outline: 'none', cursor: 'pointer',
-    transition: 'border-color 0.2s',
-  };
+  const [f, setF] = useState({ type: '', status: '', building: '', location: '', minCapacity: '', search: '' });
 
   const handle = (e) => {
     const updated = { ...f, [e.target.name]: e.target.value };
@@ -185,7 +325,7 @@ function FiltersBar({ onFilter }) {
   };
 
   const reset = () => {
-    const empty = { type: '', status: '', building: '', location: '', minCapacity: '' };
+    const empty = { type: '', status: '', building: '', location: '', minCapacity: '', search: '' };
     setF(empty); onFilter(empty);
   };
 
@@ -194,60 +334,75 @@ function FiltersBar({ onFilter }) {
   return (
     <div style={{
       background: '#fff',
-      border: '1.5px solid #e8edf2',
-      borderRadius: '14px',
-      padding: '16px 22px',
+      border: '1.5px solid #e8eef6',
+      borderRadius: '16px',
+      padding: '16px 20px',
       marginBottom: '28px',
-      display: 'flex',
-      flexWrap: 'wrap',
-      gap: '10px',
-      alignItems: 'center',
-      boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+      boxShadow: '0 2px 12px rgba(0,48,135,0.05)',
     }}>
-      <div style={{
-        display: 'flex', alignItems: 'center', gap: '6px',
-        fontSize: '11px', fontWeight: '800', color: '#8a9cc0',
-        textTransform: 'uppercase', letterSpacing: '0.8px',
-        marginRight: '4px',
-      }}>
-        🔍 Filter
+      {/* Row 1: Search + dropdowns */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
+        {/* Search */}
+        <div className="search-wrap">
+          <span className="search-icon">🔍</span>
+          <input
+            className="search-input"
+            name="search"
+            value={f.search}
+            onChange={handle}
+            placeholder="Search resources…"
+          />
+        </div>
+
+        <select name="type" value={f.type} onChange={handle} className="filter-input" style={{ width: '150px' }}>
+          <option value="">All Types</option>
+          <option value="LECTURE_HALL">Lecture Hall</option>
+          <option value="LAB">Lab</option>
+          <option value="MEETING_ROOM">Meeting Room</option>
+          <option value="EQUIPMENT">Equipment</option>
+          <option value="ROOM">Study Room</option>
+        </select>
+
+        <select name="status" value={f.status} onChange={handle} className="filter-input" style={{ width: '150px' }}>
+          <option value="">All Statuses</option>
+          <option value="ACTIVE">Available</option>
+          <option value="OUT_OF_SERVICE">Unavailable</option>
+        </select>
+
+        <input name="building" value={f.building} onChange={handle}
+          placeholder="🏢 Building" className="filter-input" style={{ width: '140px' }} />
+
+        <input name="location" value={f.location} onChange={handle}
+          placeholder="📍 Location" className="filter-input" style={{ width: '140px' }} />
+
+        <input name="minCapacity" value={f.minCapacity} onChange={handle}
+          type="number" min="1" placeholder="👥 Min capacity"
+          className="filter-input" style={{ width: '140px' }} />
+
+        {hasFilters && (
+          <button onClick={reset} style={{
+            background: '#f1f5f9', border: '1.5px solid #e2e8f0', borderRadius: '10px',
+            padding: '0 16px', height: '40px', fontSize: '13px',
+            color: '#64748b', cursor: 'pointer', fontWeight: '600',
+            fontFamily: 'Inter, sans-serif', transition: 'all 0.2s',
+          }}>
+            ✕ Clear
+          </button>
+        )}
       </div>
+    </div>
+  );
+}
 
-      <select name="type" value={f.type} onChange={handle} style={sel}>
-        <option value="">All Types</option>
-        <option value="LECTURE_HALL">Lecture Hall</option>
-        <option value="LAB">Lab</option>
-        <option value="MEETING_ROOM">Meeting Rooms</option>
-        <option value="EQUIPMENT">Equipment</option>
-        <option value="ROOM">Room</option>
-      </select>
-
-      <select name="status" value={f.status} onChange={handle} style={sel}>
-        <option value="">All Statuses</option>
-        <option value="ACTIVE">Available</option>
-        <option value="OUT_OF_SERVICE">Unavailable</option>
-      </select>
-
-      <input name="building" value={f.building} onChange={handle}
-        placeholder="🏢 Building" style={{ ...sel, padding: '0 14px', width: '140px' }} />
-
-      <input name="location" value={f.location} onChange={handle}
-        placeholder="📍 Location" style={{ ...sel, padding: '0 14px', width: '150px' }} />
-
-      <input name="minCapacity" value={f.minCapacity} onChange={handle}
-        type="number" min="1" placeholder="👥 Min capacity"
-        style={{ ...sel, padding: '0 14px', width: '140px' }} />
-
-      {hasFilters && (
-        <button onClick={reset} style={{
-          background: '#f4f6f9', border: '1.5px solid #e0e6ed', borderRadius: '10px',
-          padding: '0 18px', height: '42px', fontSize: '13px',
-          color: '#555', cursor: 'pointer', fontWeight: '600',
-          transition: 'all 0.2s',
-        }}>
-          ✕ Reset
-        </button>
-      )}
+/* ─── Stat Card ─────────────────────────────────────────────────── */
+function StatCard({ label, value, bg, color, border, emoji }) {
+  return (
+    <div className="stat-card" style={{ background: bg, border: `1.5px solid ${border}` }}>
+      <div style={{ fontSize: '30px' }}>{emoji}</div>
+      <div>
+        <div style={{ fontSize: '26px', fontWeight: '800', color, lineHeight: 1 }}>{value}</div>
+        <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{label}</div>
+      </div>
     </div>
   );
 }
@@ -260,6 +415,7 @@ export default function FacilitiesUserPage() {
   const [loading,   setLoading]   = useState(false);
   const [error,     setError]     = useState('');
   const [filters,   setFilters]   = useState({});
+  const [localSearch, setLocalSearch] = useState('');
 
   const load = useCallback(async (f = filters) => {
     setLoading(true); setError('');
@@ -275,7 +431,12 @@ export default function FacilitiesUserPage() {
 
   useEffect(() => { load(); }, []);
 
-  const handleFilter = (f) => { setFilters(f); load(f); };
+  const handleFilter = (f) => {
+    setLocalSearch(f.search || '');
+    const { search, ...apiFilters } = f;
+    setFilters(apiFilters);
+    load(apiFilters);
+  };
 
   const handleBook = (resource) => {
     if (!user) {
@@ -285,108 +446,82 @@ export default function FacilitiesUserPage() {
     }
   };
 
+  /* client-side search filter */
+  const displayed = localSearch
+    ? resources.filter(r =>
+        r.name?.toLowerCase().includes(localSearch.toLowerCase()) ||
+        r.building?.toLowerCase().includes(localSearch.toLowerCase()) ||
+        r.location?.toLowerCase().includes(localSearch.toLowerCase()) ||
+        r.description?.toLowerCase().includes(localSearch.toLowerCase())
+      )
+    : resources;
+
   const stats = [
-    {
-      label: 'Lecture Halls',
-      value: resources.filter(r => r.type === 'LECTURE_HALL').length,
-      bg: 'linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%)',
-      color: '#3b5bdb', border: '#c5d0fa', emoji: '🏛️',
-    },
-    {
-      label: 'Labs',
-      value: resources.filter(r => r.type === 'LAB').length,
-      bg: 'linear-gradient(135deg, #e6f4ea 0%, #d1fae5 100%)',
-      color: '#1a7a34', border: '#b0dbb8', emoji: '🔬',
-    },
-    {
-      label: 'Meeting Rooms',
-      value: resources.filter(r => r.type === 'MEETING_ROOM').length,
-      bg: 'linear-gradient(135deg, #fff3e0 0%, #ffedd5 100%)',
-      color: '#e65100', border: '#fed7aa', emoji: '🤝',
-    },
-    {
-      label: 'Equipment',
-      value: resources.filter(r => r.type === 'EQUIPMENT').length,
-      bg: 'linear-gradient(135deg, #f3e5f5 0%, #ede9fe 100%)',
-      color: '#7b1fa2', border: '#d8b4fe', emoji: '🖥️',
-    },
-    {
-      label: 'Study Rooms',
-      value: resources.filter(r => r.type === 'ROOM').length,
-      bg: 'linear-gradient(135deg, #f0f4f8 0%, #e2e8f0 100%)',
-      color: '#444444', border: '#cbd5e1', emoji: '🚪',
-    },
+    { label: 'Lecture Halls', value: resources.filter(r => r.type === 'LECTURE_HALL').length, bg: '#eef2f9', color: '#003087', border: '#b3c3e0', emoji: '🏛️' },
+    { label: 'Labs',          value: resources.filter(r => r.type === 'LAB').length,          bg: '#ecfdf5', color: '#059669', border: '#a7f3d0', emoji: '🔬' },
+    { label: 'Meeting Rooms', value: resources.filter(r => r.type === 'MEETING_ROOM').length, bg: '#fffbeb', color: '#b45309', border: '#fde68a', emoji: '🤝' },
+    { label: 'Equipment',     value: resources.filter(r => r.type === 'EQUIPMENT').length,    bg: '#f5f3ff', color: '#6d28d9', border: '#ddd6fe', emoji: '🖥️' },
+    { label: 'Study Rooms',   value: resources.filter(r => r.type === 'ROOM').length,         bg: '#fff7ed', color: '#c2410c', border: '#fed7aa', emoji: '🚪' },
   ];
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f4f7fb', fontFamily: "'Segoe UI', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: '#f0f4fa', fontFamily: "'Inter', 'Segoe UI', sans-serif" }}>
+      <style>{GLOBAL_CSS}</style>
 
       {/* ── Navbar ── */}
       <nav style={{
-        background: 'rgba(10, 22, 40, 0.96)',
-        backdropFilter: 'blur(12px)',
-        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        background: '#fff',
+        borderBottom: '1px solid #dce6f5',
         position: 'sticky', top: 0, zIndex: 100,
-        boxShadow: '0 2px 20px rgba(0,0,0,0.3)',
+        boxShadow: '0 2px 12px rgba(0,48,135,0.08)',
       }}>
         <div style={{
           maxWidth: '1280px', margin: '0 auto',
-          padding: '14px 28px',
+          padding: '13px 28px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           {/* Logo */}
           <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
             <div style={{
-              width: '36px', height: '36px', background: '#e8871a',
-              borderRadius: '9px', display: 'flex', alignItems: 'center',
-              justifyContent: 'center', color: '#fff', fontWeight: '800', fontSize: '13px',
+              width: '36px', height: '36px',
+              background: 'linear-gradient(135deg, #002370, #003087)',
+              borderRadius: '10px',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: '#fff', fontWeight: '800', fontSize: '13px',
+              boxShadow: '0 3px 10px rgba(0,48,135,0.3)',
             }}>
-              SC
+              SS
             </div>
-            <span style={{ color: '#fff', fontWeight: '700', fontSize: '17px', letterSpacing: '-0.3px' }}>
-              SpaceSync
+            <span style={{ color: '#0f172a', fontWeight: '800', fontSize: '17px', letterSpacing: '-0.3px' }}>
+              Space<span style={{ color: '#003087' }}>Sync</span>
             </span>
           </Link>
 
           {/* Centre label */}
           <div style={{
-            color: '#a0b4cc', fontSize: '13px', fontWeight: '500',
-            display: 'flex', alignItems: 'center', gap: '8px',
+            color: '#003087', fontSize: '13px', fontWeight: '600',
+            display: 'flex', alignItems: 'center', gap: '7px',
+            background: '#eef2f9', padding: '6px 14px', borderRadius: '20px',
+            border: '1px solid #b3c3e0',
           }}>
-            <span style={{ color: '#e8871a', fontSize: '16px' }}>🏛️</span>
-            Campus Resources & Facilities
+            <span>🏛️</span> SLIIT Campus Resources
           </div>
 
           {/* Right actions */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <Link to="/" style={{
-              color: '#7a9cc0', fontSize: '13px', fontWeight: '500',
-              textDecoration: 'none', padding: '6px 14px',
-              borderRadius: '8px', border: '1px solid rgba(255,255,255,0.1)',
-              transition: 'all 0.2s',
-            }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Link to="/" className="nav-link-btn">
               ← Back
             </Link>
             {user ? (
               <button
+                className="dash-btn"
                 onClick={() => navigate(user.role === 'ADMIN' ? '/admin' : '/dashboard')}
-                style={{
-                  background: '#e8871a', color: '#fff', border: 'none',
-                  borderRadius: '9px', padding: '8px 18px',
-                  fontSize: '13px', fontWeight: '700', cursor: 'pointer',
-                  boxShadow: '0 3px 10px rgba(232,135,26,0.35)',
-                  transition: 'all 0.2s',
-                }}
               >
                 Dashboard →
               </button>
             ) : (
-              <Link to="/login" style={{
-                background: '#e8871a', color: '#fff', borderRadius: '9px',
-                padding: '8px 18px', fontSize: '13px', fontWeight: '700',
-                textDecoration: 'none', boxShadow: '0 3px 10px rgba(232,135,26,0.35)',
-              }}>
-                Sign In
+              <Link to="/login" className="dash-btn" style={{ textDecoration: 'none' }}>
+                Sign In →
               </Link>
             )}
           </div>
@@ -395,33 +530,34 @@ export default function FacilitiesUserPage() {
 
       {/* ── Page Hero ── */}
       <div style={{
-        background: 'linear-gradient(135deg, #0a1628 0%, #112240 60%, #1a3a5c 100%)',
-        padding: '52px 28px 44px',
+        background: 'linear-gradient(135deg, #001a52 0%, #003087 55%, #0047c2 100%)',
+        padding: '52px 28px 48px',
         textAlign: 'center',
         position: 'relative',
         overflow: 'hidden',
       }}>
-        {/* Decorative orbs */}
+        {/* Subtle circles */}
         <div style={{
-          position: 'absolute', top: '-60px', left: '10%',
-          width: '300px', height: '300px', borderRadius: '50%',
-          background: 'rgba(232,135,26,0.08)', filter: 'blur(60px)', pointerEvents: 'none',
+          position: 'absolute', top: '-80px', right: '-40px',
+          width: '320px', height: '320px', borderRadius: '50%',
+          background: 'rgba(255,255,255,0.06)', pointerEvents: 'none',
         }} />
         <div style={{
-          position: 'absolute', bottom: '-80px', right: '10%',
-          width: '250px', height: '250px', borderRadius: '50%',
-          background: 'rgba(59,91,219,0.1)', filter: 'blur(50px)', pointerEvents: 'none',
+          position: 'absolute', bottom: '-60px', left: '5%',
+          width: '200px', height: '200px', borderRadius: '50%',
+          background: 'rgba(255,255,255,0.06)', pointerEvents: 'none',
         }} />
 
         <div style={{
-          display: 'inline-flex', alignItems: 'center', gap: '6px',
-          background: 'rgba(232,135,26,0.12)', border: '1px solid rgba(232,135,26,0.3)',
-          borderRadius: '20px', padding: '5px 14px',
-          fontSize: '11px', fontWeight: '700', color: '#e8871a',
+          display: 'inline-flex', alignItems: 'center', gap: '7px',
+          background: 'rgba(255,255,255,0.15)',
+          border: '1px solid rgba(255,255,255,0.3)',
+          borderRadius: '20px', padding: '5px 16px',
+          fontSize: '11px', fontWeight: '700', color: '#fff',
           letterSpacing: '0.6px', textTransform: 'uppercase', marginBottom: '18px',
         }}>
-          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#e8871a', display: 'inline-block', boxShadow: '0 0 8px #e8871a' }} />
-          SLIIT Campus Hub
+          <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#F5A800', display: 'inline-block', boxShadow: '0 0 8px #F5A800' }} />
+          SLIIT · Sri Lanka
         </div>
 
         <h1 style={{
@@ -435,41 +571,24 @@ export default function FacilitiesUserPage() {
           Campus Facilities & Resources
         </h1>
         <p style={{
-          margin: 0, fontSize: '15px', color: '#8aa8c8', maxWidth: '500px',
-          lineHeight: 1.6, marginInline: 'auto',
+          margin: 0, fontSize: '15px', color: 'rgba(255,255,255,0.78)',
+          maxWidth: '480px', lineHeight: 1.7, marginInline: 'auto',
         }}>
-          Browse available rooms, labs, and equipment across campus. Filter by type, status, or location.
+          Browse and book rooms, labs, and equipment across campus. Filter by type, status, or location.
         </p>
       </div>
 
       {/* ── Body ── */}
-      <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '36px 28px 60px' }}>
+      <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '36px 28px 72px' }}>
 
         {/* Stat Cards */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-          gap: '16px',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(175px, 1fr))',
+          gap: '14px',
           marginBottom: '32px',
         }}>
-          {stats.map(({ label, value, bg, color, border, emoji }) => (
-            <div key={label} style={{
-              background: bg,
-              border: `1.5px solid ${border}`,
-              borderRadius: '14px',
-              padding: '20px 22px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '14px',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-            }}>
-              <div style={{ fontSize: '28px' }}>{emoji}</div>
-              <div>
-                <div style={{ fontSize: '28px', fontWeight: '800', color, lineHeight: 1 }}>{value}</div>
-                <div style={{ fontSize: '12px', color: '#7a9cc0', marginTop: '4px', fontWeight: '600' }}>{label}</div>
-              </div>
-            </div>
-          ))}
+          {stats.map(s => <StatCard key={s.label} {...s} />)}
         </div>
 
         {/* Filters */}
@@ -478,16 +597,16 @@ export default function FacilitiesUserPage() {
         {/* Error */}
         {error && (
           <div style={{
-            background: '#fdecea', border: '1.5px solid #f5b7b1',
-            borderRadius: '12px', padding: '14px 20px',
-            marginBottom: '24px', color: '#c0392b', fontSize: '13px',
+            background: '#fff1f2', border: '1.5px solid #fecdd3',
+            borderRadius: '12px', padding: '14px 18px',
+            marginBottom: '24px', color: '#e11d48', fontSize: '13px',
             display: 'flex', alignItems: 'center', gap: '10px',
           }}>
             ⚠️ {error}
           </div>
         )}
 
-        {/* Grid */}
+        {/* Grid / States */}
         {loading ? (
           <div style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center',
@@ -495,55 +614,58 @@ export default function FacilitiesUserPage() {
           }}>
             <div style={{
               width: '44px', height: '44px', borderRadius: '50%',
-              border: '3px solid #e0e6ed', borderTopColor: '#3b5bdb',
+              border: '3px solid #dce6f5', borderTopColor: '#003087',
               animation: 'spin 0.8s linear infinite',
             }} />
-            <p style={{ color: '#7a9cc0', fontSize: '14px', margin: 0 }}>Loading resources…</p>
-            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            <p style={{ color: '#64748b', fontSize: '14px', margin: 0, fontWeight: '500' }}>Loading resources…</p>
           </div>
-        ) : resources.length === 0 ? (
+        ) : displayed.length === 0 ? (
           <div style={{
             textAlign: 'center', padding: '80px 0',
-            background: '#fff', borderRadius: '16px',
-            border: '1.5px dashed #dde1e7',
+            background: '#fff', borderRadius: '18px',
+            border: '1.5px dashed #b3c3e0',
           }}>
-            <p style={{ fontSize: '48px', marginBottom: '12px' }}>📭</p>
-            <p style={{ fontSize: '16px', fontWeight: '700', color: '#1a2a3a', margin: '0 0 8px' }}>
+            <p style={{ fontSize: '52px', marginBottom: '14px' }}>📭</p>
+            <p style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a', margin: '0 0 8px' }}>
               No resources found
             </p>
-            <p style={{ fontSize: '13px', color: '#7a9cc0', margin: 0 }}>
+            <p style={{ fontSize: '13px', color: '#94a3b8', margin: 0 }}>
               Try adjusting your filters or check back later.
             </p>
           </div>
         ) : (
           <>
-            <div style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              marginBottom: '18px',
-            }}>
-              <p style={{ margin: 0, fontSize: '13px', color: '#7a9cc0', fontWeight: '500' }}>
-                Showing <strong style={{ color: '#1a2a3a' }}>{resources.length}</strong> resource{resources.length !== 1 ? 's' : ''}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '18px' }}>
+              <p style={{ margin: 0, fontSize: '13px', color: '#94a3b8', fontWeight: '500' }}>
+                Showing <strong style={{ color: '#0f172a' }}>{displayed.length}</strong> resource{displayed.length !== 1 ? 's' : ''}
               </p>
             </div>
             <div style={{
               display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))',
-              gap: '20px',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(295px, 1fr))',
+              gap: '22px',
             }}>
-              {resources.map(r => (
-                <ResourceCard key={r.id} resource={r} onBook={handleBook} />
+              {displayed.map((r, i) => (
+                <div key={r.id} style={{ animationDelay: `${i * 0.05}s` }}>
+                  <ResourceCard resource={r} onBook={handleBook} />
+                </div>
               ))}
             </div>
           </>
         )}
       </div>
 
-      {/* ── Footer strip ── */}
+      {/* ── Footer ── */}
       <div style={{
-        background: '#0a1628', padding: '20px 28px',
-        textAlign: 'center', color: '#3a5a7a', fontSize: '12px',
+        borderTop: '2px solid #003087',
+        background: '#001a52',
+        padding: '22px 28px',
+        textAlign: 'center',
+        color: '#8faad4',
+        fontSize: '12px',
+        fontWeight: '500',
       }}>
-        SpaceSync — SLIIT Campus Hub · Faculty of Computing
+        <span style={{ color: '#F5A800', fontWeight: '700' }}>SpaceSync</span> — Sri Lanka Institute of Information Technology · Faculty of Computing
       </div>
     </div>
   );
