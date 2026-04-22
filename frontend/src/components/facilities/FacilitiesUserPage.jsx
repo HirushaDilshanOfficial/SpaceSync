@@ -42,7 +42,7 @@ function StatusBadge({ status }) {
 }
 
 /* ─── Resource Card ─────────────────────────────────────────────── */
-function ResourceCard({ resource }) {
+function ResourceCard({ resource, onBook }) {
   const [hovered, setHovered] = useState(false);
   const meta = TYPE_META[resource.type] ?? { bg: '#f0f4f8', color: '#555', emoji: '📦', label: resource.type };
   const isActive = resource.status === 'ACTIVE';
@@ -144,6 +144,23 @@ function ResourceCard({ resource }) {
           {resource.description}
         </p>
       )}
+
+      {/* Booking Button */}
+      <div style={{ marginTop: 'auto', paddingTop: '16px' }}>
+        <button
+          onClick={() => onBook(resource)}
+          style={{
+            width: '100%', background: '#e8871a', color: '#fff', border: 'none',
+            borderRadius: '10px', padding: '10px', fontSize: '13px',
+            fontWeight: '700', cursor: 'pointer', transition: 'all 0.2s',
+            boxShadow: '0 3px 10px rgba(232,135,26,0.25)',
+          }}
+          onMouseOver={e => e.target.style.filter = 'brightness(1.1)'}
+          onMouseOut={e => e.target.style.filter = 'brightness(1)'}
+        >
+          Book Now
+        </button>
+      </div>
     </div>
   );
 }
@@ -256,6 +273,14 @@ export default function FacilitiesUserPage() {
   useEffect(() => { load(); }, []);
 
   const handleFilter = (f) => { setFilters(f); load(f); };
+
+  const handleBook = (resource) => {
+    if (!user) {
+      navigate('/login');
+    } else {
+      navigate('/new-booking', { state: { preselectedResource: resource.name } });
+    }
+  };
 
   const stats = [
     {
@@ -497,7 +522,7 @@ export default function FacilitiesUserPage() {
               gap: '20px',
             }}>
               {resources.map(r => (
-                <ResourceCard key={r.id} resource={r} />
+                <ResourceCard key={r.id} resource={r} onBook={handleBook} />
               ))}
             </div>
           </>
