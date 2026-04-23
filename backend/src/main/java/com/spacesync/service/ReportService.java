@@ -13,7 +13,7 @@ import com.spacesync.repository.ResourceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.awt.*;
+import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -32,7 +32,6 @@ public class ReportService {
     public byte[] generateBookingsReport(String status, String date, String search) {
         List<Booking> bookings = bookingRepository.findAll();
         
-        // Filtering
         bookings = bookings.stream().filter(b -> {
             if (status != null && !status.isEmpty() && !status.equals("ALL")) {
                 String bStatus = String.valueOf(b.getStatus());
@@ -172,7 +171,6 @@ public class ReportService {
         p3.setSpacingAfter(20);
         document.add(p3);
         
-        // Line separator
         Paragraph line = new Paragraph("______________________________________________________________________________");
         line.setSpacingAfter(15);
         document.add(line);

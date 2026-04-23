@@ -50,11 +50,9 @@ public class IncidentTicketService {
 
         IncidentTicket savedTicket = incidentTicketRepository.save(ticket);
 
-        // Log the creation
         logAction(savedTicket.getId(), "CREATED", request.getReportedBy(),
                  "Ticket created with priority " + request.getPriority());
 
-        // Send notifications
         notificationService.notifyBasedOnTicket(savedTicket);
 
         return mapToResponseDTO(savedTicket);
@@ -124,11 +122,9 @@ public class IncidentTicketService {
 
         IncidentTicket updatedTicket = incidentTicketRepository.save(ticket);
 
-        // Log the status change
         logAction(id, "STATUS_CHANGED", performedBy != null ? performedBy : "SYSTEM",
                  "Status changed from " + oldStatus + " to " + status);
 
-        // Send resolution notification if ticket was resolved
         if (status == TicketStatus.RESOLVED || status == TicketStatus.CLOSED) {
             notificationService.notifyResolution(updatedTicket);
         }
@@ -147,11 +143,9 @@ public class IncidentTicketService {
 
         IncidentTicket updatedTicket = incidentTicketRepository.save(ticket);
 
-        // Log the assignment
         logAction(id, "ASSIGNED", assignedTo,
                  oldAssignee != null ? "Reassigned from " + oldAssignee : "Assigned to technician");
 
-        // Send assignment notification
         notificationService.notifyAssignment(updatedTicket);
 
         return mapToResponseDTO(updatedTicket);
@@ -165,7 +159,6 @@ public class IncidentTicketService {
         incidentTicketRepository.deleteById(id);
     }
 
-    // Enhanced Statistics
     public Map<String, Long> getTicketStatistics() {
         return Map.of(
             "open", incidentTicketRepository.countByStatus(TicketStatus.OPEN),
@@ -209,7 +202,6 @@ public class IncidentTicketService {
         );
     }
 
-    // Maintenance Log functionality
     public List<MaintenanceLogResponseDTO> getTicketLogs(Long ticketId) {
         return maintenanceLogRepository.findByTicketIdOrderByTimestampDesc(ticketId).stream()
                 .map(this::mapLogToResponseDTO)
@@ -232,7 +224,6 @@ public class IncidentTicketService {
         maintenanceLogRepository.save(log);
     }
 
-    // Legacy methods for backward compatibility
     public long getOpenTicketsCount() {
         return incidentTicketRepository.countByStatus(TicketStatus.OPEN);
     }
@@ -261,7 +252,6 @@ public class IncidentTicketService {
                 .ticketType(ticket.getTicketType())
                 .assignedTo(ticket.getAssignedTo())
                 .reportedBy(ticket.getReportedBy())
-                .reportedByName("User " + ticket.getReportedBy()) // Standardized mock for now
                 .createdAt(ticket.getCreatedAt())
                 .resolvedAt(ticket.getResolvedAt())
                 .updatedAt(ticket.getUpdatedAt())
@@ -277,116 +267,9 @@ public class IncidentTicketService {
                 .ticketId(log.getTicketId())
                 .action(log.getAction())
                 .performedBy(log.getPerformedBy())
-                .performedByName("User " + log.getPerformedBy()) // Standardized mock for now
                 .details(log.getDetails())
                 .timestamp(log.getTimestamp())
                 .build();
     }
 
-    public byte[] exportToCSV(TicketStatus status, TicketPriority priority, TicketType ticketType,
-                             String resourceId, String assignedTo, String reportedBy,
-                             LocalDateTime startDate, LocalDateTime endDate, String searchText) throws IOException {
-        List<IncidentTicket> tickets = incidentTicketRepository.findWithFilters(status, priority, ticketType,
-                                                                                resourceId, assignedTo, reportedBy,
-                                                                                startDate, endDate, searchText);
-
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        com.opencsv.CSVWriter writer = new com.opencsv.CSVWriter(new java.io.OutputStreamWriter(outputStream));
-
-        // Write header
-        writer.writeNext(new String[]{"ID", "Title", "Description", "Resource ID", "Resource Name", "Priority",
-                                    "Status", "Type", "Assigned To", "Reported By", "Created At", "Resolved At",
-                                    "Scheduled Start", "Scheduled End", "Notes"});
-
-        // Write data
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-        for (IncidentTicket ticket : tickets) {
-            String resourceName = resourceRepository.findById(ticket.getResourceId())
-                    .map(com.spacesync.entity.Resource::getName)
-                    .orElse("Unknown Resource");
-
-            writer.writeNext(new String[]{
-                ticket.getId().toString(),
-                ticket.getTitle(),
-                ticket.getDescription(),
-                ticket.getResourceId(),
-                resourceName,
-                ticket.getPriority().toString(),
-                ticket.getStatus().toString(),
-                ticket.getTicketType().toString(),
-                ticket.getAssignedTo() != null ? ticket.getAssignedTo() : "",
-                ticket.getReportedBy(),
-                ticket.getCreatedAt().format(formatter),
-                ticket.getResolvedAt() != null ? ticket.getResolvedAt().format(formatter) : "",
-                ticket.getScheduledStart() != null ? ticket.getScheduledStart().format(formatter) : "",
-                ticket.getScheduledEnd() != null ? ticket.getScheduledEnd().format(formatter) : "",
-                ticket.getNotes() != null ? ticket.getNotes() : ""
-            });
-        }
-
-        writer.close();
-        return outputStream.toByteArray();
-    }
-
-    public byte[] exportToPDF(TicketStatus status, TicketPriority priority, TicketType ticketType,
-                             String resourceId, String assignedTo, String reportedBy,
-                             LocalDateTime startDate, LocalDateTime endDate, String searchText) throws IOException {
-        List<IncidentTicket> tickets = incidentTicketRepository.findWithFilters(status, priority, ticketType,
-                                                                                resourceId, assignedTo, reportedBy,
-                                                                                startDate, endDate, searchText);
-
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        com.itextpdf.kernel.pdf.PdfWriter writer = new com.itextpdf.kernel.pdf.PdfWriter(outputStream);
-        com.itextpdf.kernel.pdf.PdfDocument pdfDoc = new com.itextpdf.kernel.pdf.PdfDocument(writer);
-        com.itextpdf.layout.Document document = new com.itextpdf.layout.Document(pdfDoc);
-
-        // Add title
-        com.itextpdf.layout.element.Paragraph title = new com.itextpdf.layout.element.Paragraph("Incident Tickets Report")
-                .setFontSize(20)
-                .setTextAlignment(com.itextpdf.layout.properties.TextAlignment.CENTER);
-        document.add(title);
-        document.add(new com.itextpdf.layout.element.Paragraph("Generated on: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))));
-        document.add(new com.itextpdf.layout.element.Paragraph("Total Records: " + tickets.size()));
-        document.add(new com.itextpdf.layout.element.Paragraph("\n"));
-
-        // Create table
-        float[] columnWidths = {50, 100, 150, 80, 80, 60, 60, 60, 80, 80};
-        com.itextpdf.layout.element.Table table = new com.itextpdf.layout.element.Table(columnWidths);
-
-        // Add headers
-        table.addHeaderCell("ID");
-        table.addHeaderCell("Title");
-        table.addHeaderCell("Resource");
-        table.addHeaderCell("Priority");
-        table.addHeaderCell("Status");
-        table.addHeaderCell("Type");
-        table.addHeaderCell("Assigned");
-        table.addHeaderCell("Reported");
-        table.addHeaderCell("Created");
-        table.addHeaderCell("Resolved");
-
-        // Add data
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-        for (IncidentTicket ticket : tickets) {
-            String resourceName = resourceRepository.findById(ticket.getResourceId())
-                    .map(com.spacesync.entity.Resource::getName)
-                    .orElse("Unknown");
-
-            table.addCell(ticket.getId().toString());
-            table.addCell(ticket.getTitle().length() > 30 ? ticket.getTitle().substring(0, 27) + "..." : ticket.getTitle());
-            table.addCell(resourceName);
-            table.addCell(ticket.getPriority().toString());
-            table.addCell(ticket.getStatus().toString());
-            table.addCell(ticket.getTicketType().toString());
-            table.addCell(ticket.getAssignedTo() != null ? ticket.getAssignedTo() : "Unassigned");
-            table.addCell(ticket.getReportedBy());
-            table.addCell(ticket.getCreatedAt().format(formatter));
-            table.addCell(ticket.getResolvedAt() != null ? ticket.getResolvedAt().format(formatter) : "Open");
-        }
-
-        document.add(table);
-        document.close();
-
-        return outputStream.toByteArray();
-    }
 }
