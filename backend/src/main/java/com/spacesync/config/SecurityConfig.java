@@ -80,6 +80,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET,    "/users").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/users/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST,   "/notifications/send").hasRole("ADMIN")
+                .requestMatchers("/reports/**").hasAnyRole("ADMIN")
 
                 // Any authenticated user for everything else
                 .anyRequest().authenticated()

@@ -141,6 +141,33 @@ export function AdminBookingsPage() {
     </div>
   );
 
+  const handleExportPdf = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const params = new URLSearchParams({
+        status: activeTab,
+        date: filterDate,
+        search: search
+      });
+      
+      const response = await fetch(`/api/reports/bookings?${params.toString()}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (!response.ok) throw new Error('Failed to generate report');
+      
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `SpaceSync-Bookings-Report-${new Date().toISOString().split('T')[0]}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (err) {
+      alert('Error exporting PDF: ' + err.message);
+    }
+  };
+
   return (
     <div className="admin-bookings-container">
       <AnimatePresence>
@@ -162,15 +189,20 @@ export function AdminBookingsPage() {
           </motion.div>
         )}
       </AnimatePresence>
-
+ 
       <header className="admin-header">
         <div className="header-text">
           <h1>Booking Dashboard</h1>
           <p>Review, approve, and manage workspace reservations.</p>
         </div>
-        <button onClick={() => setScannerModal({ open: true, processing: false, feedback: null })} className="btn btn-primary">
-          <ScanLine size={18} /> Scan QR Check-in
-        </button>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button onClick={handleExportPdf} className="btn btn-ghost" style={{ border: '1px solid var(--clr-primary)', color: 'var(--clr-primary)' }}>
+            <Filter size={18} /> Export PDF Report
+          </button>
+          <button onClick={() => setScannerModal({ open: true, processing: false, feedback: null })} className="btn btn-primary">
+            <ScanLine size={18} /> Scan QR Check-in
+          </button>
+        </div>
       </header>
 
       <div className="admin-toolbar glass-card">
