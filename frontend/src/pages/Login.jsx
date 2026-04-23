@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { Navigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import { Lock, Loader2, ArrowRight, ArrowLeft } from 'lucide-react';
+import authBg from '../assets/auth-bg.png';
 import '../index.css';
 
 export default function Login() {
@@ -11,134 +13,126 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // If already logged in, go to appropriate dashboard
+  // Note: Since I can't move files easily, I'll use the generated image path directly if possible or a high-quality placeholder.
+  // The generated image path was: /Users/hirushadilshan/.gemini/antigravity/brain/967bcb2e-d84d-49ce-9b9e-67d8aee5a09c/campus_modern_study_area_1776883205544.png
+  // Use the local generated image
+  const visualImage = authBg;
+
   if (user) {
     const isAdmin = user.role === 'ADMIN' || user.email?.includes('admin');
-    return <Navigate to={isAdmin ? "/admin" : "/dashboard"} replace />;
+    const isTechnician = user.role === 'TECHNICIAN';
+    return <Navigate to={isAdmin ? "/admin" : (isTechnician ? "/technician" : "/dashboard")} replace />;
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
-    
     const result = await signIn(email, password);
-    if (!result.success) {
-      setError(result.error);
-    }
+    if (!result.success) setError(result.error);
     setLoading(false);
   };
 
   return (
-    <div className="login-container">
-      <div className="login-bg" style={{ background: 'var(--clr-bg)', backgroundImage: 'var(--grad-mesh)' }}></div>
-      
-      <motion.div 
-        className="login-card"
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: "easeOut" }}
-        style={{
-          background: '#ffffff',
-          border: '1px solid var(--clr-border)',
-          borderRadius: '24px',
-          padding: '48px',
-          boxShadow: 'var(--shadow-xl)',
-          width: '100%',
-          maxWidth: '440px',
-          textAlign: 'center',
-          position: 'relative',
-          zIndex: 1
-        }}
-      >
-        <div className="lock-icon" style={{ fontSize: '40px', marginBottom: '24px', display: 'block' }}>🛡️</div>
-        <h2 style={{ fontSize: '32px', fontWeight: 800, color: 'var(--clr-text)', marginBottom: '8px', letterSpacing: '-1px' }}>Welcome Back</h2>
-        <p className="login-subtitle" style={{ color: 'var(--clr-text-muted)', fontSize: '16px' }}>Smart Campus Operations Hub</p>
-        
-        {error && (
-          <div className="alert alert-error fade-up" style={{
-            marginTop: '16px', 
-            background: 'rgba(248,81,73,0.1)', 
-            border: '1px solid var(--clr-danger)',
-            padding: '12px',
-            borderRadius: '8px',
-            color: 'var(--clr-danger)',
-            fontSize: '14px'
-          }}>
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} style={{ marginTop: '32px', textAlign: 'left' }}>
-          <div className="form-group">
-            <label className="form-label">University Email</label>
-            <input 
-              type="email" 
-              className="input" 
-              placeholder="name@university.edu"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required 
-            />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Password</label>
-            <input 
-              type="password" 
-              className="input" 
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required 
-            />
-          </div>
-          <button 
-            type="submit" 
-            className="btn btn-primary" 
-            style={{ width: '100%', marginTop: '12px', height: '48px' }}
-            disabled={loading}
+    <div className="auth-page">
+      <Link to="/" className="auth-back-btn">
+        <ArrowLeft size={16} />
+        Back to Home
+      </Link>
+      <div className="auth-visual">
+        <img src={visualImage} className="auth-visual-img" alt="Campus" />
+        <div className="auth-visual-overlay"></div>
+        <div className="auth-visual-content">
+          <motion.h1 
+            className="auth-visual-title"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, delay: 0.2 }}
           >
-            {loading ? <div className="spinner" style={{margin:'0 auto'}}></div> : 'Sign In'}
-          </button>
-        </form>
-
-        <div className="divider">
-          <div className="divider-line"></div>
-          <span className="divider-text">OR</span>
-          <div className="divider-line"></div>
+            The Future of <br/> Campus Operations
+          </motion.h1>
+          <motion.p 
+            className="auth-visual-text"
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.8, delay: 0.4 }}
+          >
+            Seamlessly manage bookings, report incidents, and coordinate campus maintenance all in one smart platform.
+          </motion.p>
         </div>
-        
-        <button className="btn google-btn" onClick={loginWithGoogle} style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          width: '100%',
-          background: '#ffffff',
-          color: 'var(--clr-text)',
-          border: '1px solid var(--clr-border)',
-          height: '48px',
-          borderRadius: '12px',
-          fontWeight: 700,
-          cursor: 'pointer',
-          transition: 'all 0.3s'
-        }}>
-          <svg className="google-icon" viewBox="0 0 24 24" width="20" height="20" style={{marginRight: '12px'}}>
-            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-          </svg>
-          Continue with Google
-        </button>
+      </div>
 
-        <p style={{ marginTop: '32px', fontSize: '14px', color: 'var(--clr-text-muted)' }}>
-          New to SpaceSync? <Link to="/signup" className="login-card-link">Create an account</Link>
-        </p>
-        
-        <p className="login-footer">
-          By signing in, you agree to our Terms of Service and Privacy Policy.
-        </p>
-      </motion.div>
+      <div className="auth-form-container">
+        <div className="auth-card">
+          <div className="auth-logo-box">
+            <Lock size={32} />
+          </div>
+          <h2 className="auth-title">Welcome Back</h2>
+          <p className="auth-subtitle">Sign in to your SpaceSync account</p>
+          
+          {error && (
+            <motion.div 
+              className="badge-danger" 
+              style={{ width: '100%', padding: '14px', borderRadius: '14px', marginBottom: '24px', fontSize: '13px', display: 'block', textAlign: 'center', fontWeight: 700 }}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+            >
+              {error}
+            </motion.div>
+          )}
+
+          <form onSubmit={handleSubmit} className="auth-form">
+            <div className="auth-input-group">
+              <label className="auth-label">University Email</label>
+              <input 
+                type="email" 
+                className="auth-input" 
+                placeholder="name@university.edu"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required 
+              />
+            </div>
+            <div className="auth-input-group">
+              <label className="auth-label">Password</label>
+              <input 
+                type="password" 
+                className="auth-input" 
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required 
+              />
+            </div>
+            
+            <button 
+              type="submit" 
+              className="btn btn-primary" 
+              style={{ width: '100%', height: '52px', marginTop: '10px', fontSize: '15px' }}
+              disabled={loading}
+            >
+              {loading ? <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'}}><Loader2 className="animate-spin" size={20} /> Signing in...</div> : <div style={{display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'}}>Sign In <ArrowRight size={18} /></div>}
+            </button>
+          </form>
+
+          <div className="auth-divider">OR</div>
+
+          <button 
+            onClick={loginWithGoogle} 
+            className="google-auth-btn"
+          >
+            <div className="google-icon-wrapper">
+              <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" width="20" alt="" />
+            </div>
+            <span>Continue with Google</span>
+          </button>
+
+          <div className="auth-footer">
+            New to the platform? 
+            <Link to="/signup" className="auth-link">Create an account</Link>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -275,22 +275,6 @@ export function NewBookingPage() {
               />
             </div>
             <div className="form-group">
-              <label htmlFor="attendees">Expected Attendees <span className="req">*</span></label>
-              <input 
-                id="attendees"
-                type="number" 
-                min="1" 
-                placeholder="e.g. 8" 
-                className="form-control" 
-                required 
-                value={formData.attendees}
-                onChange={handleChange}
-              />
-            </div>
-          </div>
-
-          <div className="form-row">
-            <div className="form-group">
               <label htmlFor="startTime">Start Time <span className="req">*</span></label>
               <input 
                 id="startTime"
@@ -313,6 +297,23 @@ export function NewBookingPage() {
                 onChange={handleChange}
               />
             </div>
+          </div>
+
+          <div className="form-row" style={{ gridTemplateColumns: '1fr 2fr' }}>
+            <div className="form-group">
+              <label htmlFor="attendees">Expected Attendees <span className="req">*</span></label>
+              <input 
+                id="attendees"
+                type="number" 
+                min="1" 
+                placeholder="e.g. 8" 
+                className="form-control" 
+                required 
+                value={formData.attendees}
+                onChange={handleChange}
+              />
+            </div>
+            <div style={{ visibility: 'hidden' }}></div>
           </div>
 
           <div className="form-group">
@@ -358,8 +359,8 @@ export function NewBookingPage() {
 
       <style>{`
         .booking-page-container {
-          max-width: 840px;
-          margin: 48px auto;
+          max-width: 1200px;
+          margin: 40px auto;
           padding: 0 24px 80px;
           font-family: 'Inter', sans-serif;
         }
@@ -386,12 +387,13 @@ export function NewBookingPage() {
           background: #ffffff;
           border: 1px solid var(--clr-border);
           border-radius: 28px;
-          padding: 48px;
+          padding: 60px;
           box-shadow: var(--shadow-lg);
         }
-        .booking-form { display: flex; flex-direction: column; gap: 32px; }
+        .booking-form { display: flex; flex-direction: column; gap: 40px; }
         
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+        .form-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
+        @media (max-width: 900px) { .form-row { grid-template-columns: 1fr 1fr; } }
         @media (max-width: 600px) { .form-row { grid-template-columns: 1fr; } }
         
         .form-group { display: flex; flex-direction: column; gap: 10px; }

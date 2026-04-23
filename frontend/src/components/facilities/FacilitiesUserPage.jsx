@@ -1,5 +1,25 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { 
+  Building2, 
+  MapPin, 
+  Users, 
+  Clock, 
+  Search, 
+  X, 
+  Calendar, 
+  Ban, 
+  AlertCircle, 
+  Inbox,
+  ArrowLeft,
+  LayoutDashboard,
+  LogIn,
+  Library,
+  FlaskConical,
+  Users2,
+  Monitor,
+  DoorOpen
+} from 'lucide-react';
 import { resourceApi } from '../../api/resourceApi';
 import { useAuth } from '../../context/AuthContext';
 
@@ -202,11 +222,11 @@ const GLOBAL_CSS = `
 
 /* ─── Type metadata ─────────────────────────────────────────────── */
 const TYPE_META = {
-  LECTURE_HALL: { bg: '#eef2f9', color: '#003087', border: '#b3c3e0', emoji: '🏛️', label: 'Lecture Hall' },
-  LAB:          { bg: '#ecfdf5', color: '#059669', border: '#a7f3d0', emoji: '🔬', label: 'Lab'           },
-  MEETING_ROOM: { bg: '#fffbeb', color: '#b45309', border: '#fde68a', emoji: '🤝', label: 'Meeting Room'  },
-  EQUIPMENT:    { bg: '#f5f3ff', color: '#6d28d9', border: '#ddd6fe', emoji: '🖥️', label: 'Equipment'     },
-  ROOM:         { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa', emoji: '🚪', label: 'Study Room'    },
+  LECTURE_HALL: { bg: '#eef2f9', color: '#003087', border: '#b3c3e0', icon: Library, label: 'Lecture Hall' },
+  LAB:          { bg: '#ecfdf5', color: '#059669', border: '#a7f3d0', icon: FlaskConical, label: 'Lab'           },
+  MEETING_ROOM: { bg: '#fffbeb', color: '#b45309', border: '#fde68a', icon: Users2, label: 'Meeting Room'  },
+  EQUIPMENT:    { bg: '#f5f3ff', color: '#6d28d9', border: '#ddd6fe', icon: Monitor, label: 'Equipment'     },
+  ROOM:         { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa', icon: DoorOpen, label: 'Study Room'    },
 };
 
 /* ─── Status Badge ──────────────────────────────────────────────── */
@@ -249,8 +269,8 @@ function ResourceCard({ resource, onBook }) {
       {resource.imageUrl ? (
         <img src={resource.imageUrl} alt={resource.name} className="res-card-img" />
       ) : (
-        <div className="res-card-img-placeholder" style={{ background: meta.bg }}>
-          {meta.emoji}
+        <div className="res-card-img-placeholder" style={{ background: meta.bg, color: meta.color }}>
+          {meta.icon && <meta.icon size={48} />}
         </div>
       )}
 
@@ -263,7 +283,7 @@ function ResourceCard({ resource, onBook }) {
               {resource.name}
             </div>
             <span className="type-chip" style={{ background: meta.bg, color: meta.color, border: `1px solid ${meta.border}`, marginTop: '5px' }}>
-              {meta.emoji} {meta.label}
+              {meta.icon && <meta.icon size={12} />} {meta.label}
             </span>
           </div>
           <StatusBadge status={resource.status} />
@@ -272,19 +292,19 @@ function ResourceCard({ resource, onBook }) {
         {/* Info grid */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
           {[
-            resource.building  ? { icon: '🏢', label: 'Building',  value: resource.building  } : null,
-            resource.location  ? { icon: '📍', label: 'Location',  value: resource.location  } : null,
-            resource.capacity  ? { icon: '👥', label: 'Capacity',  value: `${resource.capacity} persons` } : null,
+            resource.building  ? { icon: Building2, label: 'Building',  value: resource.building  } : null,
+            resource.location  ? { icon: MapPin, label: 'Location',  value: resource.location  } : null,
+            resource.capacity  ? { icon: Users, label: 'Capacity',  value: `${resource.capacity} persons` } : null,
             resource.type !== 'EQUIPMENT' && resource.availabilityStart
-              ? { icon: '🕐', label: 'Hours', value: `${resource.availabilityStart} – ${resource.availabilityEnd}` }
+              ? { icon: Clock, label: 'Hours', value: `${resource.availabilityStart} – ${resource.availabilityEnd}` }
               : null,
-          ].filter(Boolean).map(({ icon, label, value }) => (
+          ].filter(Boolean).map(({ icon: Icon, label, value }) => (
             <div key={label} style={{
               background: '#f8fafc', borderRadius: '10px', padding: '9px 11px',
               border: '1px solid #f1f5f9',
             }}>
-              <div style={{ fontSize: '10px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '3px' }}>
-                {icon} {label}
+              <div style={{ fontSize: '10px', fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Icon size={10} /> {label}
               </div>
               <div style={{ fontSize: '12px', fontWeight: '600', color: '#334155' }}>
                 {value}
@@ -306,8 +326,9 @@ function ResourceCard({ resource, onBook }) {
             className="book-btn"
             onClick={() => onBook(resource)}
             disabled={!isActive}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}
           >
-            {isActive ? '📅  Book Now' : '🚫  Unavailable'}
+            {isActive ? <><Calendar size={16} /> Book Now</> : <><Ban size={16} /> Unavailable</>}
           </button>
         </div>
       </div>
@@ -344,7 +365,7 @@ function FiltersBar({ onFilter }) {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', alignItems: 'center' }}>
         {/* Search */}
         <div className="search-wrap">
-          <span className="search-icon">🔍</span>
+          <span className="search-icon"><Search size={16} /></span>
           <input
             className="search-input"
             name="search"
@@ -370,13 +391,13 @@ function FiltersBar({ onFilter }) {
         </select>
 
         <input name="building" value={f.building} onChange={handle}
-          placeholder="🏢 Building" className="filter-input" style={{ width: '140px' }} />
+          placeholder="Building" className="filter-input" style={{ width: '140px' }} />
 
         <input name="location" value={f.location} onChange={handle}
-          placeholder="📍 Location" className="filter-input" style={{ width: '140px' }} />
+          placeholder="Location" className="filter-input" style={{ width: '140px' }} />
 
         <input name="minCapacity" value={f.minCapacity} onChange={handle}
-          type="number" min="1" placeholder="👥 Min capacity"
+          type="number" min="1" placeholder="Min capacity"
           className="filter-input" style={{ width: '140px' }} />
 
         {hasFilters && (
@@ -385,8 +406,9 @@ function FiltersBar({ onFilter }) {
             padding: '0 16px', height: '40px', fontSize: '13px',
             color: '#64748b', cursor: 'pointer', fontWeight: '600',
             fontFamily: 'Inter, sans-serif', transition: 'all 0.2s',
+            display: 'flex', alignItems: 'center', gap: '6px'
           }}>
-            ✕ Clear
+            <X size={14} /> Clear
           </button>
         )}
       </div>
@@ -395,10 +417,10 @@ function FiltersBar({ onFilter }) {
 }
 
 /* ─── Stat Card ─────────────────────────────────────────────────── */
-function StatCard({ label, value, bg, color, border, emoji }) {
+function StatCard({ label, value, bg, color, border, icon: Icon }) {
   return (
     <div className="stat-card" style={{ background: bg, border: `1.5px solid ${border}` }}>
-      <div style={{ fontSize: '30px' }}>{emoji}</div>
+      <div style={{ color, opacity: 0.8 }}><Icon size={30} /></div>
       <div>
         <div style={{ fontSize: '26px', fontWeight: '800', color, lineHeight: 1 }}>{value}</div>
         <div style={{ fontSize: '11px', color: '#64748b', marginTop: '4px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.4px' }}>{label}</div>
@@ -457,11 +479,11 @@ export default function FacilitiesUserPage() {
     : resources;
 
   const stats = [
-    { label: 'Lecture Halls', value: resources.filter(r => r.type === 'LECTURE_HALL').length, bg: '#eef2f9', color: '#003087', border: '#b3c3e0', emoji: '🏛️' },
-    { label: 'Labs',          value: resources.filter(r => r.type === 'LAB').length,          bg: '#ecfdf5', color: '#059669', border: '#a7f3d0', emoji: '🔬' },
-    { label: 'Meeting Rooms', value: resources.filter(r => r.type === 'MEETING_ROOM').length, bg: '#fffbeb', color: '#b45309', border: '#fde68a', emoji: '🤝' },
-    { label: 'Equipment',     value: resources.filter(r => r.type === 'EQUIPMENT').length,    bg: '#f5f3ff', color: '#6d28d9', border: '#ddd6fe', emoji: '🖥️' },
-    { label: 'Study Rooms',   value: resources.filter(r => r.type === 'ROOM').length,         bg: '#fff7ed', color: '#c2410c', border: '#fed7aa', emoji: '🚪' },
+    { label: 'Lecture Halls', value: resources.filter(r => r.type === 'LECTURE_HALL').length, bg: '#eef2f9', color: '#003087', border: '#b3c3e0', icon: Library },
+    { label: 'Labs',          value: resources.filter(r => r.type === 'LAB').length,          bg: '#ecfdf5', color: '#059669', border: '#a7f3d0', icon: FlaskConical },
+    { label: 'Meeting Rooms', value: resources.filter(r => r.type === 'MEETING_ROOM').length, bg: '#fffbeb', color: '#b45309', border: '#fde68a', icon: Users2 },
+    { label: 'Equipment',     value: resources.filter(r => r.type === 'EQUIPMENT').length,    bg: '#f5f3ff', color: '#6d28d9', border: '#ddd6fe', icon: Monitor },
+    { label: 'Study Rooms',   value: resources.filter(r => r.type === 'ROOM').length,         bg: '#fff7ed', color: '#c2410c', border: '#fed7aa', icon: DoorOpen },
   ];
 
   return (
@@ -497,31 +519,23 @@ export default function FacilitiesUserPage() {
             </span>
           </Link>
 
-          {/* Centre label */}
-          <div style={{
-            color: '#003087', fontSize: '13px', fontWeight: '600',
-            display: 'flex', alignItems: 'center', gap: '7px',
-            background: '#eef2f9', padding: '6px 14px', borderRadius: '20px',
-            border: '1px solid #b3c3e0',
-          }}>
-            <span>🏛️</span> SLIIT Campus Resources
-          </div>
 
           {/* Right actions */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Link to="/" className="nav-link-btn">
-              ← Back
+              <ArrowLeft size={16} /> Back
             </Link>
             {user ? (
               <button
                 className="dash-btn"
                 onClick={() => navigate(user.role === 'ADMIN' ? '/admin' : '/dashboard')}
+                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
               >
-                Dashboard →
+                Dashboard <LayoutDashboard size={16} />
               </button>
             ) : (
-              <Link to="/login" className="dash-btn" style={{ textDecoration: 'none' }}>
-                Sign In →
+              <Link to="/login" className="dash-btn" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                Sign In <LogIn size={16} />
               </Link>
             )}
           </div>
@@ -602,7 +616,7 @@ export default function FacilitiesUserPage() {
             marginBottom: '24px', color: '#e11d48', fontSize: '13px',
             display: 'flex', alignItems: 'center', gap: '10px',
           }}>
-            ⚠️ {error}
+            <AlertCircle size={16} /> {error}
           </div>
         )}
 
@@ -624,14 +638,20 @@ export default function FacilitiesUserPage() {
             textAlign: 'center', padding: '80px 0',
             background: '#fff', borderRadius: '18px',
             border: '1.5px dashed #b3c3e0',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '16px'
           }}>
-            <p style={{ fontSize: '52px', marginBottom: '14px' }}>📭</p>
-            <p style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a', margin: '0 0 8px' }}>
-              No resources found
-            </p>
-            <p style={{ fontSize: '13px', color: '#94a3b8', margin: 0 }}>
-              Try adjusting your filters or check back later.
-            </p>
+            <Inbox size={52} color="#94a3b8" />
+            <div>
+              <p style={{ fontSize: '16px', fontWeight: '700', color: '#0f172a', margin: '0 0 8px' }}>
+                No resources found
+              </p>
+              <p style={{ fontSize: '13px', color: '#94a3b8', margin: 0 }}>
+                Try adjusting your filters or check back later.
+              </p>
+            </div>
           </div>
         ) : (
           <>
