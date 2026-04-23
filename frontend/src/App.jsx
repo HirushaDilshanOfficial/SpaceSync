@@ -40,18 +40,37 @@ import './index.css';
 
 
 import { useAuth } from './context/AuthContext';
+import { useNotifications } from './context/NotificationContext';
 
 // Layout for protected pages
 const ProtectedLayout = () => {
   const { user, logout } = useAuth();
+  const { notifications } = useNotifications();
   const navigate = useNavigate();
   const isAdmin = user?.role === 'ADMIN' || user?.email?.includes('admin');
   const isTechnician = user?.role === 'TECHNICIAN';
 
-  const NavItem = ({ to, icon: Icon, label }) => (
+  const bookingRequestCount = notifications.filter(n => !n.read && n.type === 'BKG_REQ').length;
+
+  const NavItem = ({ to, icon: Icon, label, badge }) => (
     <Link to={to} className="side-nav-link">
-      <Icon size={20} />
-      <span>{label}</span>
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: '14px' }}>
+        <Icon size={20} />
+        {badge > 0 && (
+          <span style={{ 
+            position: 'absolute', top: '-8px', left: '10px', 
+            background: '#f43f5e', color: '#fff', 
+            fontSize: '10px', fontWeight: '900', 
+            minWidth: '16px', height: '16px', 
+            borderRadius: '8px', display: 'flex', 
+            alignItems: 'center', justifyContent: 'center',
+            padding: '0 4px', border: '2px solid #003087'
+          }}>
+            {badge > 9 ? '9+' : badge}
+          </span>
+        )}
+        <span>{label}</span>
+      </div>
     </Link>
   );
 
@@ -105,7 +124,7 @@ const ProtectedLayout = () => {
               <>
                 <NavItem to="/" icon={Home} label="Home" />
                 <NavItem to="/admin" icon={LayoutDashboard} label="Admin Panel" />
-                <NavItem to="/admin/bookings" icon={BookOpen} label="Manage Bookings" />
+                <NavItem to="/admin/bookings" icon={BookOpen} label="Manage Bookings" badge={bookingRequestCount} />
                 <NavItem to="/admin/users" icon={Users} label="Users" />
                 <NavItem to="/admin/facilities" icon={Settings} label="Facilities" />
                 <NavItem to="/incidents" icon={Wrench} label="Incident Center" />

@@ -230,7 +230,8 @@ export function MyBookingsPage() {
       });
       if (!res.ok) throw new Error('Failed to fetch bookings');
       const data = await res.json();
-      setBookings(data.sort((a, b) => new Date(b.startTime) - new Date(a.startTime)));
+      // Sort by createdAt descending (newest first)
+      setBookings(data.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
     } catch (err) {
       setError(err.message);
     } finally {

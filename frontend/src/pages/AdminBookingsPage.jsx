@@ -528,9 +528,23 @@ export function AdminBookingsPage() {
         .scanner-modal { max-width: 440px; }
         .scanner-view { 
           width: 100%; aspect-ratio: 1; background: #0f172a; border-radius: 16px; position: relative; overflow: hidden; 
-          border: 4px solid #f1f5f9;
+          border: 4px solid #f1f5f9; display: flex; flex-direction: column; align-items: center; justify-content: center;
         }
-        .scanner-overlay { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; color: #fff; text-align: center; padding: 24px; z-index: 10; }
+        #reader { width: 100% !important; border: none !important; }
+        #reader * { color: #ffffff !important; font-family: inherit !important; }
+        #reader button { 
+          background: var(--clr-primary) !important; color: #fff !important; 
+          padding: 10px 20px !important; border-radius: 10px !important; 
+          border: none !important; font-weight: 800 !important; 
+          font-size: 12px !important; text-transform: uppercase !important;
+          cursor: pointer !important; transition: all 0.2s !important;
+          box-shadow: 0 4px 12px rgba(0,48,135,0.3) !important;
+        }
+        #reader button:hover { transform: translateY(-1px) !important; filter: brightness(1.1) !important; }
+        #reader img { filter: brightness(0) invert(1) !important; opacity: 0.8 !important; }
+        #reader__status_span { font-size: 13px !important; font-weight: 600 !important; margin-top: 10px !important; }
+        
+        .scanner-overlay { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.9); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; color: #fff; text-align: center; padding: 24px; z-index: 10; }
         .scanner-overlay.success { color: #10b981; }
         .scanner-overlay.error { color: #f43f5e; }
         .scanner-footer { text-align: center; font-size: 13px; color: var(--clr-text-muted); padding-top: 12px; font-weight: 500; }

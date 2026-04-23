@@ -242,4 +242,17 @@ public class NotificationService {
     public void notifyResolution(com.spacesync.entity.IncidentTicket ticket) {
         sendTicketResolvedNotification(ticket);
     }
+
+    /** Notify all admins about a new booking request */
+    public void notifyAdminsAboutNewBooking(String bookingId, String resourceName, String userName) {
+        List<User> admins = userRepository.findAllByRole(com.spacesync.user.Role.ADMIN);
+        for (User admin : admins) {
+            sendNotification(admin.getEmail(),
+                    NotificationType.BKG_REQ,
+                    "New Booking Request 📅",
+                    userName + " has requested a booking for \"" + resourceName + "\".",
+                    bookingId,
+                    "/admin/bookings");
+        }
+    }
 }

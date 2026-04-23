@@ -26,5 +26,8 @@ public enum NotificationType {
     TICKET_ASSIGNED,
 
     /** General system / admin broadcast */
-    SYSTEM
+    SYSTEM,
+
+    /** Admin: A new booking request was submitted */
+    BKG_REQ
 }

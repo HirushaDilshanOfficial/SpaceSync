@@ -18,6 +18,7 @@ export default function Notifications() {
     if (type.includes('REJECTED')) return 'badge-danger';
     if (type.includes('COMMENT')) return 'badge-info';
     if (type.includes('STATUS')) return 'badge-warning';
+    if (type.includes('BKG_REQ')) return 'badge-primary';
     return 'badge-neutral';
   };
 
@@ -26,6 +27,7 @@ export default function Notifications() {
     if (type.includes('REJECTED')) return '❌';
     if (type.includes('COMMENT')) return '💬';
     if (type.includes('STATUS')) return '🔧';
+    if (type.includes('BKG_REQ')) return '📅';
     return '🔔';
   };
 
