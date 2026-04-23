@@ -37,6 +37,7 @@ SpaceSync is a production-inspired web system designed for SLIIT (IT3030 - PAF A
 
 ## Special Features
 
+- Professional PDF Reporting: Admins can export detailed booking reports and resource inventories as professionally designed PDF documents with SLIIT branding.
 - QR Code Check-in System: Automated generation of unique QR codes for approved bookings, enabling administrators to verify attendance quickly using a built-in browser scanner.
 - Interactive Maintenance Calendar: A visual calendar interface for administrators to track and manage all ongoing and scheduled maintenance tasks across the campus.
 - Cloudinary Image Hosting: Seamless integration with Cloudinary for robust and scalable storage of incident evidence images.

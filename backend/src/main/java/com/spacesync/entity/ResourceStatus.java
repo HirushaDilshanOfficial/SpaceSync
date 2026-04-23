@@ -2,7 +2,7 @@ package com.spacesync.entity;
 
 public enum ResourceStatus {
     ACTIVE,
-    INACTIVE,
+    OUT_OF_SERVICE,
     MAINTENANCE,
     DECOMMISSIONED
 }

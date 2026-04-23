@@ -334,21 +334,56 @@ export default function FacilitiesPage() {
             </p>
           </div>
 
-          <button
-            onClick={() => { setEditTarget(null); setShowForm(true); }}
-            style={{
-              background: 'linear-gradient(135deg, #e8871a, #f0a040)',
-              color: '#fff', border: 'none', borderRadius: '12px',
-              padding: '12px 24px', fontSize: '14px', fontWeight: '700',
-              cursor: 'pointer', boxShadow: '0 4px 14px rgba(232,135,26,0.4)',
-              display: 'flex', alignItems: 'center', gap: '8px',
-              transition: 'all 0.2s',
-              flexShrink: 0,
-            }}
-          >
-            <span style={{ fontSize: '18px' }}>+</span>
-            Add New Resource
-          </button>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button
+              onClick={async () => {
+                try {
+                  const token = localStorage.getItem('token');
+                  const params = new URLSearchParams({
+                    type: filters.type || '',
+                    status: filters.status || '',
+                    location: filters.location || ''
+                  });
+                  
+                  const response = await fetch(`/api/reports/resources?${params.toString()}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                  });
+                  if (!response.ok) throw new Error('Failed to generate report');
+                  const blob = await response.blob();
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `SpaceSync-Resources-Report-${new Date().toISOString().split('T')[0]}.pdf`;
+                  document.body.appendChild(a);
+                  a.click();
+                  a.remove();
+                } catch (err) { alert('Error: ' + err.message); }
+              }}
+              style={{
+                background: '#fff', color: '#003087', border: '1.5px solid #003087',
+                borderRadius: '12px', padding: '12px 20px', fontSize: '14px',
+                fontWeight: '700', cursor: 'pointer', display: 'flex',
+                alignItems: 'center', gap: '8px', transition: 'all 0.2s',
+              }}
+            >
+              📥 Export PDF
+            </button>
+            <button
+              onClick={() => { setEditTarget(null); setShowForm(true); }}
+              style={{
+                background: 'linear-gradient(135deg, #e8871a, #f0a040)',
+                color: '#fff', border: 'none', borderRadius: '12px',
+                padding: '12px 24px', fontSize: '14px', fontWeight: '700',
+                cursor: 'pointer', boxShadow: '0 4px 14px rgba(232,135,26,0.4)',
+                display: 'flex', alignItems: 'center', gap: '8px',
+                transition: 'all 0.2s',
+                flexShrink: 0,
+              }}
+            >
+              <span style={{ fontSize: '18px' }}>+</span>
+              Add New Resource
+            </button>
+          </div>
         </div>
 
         {/* ── Stat Cards ── */}
