@@ -118,27 +118,8 @@ export default function Dashboard() {
         style={{ position: 'relative', zIndex: 1, paddingTop: '32px', paddingBottom: '60px' }}
       >
         {/* Header Section */}
-        <header className="dash-header">
-          <div className="user-greeting">
-            <motion.div variants={itemVariants} className="avatar-wrapper">
-              {user?.pictureUrl ? (
-                <img src={user.pictureUrl} alt={user.name} className="user-avatar" />
-              ) : (
-                <div className="user-avatar placeholder">
-                  <UserIcon size={24} />
-                </div>
-              )}
-              <div className="status-dot"></div>
-            </motion.div>
-            <div className="greeting-text">
-              <motion.h1 variants={itemVariants}>
-                Welcome back, {user?.name?.split(' ')[0] || 'Scholar'}
-              </motion.h1>
-              <motion.p variants={itemVariants} className="text-muted">
-                Here's what's happening on your campus today.
-              </motion.p>
-            </div>
-          </div>
+        {/* Dashboard Actions Row */}
+        <header className="dash-header" style={{ justifyContent: 'flex-end', marginBottom: '32px' }}>
           <motion.div variants={itemVariants} className="header-actions" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
             <button className="btn btn-ghost" onClick={() => navigate('/my-reports')}>
               <BookOpen size={18} />

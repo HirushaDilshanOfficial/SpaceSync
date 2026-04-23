@@ -2,8 +2,10 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, AlertTriangle, CheckCircle, Clock,
-  Wrench, Zap, User, MapPin, Tag, Calendar
+  Wrench, Zap, User, MapPin, Tag, Calendar,
+  UserPlus, MessageSquare, ShieldCheck
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const PRIORITY_CFG = {
   CRITICAL: { bg: '#fef2f2', text: '#dc2626', dot: '#ef4444', label: 'Critical' },
@@ -27,10 +29,18 @@ const TYPE_CFG = {
 
 export function IncidentDetailsPage() {
   const navigate  = useNavigate();
+  const { user: currentUser } = useAuth();
   const { id }    = useParams();
   const [incident, setIncident] = useState(null);
   const [logs,     setLogs]     = useState([]);
   const [loading,  setLoading]  = useState(true);
+  const [technicians, setTechnicians] = useState([]);
+  const [isAssigning, setIsAssigning] = useState(false);
+  const [newNotes, setNewNotes] = useState('');
+
+  const isAdmin = currentUser?.role === 'ADMIN' || currentUser?.email?.includes('admin');
+  const isTechnician = currentUser?.role === 'TECHNICIAN';
+  const isAssignedToMe = incident?.assignedTo === currentUser?.email;
 
   const fetchData = useCallback(async () => {
     try {
@@ -42,22 +52,47 @@ export function IncidentDetailsPage() {
       ]);
       if (incRes.ok) setIncident(await incRes.json());
       if (logRes.ok) setLogs(await logRes.json());
+      
+      // If admin, fetch potential technicians
+      if (isAdmin) {
+        const userRes = await fetch('/api/users', { headers });
+        if (userRes.ok) {
+          const allUsers = await userRes.json();
+          setTechnicians(allUsers.filter(u => u.role === 'TECHNICIAN'));
+        }
+      }
     } catch (e) {
       console.error(e);
     } finally {
       setLoading(false);
     }
-  }, [id]);
+  }, [id, isAdmin]);
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
   const updateStatus = async status => {
     const token = localStorage.getItem('token');
-    await fetch(`/api/incidents/${id}/status?status=${status}&performedBy=ADMIN`, {
+    await fetch(`/api/incidents/${id}/status?status=${status}&performedBy=${currentUser.email}`, {
       method: 'PATCH',
       headers: { Authorization: `Bearer ${token}` },
     });
     fetchData();
+  };
+
+  const assignTechnician = async (techEmail) => {
+    setIsAssigning(true);
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`/api/incidents/${id}/assign?assignedTo=${techEmail}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) fetchData();
+    } catch (e) {
+      console.error('Failed to assign technician:', e);
+    } finally {
+      setIsAssigning(false);
+    }
   };
 
   const fmtDate = iso => iso
@@ -71,7 +106,7 @@ export function IncidentDetailsPage() {
   /* ── Loading ── */
   if (loading) return (
     <div style={{ ...S.centered, minHeight: '60vh' }}>
-      <Clock size={32} style={{ opacity: .2, marginBottom: 12 }} />
+      <Clock size={32} className="animate-spin" style={{ opacity: .2, marginBottom: 12 }} />
       <p style={{ color: 'var(--clr-text-muted)', fontSize: 14 }}>Loading details…</p>
     </div>
   );
@@ -97,11 +132,11 @@ export function IncidentDetailsPage() {
 
       {/* ── Top bar ───────────────────────────────── */}
       <div style={S.topBar}>
-        <button style={S.backBtn} onClick={() => navigate('/incidents')}>
-          <ArrowLeft size={14} /> Incidents
+        <button style={S.backBtn} onClick={() => navigate(isAdmin ? '/incidents' : (isTechnician ? '/technician' : '/my-reports'))}>
+          <ArrowLeft size={14} /> {isAdmin ? 'Incident Center' : 'My Reports'}
         </button>
         <div style={S.topBadges}>
-          <span style={{ ...S.badge, background: pr.bg, color: pr.text }}>{pr.label}</span>
+          <span style={{ ...S.badge, background: pr.bg, color: pr.text }}>{pr.label} Priority</span>
           <span style={{ ...S.badge, background: st.bg, color: st.text }}>{st.label}</span>
         </div>
       </div>
@@ -134,17 +169,9 @@ export function IncidentDetailsPage() {
             <p style={S.descText}>{incident.description || 'No description provided.'}</p>
           </div>
 
-          {/* Notes */}
-          {incident.notes && (
-            <div style={S.card}>
-              <p style={S.cardLabel}>Notes</p>
-              <p style={S.descText}>{incident.notes}</p>
-            </div>
-          )}
-
           {/* Activity Log */}
           <div style={S.card}>
-            <p style={S.cardLabel}>Activity Log</p>
+            <p style={S.cardLabel}>Timeline & Activity</p>
             {logs.length === 0 ? (
               <p style={{ color: 'var(--clr-text-muted)', fontSize: 13, padding: '12px 0' }}>No activity yet.</p>
             ) : (
@@ -175,41 +202,82 @@ export function IncidentDetailsPage() {
 
           {/* Status actions */}
           <div style={S.card}>
-            <p style={S.cardLabel}>Actions</p>
+            <p style={S.cardLabel}>Management Actions</p>
             <div style={S.actionBtns}>
-              {incident.status === 'OPEN' && (
+              {/* Technician / Admin Start Work */}
+              {(isAdmin || isTechnician) && incident.status === 'OPEN' && (
                 <button
                   style={{ ...S.actionBtn, background: '#f5f3ff', color: '#7c3aed', border: '1px solid #ede9fe' }}
                   onClick={() => updateStatus('IN_PROGRESS')}
-                >Start Work</button>
+                >
+                  <Wrench size={16} /> Mark In Progress
+                </button>
               )}
-              {incident.status === 'IN_PROGRESS' && (
+              
+              {/* Mark Resolved - Only if in progress and user is admin or assigned tech */}
+              {(isAdmin || isAssignedToMe) && incident.status === 'IN_PROGRESS' && (
                 <button
                   style={{ ...S.actionBtn, background: '#ecfdf5', color: '#059669', border: '1px solid #d1fae5' }}
                   onClick={() => updateStatus('RESOLVED')}
-                >Mark Resolved</button>
+                >
+                  <CheckCircle size={16} /> Confirm Resolution
+                </button>
               )}
-              {incident.status === 'RESOLVED' && (
+              
+              {/* Close Ticket - Only Admin */}
+              {isAdmin && incident.status === 'RESOLVED' && (
                 <button
                   style={{ ...S.actionBtn, background: '#eff6ff', color: '#1e40af', border: '1px solid #dbeafe' }}
                   onClick={() => updateStatus('CLOSED')}
-                >Close Ticket</button>
+                >
+                  <ShieldCheck size={16} /> Close Ticket Permanently
+                </button>
               )}
+
               {incident.status === 'CLOSED' && (
-                <p style={{ color: 'var(--clr-text-muted)', fontSize: 13, fontWeight: 700 }}>Ticket is closed.</p>
+                <div style={{ textAlign: 'center', padding: '12px', background: '#f8fafc', borderRadius: '12px' }}>
+                  <p style={{ color: 'var(--clr-text-muted)', fontSize: 13, fontWeight: 700, margin: 0 }}>Ticket is officially closed.</p>
+                </div>
               )}
             </div>
           </div>
 
+          {/* Assign Technician (Admin Only) */}
+          {isAdmin && incident.status !== 'CLOSED' && (
+            <div style={S.card}>
+              <p style={S.cardLabel}>Assignment Control</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ position: 'relative' }}>
+                  <select 
+                    style={S.select} 
+                    value={incident.assignedTo || ''} 
+                    onChange={(e) => assignTechnician(e.target.value)}
+                    disabled={isAssigning}
+                  >
+                    <option value="">Unassigned</option>
+                    {technicians.map(tech => (
+                      <option key={tech.email} value={tech.email}>{tech.name} ({tech.email})</option>
+                    ))}
+                  </select>
+                  <UserPlus size={14} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none', color: '#64748b' }} />
+                </div>
+                {incident.assignedTo && (
+                  <p style={{ fontSize: '11px', color: '#64748b', fontWeight: 600, margin: 0 }}>
+                    Assigned to: <span style={{ color: '#003087' }}>{incident.assignedTo}</span>
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Info grid */}
           <div style={S.card}>
-            <p style={S.cardLabel}>Details</p>
+            <p style={S.cardLabel}>Ticket Metadata</p>
             <div style={S.infoGrid}>
               <InfoRow icon={<Tag size={13}/>}      label="Type"       value={tp.label} />
               <InfoRow icon={<AlertTriangle size={13}/>} label="Priority" value={pr.label} valueColor={pr.text} />
               <InfoRow icon={<Clock size={13}/>}    label="Status"     value={st.label} valueColor={st.text} />
               <InfoRow icon={<MapPin size={13}/>}   label="Resource"   value={incident.resourceName || '—'} />
-              <InfoRow icon={<User size={13}/>}     label="Reported by" value={incident.reportedBy || '—'} />
               {incident.assignedTo && (
                 <InfoRow icon={<Wrench size={13}/>} label="Assigned to" value={incident.assignedTo} />
               )}
@@ -288,14 +356,12 @@ const S = {
   badge: {
     padding: '6px 16px',
     borderRadius: 20,
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: 800,
     textTransform: 'uppercase',
     letterSpacing: '0.5px',
     border: '1px solid rgba(0,0,0,0.05)',
   },
-
-  /* Title */
   titleBlock: {
     marginBottom: 40,
   },
@@ -334,8 +400,6 @@ const S = {
     color: 'var(--clr-text-muted)',
     fontWeight: 600,
   },
-
-  /* Two col */
   cols: {
     display: 'grid',
     gridTemplateColumns: '1fr 360px',
@@ -344,8 +408,6 @@ const S = {
   },
   colLeft:  { display: 'flex', flexDirection: 'column', gap: 24 },
   colRight: { display: 'flex', flexDirection: 'column', gap: 24 },
-
-  /* Card */
   card: {
     background: '#ffffff',
     border: '1px solid var(--clr-border)',
@@ -362,16 +424,12 @@ const S = {
     marginBottom: 24,
     display: 'block',
   },
-
-  /* Description */
   descText: {
     fontSize: 16,
     color: 'var(--clr-text)',
     lineHeight: 1.6,
     fontWeight: 500,
   },
-
-  /* Actions */
   actionBtns: {
     display: 'flex',
     flexDirection: 'column',
@@ -386,9 +444,24 @@ const S = {
     cursor: 'pointer',
     textAlign: 'center',
     transition: 'all 0.3s cubic-bezier(.4,0,.2,1)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '10px'
   },
-
-  /* Info grid */
+  select: {
+    width: '100%',
+    padding: '12px 16px',
+    borderRadius: '12px',
+    border: '1.5px solid #e2e8f0',
+    background: '#f8fafc',
+    fontSize: '14px',
+    fontWeight: 600,
+    color: '#1e293b',
+    outline: 'none',
+    appearance: 'none',
+    cursor: 'pointer'
+  },
   infoGrid: {
     display: 'flex',
     flexDirection: 'column',
@@ -418,8 +491,6 @@ const S = {
     fontWeight: 700,
     flex: 1,
   },
-
-  /* Activity log */
   logList: {
     display: 'flex',
     flexDirection: 'column',

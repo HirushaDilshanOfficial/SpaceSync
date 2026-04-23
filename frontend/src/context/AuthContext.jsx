@@ -41,7 +41,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     const handleLogout = () => {
       setUser(null);
-      navigate('/login');
+      navigate('/');
     };
     window.addEventListener('auth-logout', handleLogout);
     return () => window.removeEventListener('auth-logout', handleLogout);
@@ -134,7 +134,7 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('token');
     setUser(null);
-    navigate('/login');
+    navigate('/');
   };
 
   const value = {
