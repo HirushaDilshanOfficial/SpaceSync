@@ -25,6 +25,7 @@ public class BookingService {
     private final EmailService emailService;
     private final EmailTemplateService emailTemplateService;
     private final QrCodeService qrCodeService;
+    private final com.spacesync.notification.NotificationService notificationService;
 
     public byte[] getQrCodeBytes(Long bookingId) {
         Booking booking = bookingRepository.findById(bookingId)
@@ -98,6 +99,21 @@ public class BookingService {
                 .build();
 
         Booking savedBooking = bookingRepository.save(booking);
+
+        // Notify admins about new booking
+        try {
+            com.spacesync.user.User user = userRepository.findById(request.getUserId()).orElse(null);
+            String userName = (user != null) ? user.getName() : "A user";
+            String resourceName = resourceRepository.findById(request.getResourceId())
+                    .map(com.spacesync.entity.Resource::getName)
+                    .orElse(request.getResourceId());
+            
+            notificationService.notifyAdminsAboutNewBooking(savedBooking.getId().toString(), resourceName, userName);
+        } catch (Exception e) {
+            // Log error but don't fail booking creation
+            System.err.println("Failed to send admin notification: " + e.getMessage());
+        }
+
         return mapToResponseDTO(savedBooking);
     }
 

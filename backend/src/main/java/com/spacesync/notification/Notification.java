@@ -34,7 +34,7 @@ public class Notification {
 
     /** Category of notification */
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, length = 100)
     private NotificationType type;
 
     /** Short subject line shown in the notification bell */

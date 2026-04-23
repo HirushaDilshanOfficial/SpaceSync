@@ -235,7 +235,17 @@ export function Navbar() {
           {/* Logo */}
           <NavLink to="/dashboard" className="ss-logo">
             <div className="ss-logo-box">
-              <CalendarDays size={18} color="#fff" strokeWidth={2.3} />
+              <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
+                <defs>
+                  <linearGradient id="navLogoGrad" x1="0" y1="0" x2="32" y2="32">
+                    <stop offset="0%" stopColor="#ffffff" stopOpacity="0.8"/>
+                    <stop offset="100%" stopColor="#ffffff"/>
+                  </linearGradient>
+                </defs>
+                <path d="M10 22V14C10 10.686 12.686 8 16 8C19.314 8 22 10.686 22 14V22" stroke="url(#navLogoGrad)" strokeWidth="2.8" strokeLinecap="round"/>
+                <circle cx="16" cy="18" r="2.8" fill="#F5A800"/>
+                <path d="M8 22H24" stroke="url(#navLogoGrad)" strokeWidth="2.8" strokeLinecap="round"/>
+              </svg>
             </div>
             <div className="ss-logo-text-wrap">
               <span className="ss-logo-name">Space<span>Sync</span></span>
